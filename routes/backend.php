@@ -122,6 +122,10 @@ Route::middleware(['prevent_back_history'])->group(function (){
             Route::get('invoice-list', ['uses' => 'Admin\ProductController@invoiceList', 'as' => 'invoice-list']);
             Route::get('get-invoice-datatable', ['uses' => 'Admin\ProductController@getInvoiceDatatable', 'as' => 'invoice-datatable']);
             
+            Route::get('driver-attendance', ['uses' => 'Admin\StaffController@driverAttendance', 'as' => 'driver-attendance']);
+            Route::get('get-driver-attendance-datatable', ['uses' => 'Admin\StaffController@getDriverAttendanceDatatable', 'as' => 'driver-attendance-datatable']);
+
+            
         });
  
     });

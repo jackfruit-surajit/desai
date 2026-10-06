@@ -79,7 +79,7 @@ $role = Role::find($user->role_id);
     <ul class="pc-submenu">
     
       <li class="pc-item"><a class="pc-link" href="{{route('invoice-list')}}">Daily sales</a></li>
-      <!--<li class="pc-item"><a class="pc-link" href="">Attendance</a></li>-->
+      <li class="pc-item"><a class="pc-link" href="{{route('driver-attendance')}}">Driver Attendance</a></li>
       <!--<li class="pc-item"><a class="pc-link" href="">vehicle Fuel expenses</a></li>-->
       <!--<li class="pc-item"><a class="pc-link" href="">Warehouse stock</a></li>-->
       <!--<li class="pc-item"><a class="pc-link" href="">Vehicle stock</a></li>-->

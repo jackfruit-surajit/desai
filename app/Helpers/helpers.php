@@ -3,7 +3,7 @@
 if (!function_exists('asset_path')) {
     function asset_path($path = null)
     {
-        $prefix = 'public/';
+        $prefix = '/';
         return $prefix . $path;
     }
 }

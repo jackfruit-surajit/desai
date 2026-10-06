@@ -103,6 +103,42 @@ class StaffController extends Controller {
     }
     
     
+    public function driverAttendance(Request $request) {
+        $data = [];
+        return view('admin.staff.driver_attendance', $data);
+    }
+
+    public function getDriverAttendanceDatatable(Request $request) {
+        $data = DB::table('driver_punch_in as t1')
+                ->leftJoin('admins as t2', 't1.user_id', '=', 't2.id')
+                ->select('t1.*', 't2.name as driver_name')
+                ->where('t2.role_id','3')
+                ->orderBy('t1.id', 'desc')
+                ->get();
+
+        return Datatables::of($data)
+            ->addIndexColumn()
+            ->editColumn('selfie', function ($model) {
+                if (isset($model->selfie) && $model->selfie != '') {
+                    $path = URL::asset('public/uploads/driver/' . $model->selfie);
+                    return '<img height="50" width="50" src="' . $path . '"/>';
+                } else {
+                    return 'N/A';
+                }
+            })
+            ->editColumn('punch_in_time', function ($model) {
+                return $model->punch_in_time ? date('d-m-Y H:i:s', strtotime($model->punch_in_time)) : 'N/A';
+            })
+            ->editColumn('break_time', function ($model) {
+                return $model->break_time ? date('d-m-Y H:i:s', strtotime($model->break_time)) : 'N/A';
+            })
+            ->editColumn('punch_out_time', function ($model) {
+                return $model->punch_out_time ? date('d-m-Y H:i:s', strtotime($model->punch_out_time)) : 'N/A';
+            })
+            ->rawColumns(['selfie'])
+            ->make(true);
+    }
+
     public function driverList(Request $request) {
         $data = [];
         $data['roles'] = DB::table('roles')->get();
