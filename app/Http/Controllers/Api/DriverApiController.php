@@ -12,6 +12,7 @@ use App\Models\DriverPunchIn;
 use App\Models\Customer;
 use App\Models\ShopDeliveryHistory;
 use App\Models\InvoiceHistory;
+use App\Models\DriverAttendanceRouteLog;
 use Illuminate\Support\Facades\Validator;
 use Hash;
 use DB;
@@ -175,6 +176,7 @@ class DriverApiController extends Controller
         
         $validator = Validator::make($request->all(), [
             'route_id' => 'required|integer',
+            'user_id'  => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -183,7 +185,9 @@ class DriverApiController extends Controller
         
         $result = Road::where('id',$request->route_id)->where('status','1')->first();
         
-        
+        if($request->user_id){
+            DriverAttendanceRouteLog::create(['driver_id' => $request->user_id,'route_id' => $request->route_id]);
+        }
             
         if($result){
             $shop_count = Customer::where('road_id',$request->route_id)->count();
