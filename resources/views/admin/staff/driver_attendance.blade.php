@@ -36,6 +36,9 @@
                     <div class="col-lg-6">
                         <h4 class="mb-0">Driver Attendance</h4>
                     </div>
+                    <div class="col-lg-6">
+                        <input type="date" id="filter_date" class="form-control" style="width: 200px; float: right;" placeholder="Filter by date">
+                    </div>
                 </div>
               </div>
               <div class="card-body">
@@ -69,11 +72,14 @@
     
     <script>
     $(document).ready(function () {
-        $('#staff-management').DataTable({
+        var table = $('#staff-management').DataTable({
             serverSide: true,
             responsive: true,
             ajax: {
                 url: '{{ route("driver-attendance-datatable") }}',
+                data: function (d) {
+                    d.filter_date = $('#filter_date').val();
+                }
             },
             columns: [
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
@@ -83,6 +89,10 @@
                 {data: 'break_time', name: 'break_time'},
                 {data: 'punch_out_time', name: 'punch_out_time'}
             ]
+        });
+
+        $('#filter_date').on('change', function() {
+            table.ajax.reload();
         });
     });
     </script>

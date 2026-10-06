@@ -109,12 +109,16 @@ class StaffController extends Controller {
     }
 
     public function getDriverAttendanceDatatable(Request $request) {
-        $data = DB::table('driver_punch_in as t1')
+        $query = DB::table('driver_punch_in as t1')
                 ->leftJoin('admins as t2', 't1.user_id', '=', 't2.id')
                 ->select('t1.*', 't2.name as driver_name')
-                ->where('t2.role_id','3')
-                ->orderBy('t1.id', 'desc')
-                ->get();
+                ->where('t2.role_id','3');
+                
+        if ($request->has('filter_date') && !empty($request->filter_date)) {
+            $query->whereDate('t1.punch_in_time', $request->filter_date);
+        }
+
+        $data = $query->orderBy('t1.id', 'desc')->get();
 
         return Datatables::of($data)
             ->addIndexColumn()
