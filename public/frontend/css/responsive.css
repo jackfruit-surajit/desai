@@ -1,0 +1,81 @@
+/* Small laptop devices */
+@media only screen and (max-width: 1400px) {}
+
+/* Mobile device */
+@media only screen and (max-width: 900px) {
+    .nav .logo img {
+        width: 65%;
+    }
+
+    .tab-content h2 {
+        font-size: 30px;
+    }
+
+    .nav .enquire-btn {
+        font-size: 14px;
+        border-radius: 0 15px 15px;
+        padding: 7px 19px 7px;
+    }
+
+    .form-enquiry .box-container {
+        grid-template-columns: 100%;
+    }
+
+    .info-bg {
+        border-radius: 10px 10px 0 0;
+        height: 320px;
+    }
+
+    .info-bg .info-opacity {
+        border-radius: 10px 10px 0 0;
+    }
+
+    .info-content h2 {
+        font-size: 30px;
+    }
+
+    .info-content p {
+        font-size: 12px;
+    }
+
+    .form-enquiry .form-box {
+        border-radius: 0 0 10px 10px;
+    }
+
+    .tab-links {
+        display: grid;
+        grid-template-columns: 50% 50%;
+    }
+
+    .service-form-area {
+        margin: 7% 1% 2% 1%;
+        padding: 4%;
+    }
+
+    .service-form-area .form-label {
+        font-size: 14px;
+    }
+
+    .service-form-area h6 {
+        font-size: 14px;
+        margin-bottom: 2%;
+    }
+
+    .service-form-area .form-control {
+        font-size: 14px;
+        padding: 2.5% 0 3% 3%;
+    }
+
+    .service-form-area .form-select {
+        font-size: 14px;
+        padding: 2.5% 0 3% 3%;
+    }
+
+    .service-form-area .form-check-label {
+        font-size: 12px;
+    }
+
+    .service-form-area .submit-btn {
+        padding: 2.5% 8%;
+    }
+}

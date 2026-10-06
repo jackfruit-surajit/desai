@@ -1,0 +1,4 @@
+[06-Nov-2025 23:20:53 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/sulabhsi/public_html/config/app.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/sulabhsi/public_html/config/app.php on line 19

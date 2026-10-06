@@ -1,0 +1,682 @@
+ /* ══════════════════════════════════════
+           NAVBAR — BASE (shared desktop + mobile)
+        ══════════════════════════════════════ */
+ .navbar {
+     background: transparent;
+     box-shadow: none;
+     padding: 3px 0;
+     position: sticky;
+     top: 0;
+     left: 0;
+     width: 100%;
+     z-index: 1000;
+     overflow: visible;
+
+     transition:
+         background-color 0.35s ease,
+         box-shadow 0.35s ease,
+         backdrop-filter 0.35s ease;
+ }
+
+ /* Active after scrolling */
+ .navbar.scrolled {
+     background: #fff;
+     box-shadow: 0 2px 12px rgba(26, 60, 110, 0.07);
+ }
+
+ .navbar.scrolled .navbar-nav .nav-link.active,
+ .navbar.scrolled.navbar-nav .nav-link.show {
+     color: var(--text-dark);
+     text-shadow: none;
+ }
+
+ .navbar .container {
+     overflow: visible;
+ }
+
+ .navbar-brand {
+     width: 22%;
+ }
+
+ .navbar-brand span {
+     font-weight: 800;
+     color: var(--primary);
+     font-size: 1.35rem;
+     font-family: 'Poppins', sans-serif;
+ }
+
+ .navbar-brand img {
+     width: 100%;
+ }
+
+ /* .navbar-nav .nav-link.active, .navbar-nav .nav-link.show {
+    color: default !important;
+     text-shadow: 0 2px 10px rgb(5 5 4);
+} */
+ .navbar-brand small {
+     display: block;
+     font-size: 0.6rem;
+     color: var(--secondary);
+     font-weight: 700;
+     letter-spacing: 1px;
+     margin-top: -4px;
+ }
+
+ .nav-link {
+     font-weight: 600;
+     color: #000;
+     font-size: 0.92rem;
+     padding: 6px 14px !important;
+     transition: color .2s;
+     /* text-shadow: 0 2px 10px rgb(5 5 4); */
+ }
+
+ .nav-link:hover {
+     color: var(--secondary) !important;
+ }
+
+ .nav-link.active {
+     font-weight: 700;
+ }
+
+ .navbar .phone-link {
+     font-weight: 700;
+     color: var(--primary);
+     font-size: 0.95rem;
+     text-decoration: none;
+ }
+
+ .btn-login {
+     background: var(--primary);
+     color: #fff !important;
+     border-radius: 8px;
+     padding: 8px 20px !important;
+     font-weight: 700;
+     transition: background .2s;
+ }
+
+ .btn-login:hover {
+     background: var(--secondary) !important;
+     color: #fff !important;
+ }
+
+ /* ══════════════════════════════════════
+           HERO SEARCH BOX (not navbar)
+        ══════════════════════════════════════ */
+ .saki-hero-sec {
+     margin: 0 0;
+     position: relative;
+     z-index: 100;
+ }
+
+ .saki-hero-sec .saki-booking-box {
+     position: absolute;
+     left: 50%;
+     bottom: -70px;
+     transform: translateX(-50%);
+     width: 100%;
+     max-width: 1200px;
+     padding: 30px;
+     border-radius: 28px;
+     background: #fff;
+     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+     z-index: 50;
+     overflow: visible;
+ }
+
+ .saki-hero-sec .saki-service-search-inner {
+     display: flex;
+     align-items: center;
+     gap: 20px;
+ }
+
+ .saki-hero-sec .saki-search-icon {
+     width: 70px;
+     min-width: 70px;
+     height: 70px;
+     border-radius: 20px;
+     background: #fff1e3;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+ }
+
+ .saki-hero-sec .saki-search-icon i {
+     font-size: 24px;
+     color: var(--secondary);
+ }
+
+ .saki-hero-sec .saki-service-search-input {
+     flex: 1;
+     width: 100%;
+     height: 70px;
+     padding: 0 44px 0 20px;
+     border: 2px solid #eeeeee;
+     border-radius: 18px;
+     background: #fafafa;
+     font-size: 17px;
+     font-weight: 500;
+     color: #111;
+     box-shadow: none;
+ }
+
+ .saki-hero-sec .saki-service-search-input:focus {
+     border-color: var(--secondary);
+     background: #fff;
+     box-shadow: none;
+     outline: none;
+ }
+
+ .saki-hero-sec .saki-theme-btn {
+     color: #fff;
+     min-width: 200px;
+     height: 70px;
+     border-radius: 15px;
+     background-color: #f5a623;
+     border: 0;
+     font-size: 20px;
+     font-weight: 800;
+     transition: background .2s, transform .15s;
+ }
+
+ .saki-hero-sec .saki-theme-btn:hover {
+     background: #e0931a;
+     transform: translateY(-1px);
+ }
+
+ /* ══════════════════════════════════════
+           NAVBAR SEARCH (desktop)
+        ══════════════════════════════════════ */
+ .saki-navbar-search {
+     width: 100%;
+     max-width: 420px;
+     margin-left: 30px;
+ }
+
+ .saki-search-field-wrap {
+     position: relative;
+     flex: 1;
+ }
+
+ .saki-search-inside-icon {
+     position: absolute;
+     left: 18px;
+     top: 50%;
+     transform: translateY(-50%);
+     color: #999;
+     font-size: 15px;
+     z-index: 2;
+ }
+
+ .saki-service-search-input {
+     width: 100%;
+     height: 52px;
+     border-radius: 14px;
+     border: 1px solid #e8e8e8;
+     background: #f8f8f8;
+     padding: 0 45px 0 48px;
+     font-size: 15px;
+     font-weight: 500;
+     box-shadow: none !important;
+ }
+
+ .saki-service-search-input:focus {
+     border-color: var(--secondary);
+     background: #fff;
+     outline: none;
+ }
+
+ .saki-clear-btn {
+     position: absolute;
+     right: 14px;
+     top: 50%;
+     transform: translateY(-50%);
+     background: transparent;
+     border: 0;
+     color: #999;
+     display: none;
+     cursor: pointer;
+     padding: 4px;
+     z-index: 10;
+ }
+
+ .saki-clear-btn:hover {
+     color: #333;
+ }
+
+ .saki-search-dropdown {
+     position: absolute;
+     top: 100%;
+     left: 0;
+     width: 100%;
+     margin-top: 8px;
+     padding: 12px 0;
+     border-radius: 20px;
+     background: #fff;
+     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+     opacity: 0;
+     visibility: hidden;
+     transform: translateY(10px);
+     transition: all 0.3s ease;
+     z-index: 99999;
+ }
+
+ .saki-search-dropdown.active {
+     opacity: 1;
+     visibility: visible;
+     transform: translateY(0);
+ }
+
+ .saki-search-item {
+     display: flex;
+     align-items: center;
+     gap: 14px;
+     padding: 14px 20px;
+     color: #111;
+     font-weight: 600;
+     transition: all 0.3s ease;
+     text-decoration: none;
+ }
+
+ .saki-search-item:hover {
+     background: #fff5eb;
+     color: var(--secondary);
+ }
+
+ .saki-search-item .fa-c {
+     color: var(--primary);
+     transition: color 0.2s;
+ }
+
+ .saki-search-item:hover .fa-c {
+     color: var(--secondary);
+ }
+
+ /* ══════════════════════════════════════
+           USER DROPDOWN (desktop)
+        ══════════════════════════════════════ */
+ .saki-user-dropdown {
+     position: relative;
+     margin-left: 25px;
+ }
+
+ .saki-user-btn {
+     width: 48px;
+     height: 48px;
+     border-radius: 14px;
+     border: none;
+     background: var(--text-dark);
+     color: #fff;
+     font-size: 18px;
+     transition: 0.3s ease;
+     cursor: pointer;
+ }
+
+ .saki-user-btn:hover {
+     background: var(--secondary);
+ }
+
+ .saki-user-menu {
+     position: absolute;
+     top: 58px;
+     right: 0;
+     width: 200px;
+     background: #fff;
+     border-radius: 16px;
+     padding: 10px;
+     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+     opacity: 0;
+     visibility: hidden;
+     transform: translateY(10px);
+     transition: 0.3s ease;
+     z-index: 99999;
+ }
+
+ .saki-user-menu.active {
+     opacity: 1;
+     visibility: visible;
+     transform: translateY(0);
+ }
+
+ .saki-user-menu a {
+     display: flex;
+     align-items: center;
+     gap: 12px;
+     padding: 12px 14px;
+     border-radius: 12px;
+     text-decoration: none;
+     color: #111;
+     font-weight: 600;
+     transition: 0.3s ease;
+ }
+
+ .saki-user-menu a:hover {
+     background: #fff4e8;
+     color: var(--secondary);
+ }
+
+
+ /* ══════════════════════════════════════
+           MOBILE STYLES  (max-width: 991px)
+        ══════════════════════════════════════ */
+ @media (max-width: 991px) {
+     .navbar-brand {
+         width: 45%;
+     }
+
+     /* ── Hide desktop search & user button by default on mobile ── */
+     .saki-navbar-search {
+         display: none;
+     }
+
+     .saki-user-dropdown {
+         display: none;
+     }
+
+     /* ── Mobile icon bar (search icon + hamburger) ── */
+     .saki-mobile-icons {
+         display: flex;
+         align-items: center;
+         gap: 10px;
+         margin-left: auto;
+     }
+
+     /* Mobile search toggle icon button */
+     .saki-mobile-search-btn {
+         width: 44px;
+         height: 44px;
+         border-radius: 12px;
+         border: none;
+         background: var(--light-bg);
+         color: var(--primary);
+         font-size: 17px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         cursor: pointer;
+         transition: background 0.2s;
+     }
+
+     .saki-mobile-search-btn:hover {
+         background: #e2e8f0;
+     }
+
+     /* Style the Bootstrap toggler to match */
+     .navbar-toggler {
+         width: 44px;
+         height: 44px;
+         border-radius: 12px !important;
+         background: var(--light-bg) !important;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         padding: 0 !important;
+     }
+
+     /* ── Mobile search bar (hidden by default, slides down) ── */
+     /* IMPORTANT: We cannot use overflow:hidden here because it would clip
+               the absolutely-positioned search dropdown that appears below the input.
+               Instead we use opacity + translateY for the animation, and
+               max-height set large enough to never clip the dropdown. */
+     .saki-mobile-search-bar {
+         width: 100%;
+         background: #fff;
+         border-top: 1px solid #f0f0f0;
+         overflow: visible;
+         /* Hidden state */
+         max-height: 0;
+         padding: 0 16px;
+         opacity: 0;
+         pointer-events: none;
+         transition: max-height 0.35s ease, padding 0.3s ease, opacity 0.25s ease;
+     }
+
+     .saki-mobile-search-bar.active {
+         /* 400px is large enough for the input + the dropdown list below it */
+         max-height: 400px;
+         padding: 12px 16px;
+         opacity: 1;
+         pointer-events: auto;
+     }
+
+     .saki-mobile-search-bar .saki-search-field-wrap {
+         width: 100%;
+         position: relative;
+         /* Ensure the dropdown is never clipped by any parent */
+         overflow: visible;
+     }
+
+     .saki-mobile-search-bar .saki-service-search-input {
+         height: 48px;
+         font-size: 14px;
+     }
+
+     /* Force the mobile search dropdown to sit above everything */
+     .saki-mobile-search-bar .saki-search-dropdown {
+         z-index: 99999;
+     }
+
+     /* ── Off-canvas mobile menu (slides in from right) ── */
+     .saki-mobile-overlay {
+         display: none;
+         position: fixed;
+         inset: 0;
+         background: rgba(0, 0, 0, 0.45);
+         z-index: 1099;
+         opacity: 0;
+         transition: opacity 0.3s ease;
+     }
+
+     .saki-mobile-overlay.active {
+         display: block;
+         opacity: 1;
+     }
+
+     .saki-mobile-drawer {
+         position: fixed;
+         top: 0;
+         right: 0;
+         width: 300px;
+         max-width: 85vw;
+         height: 100%;
+         background: #fff;
+         z-index: 1100;
+         padding: 0;
+         box-shadow: -8px 0 40px rgba(0, 0, 0, 0.18);
+         transform: translateX(100%);
+         transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+         display: flex;
+         flex-direction: column;
+         /* overflow-y:auto is here so the whole drawer scrolls if content
+                   is taller than the screen — this does NOT clip position:static
+                   children like our submenu because they expand within normal flow */
+         overflow-y: auto;
+         overflow-x: hidden;
+     }
+
+     .saki-mobile-drawer.active {
+         transform: translateX(0);
+     }
+
+     /* Drawer scroll wrapper */
+     .saki-drawer-scroll-wrap {
+         display: flex;
+         flex-direction: column;
+         flex: 1;
+         /* NO overflow here — any overflow:auto/hidden on a flex ancestor
+                   creates a scroll context that clips the expanding submenu.
+                   The drawer itself is fixed-height so content just expands naturally. */
+         overflow: visible;
+     }
+
+     /* Drawer header */
+     .saki-drawer-header {
+         display: flex;
+         align-items: center;
+         justify-content: space-between;
+         padding: 20px 20px 16px;
+         border-bottom: 1px solid #f0f0f0;
+     }
+
+     .saki-drawer-header img {
+         height: 52px;
+     }
+
+     .saki-drawer-close {
+         width: 38px;
+         height: 38px;
+         border-radius: 10px;
+         border: none;
+         background: var(--light-bg);
+         color: var(--primary);
+         font-size: 18px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         cursor: pointer;
+         transition: background 0.2s;
+     }
+
+     .saki-drawer-close:hover {
+         background: #e2e8f0;
+     }
+
+     /* Drawer nav links */
+     .saki-drawer-nav {
+         padding: 16px 12px;
+         flex: 1;
+     }
+
+     .saki-drawer-nav .nav-item {
+         margin-bottom: 2px;
+     }
+
+     .saki-drawer-nav .nav-link {
+         display: block;
+         padding: 12px 16px !important;
+         border-radius: 12px;
+         font-size: 0.9rem !important;
+         font-weight: 600;
+         color: var(--text-dark) !important;
+         transition: background 0.2s, color 0.2s;
+     }
+
+     .saki-drawer-nav .nav-link:hover,
+     .saki-drawer-nav .nav-link.active {
+         background: #fff5eb;
+         color: var(--secondary) !important;
+     }
+
+     /* Drawer dropdown */
+     .saki-drawer-nav .dropdown-menu {
+         position: static !important;
+         box-shadow: none !important;
+         border: none !important;
+         background: var(--light-bg);
+         border-radius: 12px;
+         padding: 6px 8px;
+         margin: 4px 0 4px 16px;
+         /* display:none handled by jQuery slideUp/slideDown — do NOT set here */
+         display: none;
+     }
+
+     /* When .show is added AND jQuery hasn't set inline display, show it */
+     .saki-drawer-nav .dropdown-menu.show:not([style*="display: none"]) {
+         display: block;
+     }
+
+     .saki-drawer-nav .dropdown-item {
+         border-radius: 0px;
+         padding: 8px 14px;
+         font-weight: 500;
+         font-size: 12px;
+     }
+
+     .saki-drawer-nav .dropdown-toggle::after {
+         float: right;
+         margin-top: 8px;
+     }
+
+     /* Drawer login/register section */
+     .saki-drawer-auth {
+         padding: 16px 20px 24px;
+         border-top: 1px solid #f0f0f0;
+     }
+
+     .saki-drawer-auth-title {
+         font-size: 0.75rem;
+         font-weight: 700;
+         color: var(--text-muted);
+         letter-spacing: 1px;
+         text-transform: uppercase;
+         margin-bottom: 12px;
+     }
+
+     .saki-drawer-auth a {
+         display: flex;
+         align-items: center;
+         gap: 12px;
+         padding: 13px 16px;
+         border-radius: 25px;
+         text-decoration: none;
+         color: #111;
+         font-weight: 600;
+         transition: 0.25s ease;
+         margin-bottom: 6px;
+         border: 1.5px solid #ececec;
+         font-size: 0.9rem;
+     }
+
+     .saki-drawer-auth a:hover {
+         background: #fff4e8;
+         color: var(--secondary);
+         border-color: var(--secondary);
+     }
+
+     .saki-drawer-auth a i {
+         color: var(--primary);
+         font-size: 16px;
+     }
+
+     .saki-drawer-auth a:hover i {
+         color: var(--secondary);
+     }
+
+     /* Disable Bootstrap's built-in collapse on mobile
+               since we're using the custom drawer instead */
+     #navMenu {
+         display: none !important;
+     }
+ }
+
+ @media (max-width: 767px) {
+     .navbar {
+         padding: 4% 0;
+     }
+     .saki-drawer-header img {
+         height: 48px;
+     }
+ }
+
+ /* ══════════════════════════════════════
+           DESKTOP STYLES (min-width: 992px)
+        ══════════════════════════════════════ */
+ @media (min-width: 992px) {
+
+     /* Hide mobile-only elements on desktop */
+     .saki-mobile-icons {
+         display: none;
+     }
+
+     .saki-mobile-search-bar {
+         display: none;
+     }
+
+     .saki-mobile-overlay {
+         display: none !important;
+     }
+
+     .saki-mobile-drawer {
+         display: none !important;
+     }
+ }

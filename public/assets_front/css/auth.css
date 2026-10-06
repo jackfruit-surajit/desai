@@ -1,0 +1,430 @@
+/* ============================================================
+   HomeVista – Auth Styles  (login.html + register.html)
+   All selectors scoped under .auth-card to avoid Bootstrap
+   conflicts. Error visibility uses visibility+height trick
+   instead of display:none so Bootstrap cannot interfere.
+   ============================================================ */
+
+/* ── CSS Variables ── */
+:root {
+  --hv-dark:        #111111;
+  --hv-accent:      #2563eb;
+  --hv-border:      #d1d5db;
+  --hv-focus:       #2563eb;
+  --hv-error:       #dc2626;
+  --hv-muted:       #6b7280;
+  --hv-body:        #374151;
+  --hv-radius:      10px;
+}
+
+/* ── Page centering ── */
+body:has(.auth-card) {
+  background: #f0f2f5 ;
+  /* min-height: 100vh ;
+  display: flex ;
+  align-items: center ;
+  justify-content: center ;
+  padding: 20px ; */
+}
+
+/* ── Card ── */
+.auth-main {
+  padding: 5% 0;
+}
+.auth-card {
+  display: grid;
+  grid-template-columns: 55% 45% ;
+  width: 100% ;
+  border-radius: 20px ;
+  overflow: hidden ;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.14) ;
+  background: #fff ;
+  margin: 40px auto;
+  /* height: 70%; */
+}
+
+/* ── Form panel ── */
+.auth-card .auth-form-panel {
+  flex: 1 ;
+  display: flex ;
+  flex-direction: column ;
+  justify-content: center ;
+  padding: 48px ;
+}
+
+/* ── Brand logo ── */
+.auth-card .brand-logo {
+  display: flex ;
+  align-items: center ;
+  gap: 8px ;
+  font-family: 'Playfair Display', serif ;
+  font-size: 1.2rem ;
+  font-weight: 700 ;
+  color: var(--hv-dark) ;
+  margin-bottom: 40px ;
+  text-decoration: none ;
+}
+.auth-card .brand-logo svg { flex-shrink: 0; }
+
+/* ── Headings ── */
+.auth-card .auth-heading {
+  font-family: 'Playfair Display', serif ;
+  font-size: 1.85rem ;
+  font-weight: 700 ;
+  color: var(--hv-dark) ;
+  line-height: 1.2 ;
+  margin-bottom: 6px ;
+}
+.auth-card .auth-sub {
+  font-size: 0.9rem ;
+  color: var(--hv-muted) ;
+  margin-bottom: 30px ;
+}
+
+/* ── Field groups ── */
+.auth-card .field-group {
+  margin-bottom: 18px ;
+}
+.auth-card .field-row {
+  display: flex ;
+  gap: 16px ;
+}
+.auth-card .field-row .field-group {
+  flex: 1 ;
+}
+
+/* ── Labels ── */
+.auth-card .field-label {
+  display: block ;
+  font-size: 0.82rem ;
+  font-weight: 600 ;
+  color: var(--hv-body) ;
+  margin-bottom: 7px ;
+  letter-spacing: 0.01em ;
+}
+
+/* ── Input wrapper ── */
+.auth-card .input-wrap {
+  position: relative ;
+}
+.auth-card .input-wrap .icon {
+  position: absolute ;
+  left: 14px ;
+  top: 50% ;
+  transform: translateY(-50%) ;
+  color: #9ca3af ;
+  display: flex ;
+  align-items: center ;
+  pointer-events: none ;
+  z-index: 2 ;
+}
+.auth-card .input-wrap .toggle-pw {
+  position: absolute ;
+  right: 14px ;
+  top: 50% ;
+  transform: translateY(-50%) ;
+  color: #9ca3af ;
+  background: none ;
+  border: none ;
+  cursor: pointer ;
+  padding: 0 ;
+  display: flex ;
+  align-items: center ;
+  z-index: 2 ;
+}
+.auth-card .input-wrap .toggle-pw:hover {
+  color: var(--hv-accent) ;
+}
+
+/* ── Inputs ── */
+.auth-card .auth-input {
+  display: block ;
+  width: 100% ;
+  height: 48px ;
+  padding: 0 44px 0 42px ;
+  border: 1.5px solid var(--hv-border) ;
+  border-radius: var(--hv-radius) ;
+  font-family: 'DM Sans', sans-serif ;
+  font-size: 0.9rem ;
+  color: var(--hv-dark) ;
+  background: #fff ;
+  transition: border-color .2s, box-shadow .2s ;
+  outline: none ;
+  box-shadow: none ;
+}
+.auth-card .auth-input:focus {
+  border-color: var(--hv-focus) ;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12) ;
+  outline: none ;
+}
+.auth-card .auth-input.is-invalid {
+  border-color: var(--hv-error) ;
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.12) ;
+}
+
+/* ══════════════════════════════════════════════
+   ERROR MESSAGES  —  the critical fix
+   Using visibility + max-height instead of
+   display:none so Bootstrap cannot override it
+   ══════════════════════════════════════════════ */
+.auth-card .field-error {
+  visibility: hidden ;
+  opacity: 0 ;
+  max-height: 0 ;
+  overflow: hidden ;
+  display: block ;     /* always block — Bootstrap cannot hide it */
+  font-size: 0.78rem ;
+  color: #dc2626 ;
+  margin-top: 0 ;
+  padding: 0 0 0 2px ;
+  line-height: 1.4 ;
+  font-weight: 400 ;
+  transition: opacity .15s, max-height .15s ;
+}
+.auth-card .field-error.show {
+  visibility: visible ;
+  opacity: 1 ;
+  max-height: 40px ;
+  margin-top: 5px ;
+}
+
+.auth-card .terms-error {
+  visibility: hidden ;
+  opacity: 0 ;
+  max-height: 0 ;
+  overflow: hidden ;
+  display: block ;
+  font-size: 0.76rem ;
+  color: #dc2626 ;
+  margin-top: -14px ;
+  margin-bottom: 0 ;
+  font-weight: 400 ;
+  transition: opacity .15s, max-height .15s ;
+}
+.auth-card .terms-error.show {
+  visibility: visible ;
+  opacity: 1 ;
+  max-height: 40px ;
+  margin-bottom: 16px ;
+}
+
+/* ── Password strength ── */
+.auth-card .strength-bar {
+  display: flex ;
+  gap: 4px ;
+  margin-top: 7px ;
+}
+.auth-card .strength-segment {
+  height: 3px ;
+  flex: 1 ;
+  border-radius: 2px ;
+  background: #e5e7eb ;
+  transition: background .3s ;
+}
+
+
+/* ── Forgot link ── */
+.auth-card .forgot-wrap {
+  text-align: right ;
+  margin-top: -8px ;
+  margin-bottom: 24px ;
+}
+.auth-card .forgot-link {
+  font-size: 0.8rem ;
+  color: var(--hv-muted) ;
+  text-decoration: none ;
+}
+.auth-card .forgot-link:hover {
+  color: var(--hv-accent) ;
+}
+
+/* ── Terms row ── */
+.auth-card .terms-row {
+  display: flex ;
+  align-items: flex-start ;
+  gap: 10px ;
+  margin-bottom: 30px ;
+}
+.auth-card .terms-row input[type="checkbox"] {
+  width: 16px ;
+  height: 16px ;
+  margin-top: 2px ;
+  accent-color: var(--hv-accent) ;
+  flex-shrink: 0 ;
+  cursor: pointer ;
+}
+.auth-card .terms-row label {
+  font-size: 0.82rem ;
+  color: var(--hv-muted) ;
+  line-height: 1.5 ;
+  cursor: pointer ;
+  margin: 0 ;
+}
+.auth-card .terms-row label a {
+  color: var(--hv-accent) ;
+  font-weight: 600 ;
+  text-decoration: none ;
+}
+.auth-card .terms-row label a:hover {
+  text-decoration: underline ;
+}
+
+/* ── Primary button ── */
+.auth-card .btn-primary-auth {
+  display: block ;
+  width: 100% ;
+  height: 50px ;
+  background: var(--hv-dark) ;
+  color: #fff ;
+  border: none ;
+  border-radius: var(--hv-radius) ;
+  font-family: 'DM Sans', sans-serif ;
+  font-size: 0.95rem ;
+  font-weight: 600 ;
+  cursor: pointer ;
+  letter-spacing: 0.02em ;
+  transition: background .2s ;
+}
+.auth-card .btn-primary-auth:hover {
+  background: #333 ;
+}
+
+/* ── Divider ── */
+/* .auth-card .divider {
+  display: flex ;
+  align-items: center ;
+  gap: 12px ;
+  margin: 20px 0 ;
+  font-size: 0.8rem ;
+  color: var(--hv-muted) ;
+}
+.auth-card .divider::before,
+.auth-card .divider::after {
+  content: '' ;
+  flex: 1 ;
+  height: 1px ;
+  background: #e5e7eb ;
+} */
+
+/* ── Google button ── */
+/* .auth-card .btn-google {
+  display: flex ;
+  align-items: center ;
+  justify-content: center ;
+  gap: 10px ;
+  width: 100% ;
+  height: 50px ;
+  background: #fff ;
+  color: var(--hv-body) ;
+  border: 1.5px solid var(--hv-border) ;
+  border-radius: var(--hv-radius) ;
+  font-family: 'DM Sans', sans-serif ;
+  font-size: 0.9rem ;
+  font-weight: 500 ;
+  cursor: pointer ;
+}
+.auth-card .btn-google:hover {
+  border-color: var(--hv-accent) ;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08) ;
+} */
+
+/* ── Footer ── */
+.auth-card .auth-footer {
+  text-align: center ;
+  margin-top: 22px ;
+  font-size: 0.85rem ;
+  color: var(--hv-muted) ;
+}
+.auth-card .auth-footer a {
+  color: var(--hv-accent) ;
+  font-weight: 600 ;
+  text-decoration: none ;
+}
+.auth-card .auth-footer a:hover {
+  text-decoration: underline ;
+}
+
+/* ── Image panel ── */
+.auth-card .auth-image-panel {
+  /* flex: 0 0 45% ; */
+  position: relative ;
+  background: #1e293b ;
+  overflow: hidden ;
+}
+.auth-card .auth-image-panel img {
+  width: 100%;
+  height: 100% ;
+  object-fit: cover ;
+  display: block ;
+  opacity: 0.85 ;
+}
+.auth-card .img-overlay {
+  position: absolute ;
+  inset: 0 ;
+  background: linear-gradient(135deg, rgba(17,17,17,0.45) 0%, rgba(37,99,235,0.22) 100%) ;
+}
+.auth-card .img-brand {
+  position: absolute ;
+  top: 24px ;
+  right: 24px ;
+  display: flex ;
+  align-items: center ;
+  gap: 8px ;
+  color: #fff ;
+  font-family: 'Playfair Display', serif ;
+  font-size: 1.1rem ;
+  font-weight: 700 ;
+}
+.auth-card .img-brand.left {
+  right: auto ;
+  left: 24px ;
+}
+.auth-card .img-tagline {
+  position: absolute ;
+  bottom: 36px ;
+  left: 32px ;
+  right: 32px ;
+  color: #fff ;
+}
+.auth-card .img-tagline h2 {
+  font-family: 'Playfair Display', serif ;
+  font-size: 1.5rem ;
+  font-weight: 700 ;
+  line-height: 1.3 ;
+  margin-bottom: 8px ;
+  color: #fff ;
+}
+.auth-card .img-tagline p {
+  font-size: 0.85rem ;
+  opacity: 0.8 ;
+  line-height: 1.5 ;
+  color: #fff ;
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .auth-card {
+    flex-direction: column ;
+    max-width: 480px ;
+    min-height: unset ;
+  }
+  .auth-card .auth-image-panel {
+    flex: none ;
+    height: 200px ;
+    order: -1 ;
+  }
+  .auth-card .auth-form-panel {
+    order: 1 ;
+    padding: 36px 24px ;
+  }
+  .auth-card .img-tagline { display: none ; }
+  .auth-card .brand-logo  { margin-bottom: 24px ; }
+  .auth-card .field-row {
+    flex-direction: column ;
+    gap: 0 ;
+  }
+}
+@media (max-width: 400px) {
+  .auth-card .auth-form-panel { padding: 28px 16px ; }
+  .auth-card .auth-heading    { font-size: 1.5rem ; }
+}
