@@ -564,18 +564,18 @@ class DriverApiController extends Controller
     public function driverAttendance(Request $request){
         
         $validator = Validator::make($request->all(), [
-                'driver_id'        => 'required|integer|exists:admins,id',
+                'user_id'        => 'required|integer|exists:admins,id',
             ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
         }
         
-        if($driver_atten = DriverPunchIn::where('user_id',$request->driver_id)->whereDate('created_at',date('Y-m-d'))->first()){
-            return response()->json(['status' => 200,'message' => 'Record found.', 'data'  =>$driver_atten,],200);   
+        if($driver_atten = DriverPunchIn::where('user_id',$request->user_id)->whereDate('created_at',date('Y-m-d'))->first()){
+            return response()->json(['status' => 200,'message' => 'Record found.', 'panch_in_status' => 'active', 'data'  =>$driver_atten,],200);   
         }
         else{
-            return response()->json(['status' => 200,'message' => 'Record not found.', 'data'  =>[],],200);
+            return response()->json(['status' => 200,'message' => 'Record not found.', 'panch_in_status' => 'inactive', 'data'  =>[],],200);
         }
         
         
