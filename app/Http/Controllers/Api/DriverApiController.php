@@ -186,7 +186,12 @@ class DriverApiController extends Controller
         $result = Road::where('id',$request->route_id)->where('status','1')->first();
         
         if($request->user_id){
-            DriverAttendanceRouteLog::create(['driver_id' => $request->user_id,'route_id' => $request->route_id]);
+            if($res = DriverAttendanceRouteLog::where(['driver_id' => $request->user_id,'route_id' => $request->route_id])->whereDate('created_at',date('Y-m-d'))->first()){
+                DriverAttendanceRouteLog::where('id',$res->id)->update(['driver_id' => $request->user_id,'route_id' => $request->route_id]);
+            }
+            else{
+                DriverAttendanceRouteLog::create(['driver_id' => $request->user_id,'route_id' => $request->route_id]);
+            } 
         }
             
         if($result){
