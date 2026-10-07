@@ -46,8 +46,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Shop Name</th>
-                            <th>Status</th>
+                            <th>Area Name</th>
                             <th>Log Time</th>
                         </tr>
                     </thead>
@@ -55,21 +54,12 @@
                         @forelse($logs as $index => $log)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $log->shop_name ?? 'N/A' }}</td>
-                            <td>
-                                @if($log->status == 1)
-                                    <span class="badge bg-success">Visited</span>
-                                @elseif($log->status == 2)
-                                    <span class="badge bg-danger">Skipped</span>
-                                @else
-                                    <span class="badge bg-secondary">Pending</span>
-                                @endif
-                            </td>
+                            <td>{{ $log->area_name ?? 'N/A' }}</td>
                             <td>{{ $log->created_at ? date('d-m-Y H:i:s', strtotime($log->created_at)) : 'N/A' }}</td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center">No area visit logs found for this month.</td>
+                            <td colspan="3" class="text-center">No area visit logs found for this month.</td>
                         </tr>
                         @endforelse
                     </tbody>

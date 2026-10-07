@@ -164,10 +164,10 @@ class SalesExecutiveController extends Controller {
         $month = $request->get('month', date('m'));
         $year = $request->get('year', date('Y'));
         
-        $logs = DB::table('sales_visit_history as t1')
-                ->leftJoin('customers as t2', 't1.shop_id', '=', 't2.id')
-                ->select('t1.*', 't2.shop_name')
-                ->where('t1.executive_id', $executive_id)
+        $logs = DB::table('sales_executive_area_visit_logs as t1')
+                ->leftJoin('area as t2', 't1.area_id', '=', 't2.id')
+                ->select('t1.*', 't2.area_name')
+                ->where('t1.sales_executive_id', $executive_id)
                 ->whereMonth('t1.created_at', $month)
                 ->whereYear('t1.created_at', $year)
                 ->orderBy('t1.created_at', 'desc')
