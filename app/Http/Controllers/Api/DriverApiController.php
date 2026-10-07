@@ -151,6 +151,35 @@ class DriverApiController extends Controller
         }
         
     }
+
+    public function driverBreakEnd(Request $request){
+        
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+        
+        if(DriverPunchIn::where('user_id',$request->user_id)->whereDate('created_at',today())->exists()){
+            
+            $result = DriverPunchIn::where('user_id', $request->user_id)
+                ->whereDate('created_at', today())
+                ->update([
+                    'break_end' => now(),
+                ]);
+    
+            if($result){
+                return response()->json(['status' => 200,'message' => 'Break time updated successfully.', 'data'  =>[]],200);
+            }else{
+                return response()->json(['status' => 500,'message' => 'unauthorized error.', 'data'  =>[]],500);
+            }
+        }else{
+            return response()->json(['status' => 200,'message' => 'Please Punch in your daliy profile.', 'data'  =>[]],200);
+        }
+        
+    }
     
     public function driverRoute(Request $request){
         

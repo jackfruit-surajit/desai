@@ -31,7 +31,8 @@ Route::prefix('driver')->group(function() {
     Route::post('punch-in', ['uses' => 'Api\DriverApiController@driverPunchIn', 'as' => 'punch-in']);
     Route::post('punch-out', ['uses' => 'Api\DriverApiController@driverPunchOut', 'as' => 'punch-out']);
     Route::post('break', ['uses' => 'Api\DriverApiController@driverBreak', 'as' => 'break']);
-    
+    Route::post('break-end', ['uses' => 'Api\DriverApiController@driverBreakEnd', 'as' => 'break-end']);
+
     Route::post('routes', ['uses' => 'Api\DriverApiController@driverRoute', 'as' => 'routes']);
     Route::post('route-details', ['uses' => 'Api\DriverApiController@routeDetails', 'as' => 'route-details']);
     Route::post('route-shops', ['uses' => 'Api\DriverApiController@routeShops', 'as' => 'route-shops']);

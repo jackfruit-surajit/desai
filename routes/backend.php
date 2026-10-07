@@ -126,7 +126,7 @@ Route::middleware(['prevent_back_history'])->group(function (){
             Route::get('driver-attendance', ['uses' => 'Admin\StaffController@driverAttendance', 'as' => 'driver-attendance']);
             Route::get('get-driver-attendance-datatable', ['uses' => 'Admin\StaffController@getDriverAttendanceDatatable', 'as' => 'driver-attendance-datatable']);
 
-            Route::get('driver-monthly-attendance/{id}', ['uses' => 'Admin\StaffController@driverMonthlyAttendance', 'as' => 'driver-monthly-attendance']);
+            Route::get('user-monthly-attendance/{id}', ['uses' => 'Admin\StaffController@driverMonthlyAttendance', 'as' => 'driver-monthly-attendance']);
             Route::get('driver-monthly-route-log/{id}', ['uses' => 'Admin\StaffController@driverMonthlyRouteLog', 'as' => 'driver-monthly-route-log']);
 
             Route::get('driver-route-logs', ['uses' => 'Admin\StaffController@driverRouteLogs', 'as' => 'driver-route-logs']);

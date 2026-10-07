@@ -48,7 +48,7 @@
                             </select>
                             <button type="submit" class="btn btn-primary">Filter</button>
                         </form>
-                        <a href="{{ route('drivers') }}" class="btn btn-secondary ms-2">Back</a>
+
                     </div>
                 </div>
               </div>

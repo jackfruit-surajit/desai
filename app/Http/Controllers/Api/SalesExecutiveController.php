@@ -12,6 +12,7 @@ use App\Models\DriverPunchIn;
 use App\Models\ExecutiveVisitHistory;
 use App\Models\SalesExecutiveArea;
 use App\Models\SalesExecutiveRoute;
+use App\Models\SalesExecutiveAreaVisitLog;
 use Illuminate\Support\Facades\Validator;
 use Hash;
 use DB;
@@ -28,14 +29,15 @@ class SalesExecutiveController extends Controller
         if ($validator->fails()) {
             return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
         }
-        
-        // $result = SalesExecutiveRoute::join('road','sales_executive_route.route_id','road.id')
-        //     ->where('sales_executive_route.sales_executive_id',$request->user_id)->where('sales_executive_route.area_id',$request->area_id)
-        //     ->orderBy('sales_executive_route.id','desc')
-        //     ->get(['road.id as route_id','road.road_name','road.full_address']);
             
         $result = Road::where('area_id',$request->area_id)->get(['road.id as route_id','road.road_name','road.full_address']);
-            
+        
+        if($check_log = SalesExecutiveAreaVisitLog::where(['sales_executive_id' => $request->user_id, 'area_id' => $request->area_id])->whereDate('created_at',date('Y-m-d'))->first()){
+            SalesExecutiveAreaVisitLog::where('id',$check_log->id)->update(['sales_executive_id' => $request->user_id, 'area_id' => $request->area_id]);
+        }else{
+            SalesExecutiveAreaVisitLog::create(['sales_executive_id' => $request->user_id, 'area_id' => $request->area_id]);
+        }
+
         if($result){
             $res = array();
             foreach($result as $val){
