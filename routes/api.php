@@ -37,6 +37,8 @@ Route::prefix('driver')->group(function() {
     Route::post('route-shops', ['uses' => 'Api\DriverApiController@routeShops', 'as' => 'route-shops']);
     Route::post('add-customer', ['uses' => 'Api\DriverApiController@addCustomer', 'as' => 'add-customer']);
     Route::post('customer-details', ['uses' => 'Api\DriverApiController@customerDetails', 'as' => 'customer-details']);
+    Route::post('customer-update', ['uses' => 'Api\DriverApiController@customerUpdate', 'as' => 'customer-update']);
+
     Route::post('update-delivary-status', ['uses' => 'Api\DriverApiController@updateDelivaryStatus', 'as' => 'update-delivary-status']);
     
     Route::post('vehicle-details', ['uses' => 'Api\DriverApiController@vehicleDetails', 'as' => 'vehicle-details']);

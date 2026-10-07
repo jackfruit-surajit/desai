@@ -330,6 +330,38 @@ class DriverApiController extends Controller
             return response()->json(['status' => 200,'message' => 'Error!! while adding customer.', 'data' => [],],200);
         }
     }
+
+    public function customerUpdate(Request $request){
+        $validator = Validator::make($request->all(), [
+            'pan_no' =>'nullable|string',
+            'gst_no' =>'nullable|string',
+            'email' =>'nullable|email',
+            'latitude' =>'nullable|string',
+            'longitude' =>'nullable|string',
+            'shop_id' =>'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $data = array(
+            'pan_no' => $request->pan_no,
+            'gst_no' => $request->gst_no,
+            'email' => $request->email,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+        );
+
+        $result = Customer::where('shop_id',$request->shop_id)->update($data);
+        
+        if($result){
+            return response()->json(['status' => 200,'message' => 'Customer added successfully.', 'data'  =>$result,],200);
+        }else{
+            return response()->json(['status' => 200,'message' => 'Error!! while adding customer.', 'data' => [],],200);
+        }
+
+    }
     
     
     public function customerDetails(Request $request){
