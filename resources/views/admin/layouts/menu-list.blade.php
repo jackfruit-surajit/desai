@@ -47,7 +47,7 @@ $role = Role::find($user->role_id);
 
   <li class="pc-item pc-hasmenu">
     <a href="{{route('customer-list')}}" class="pc-link"
-      ><span class="pc-micon"> <i class="fa fa-users"></i></span><span class="pc-mtext">Customers</span
+      ><span class="pc-micon"> <i class="fa fa-users"></i></span><span class="pc-mtext">Customers / Shops</span
       ></a>
   </li>
 
@@ -81,10 +81,6 @@ $role = Role::find($user->role_id);
       <li class="pc-item"><a class="pc-link" href="{{route('invoice-list')}}">Daily sales</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('driver-attendance')}}">Driver Attendance</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('driver-route-logs')}}">Driver Route Logs</a></li>
-      <!--<li class="pc-item"><a class="pc-link" href="">vehicle Fuel expenses</a></li>-->
-      <!--<li class="pc-item"><a class="pc-link" href="">Warehouse stock</a></li>-->
-      <!--<li class="pc-item"><a class="pc-link" href="">Vehicle stock</a></li>-->
-      <!--<li class="pc-item"><a class="pc-link" href="">Route efficiency tracking</a></li>-->
 
     </ul>
   </li>

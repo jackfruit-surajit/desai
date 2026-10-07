@@ -43,7 +43,7 @@
                 <div class="row align-items-center">
 
                     <div class="col-lg-6">
-                        <h4 class="mb-0">Customers</h4>
+                        <h4 class="mb-0">Customers / Shops</h4>
                     </div>
 
                     <div class="col-lg-6">
@@ -78,7 +78,7 @@
                         <tr>
                             <th scope="col">#</th>
                             <th scope="col">Photo</th>
-                            <th scope="col">Owner</th>
+                            <th scope="col">Owner Name</th>
                             <th scope="col">Shop Name</th>
                             <th scope="col">Mobile No</th>
                             <!--<th scope="col">Address</th>-->

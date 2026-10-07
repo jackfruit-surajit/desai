@@ -28,8 +28,8 @@ class CustomerController extends Controller
             ->addIndexColumn()
 
             ->editColumn('image', function ($model) {
-                if (isset($model->photo) && $model->photo != '') {
-                    $path = URL::asset(asset_path('uploads/customer/' . $model->photo));
+                if (isset($model->shop_photo) && $model->shop_photo != '') {
+                    $path = URL::asset(asset_path('uploads/customer/' . $model->shop_photo));
                 } else {
                     $path =URL::asset(asset_path('common/image/no-img.png'));
                 }

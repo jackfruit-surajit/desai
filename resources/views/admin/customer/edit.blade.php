@@ -16,7 +16,7 @@
 
             <div class="card">
                 <div class="card-header">
-                <h5>Edit Customer</h5>
+                <h5>Edit Customer/Shop</h5>
                 </div>
                 <div class="card-body">
 
@@ -24,7 +24,50 @@
                     <form class="row g-3" method="post" action="{{route('customer-update')}}" enctype="multipart/form-data">
                         @csrf
                         
-                        <h5>Personal Details</h5>
+                        
+                        <h5>Shop Details</h5>
+                        
+                        <div class="col-md-6">
+                            <label for="" class="form-label">Shop's Name<span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Shop's Name" name="shop_name" value="{{ (old('shop_name')!='') ? old('shop_name') : $model->shop_name}}" >
+                            @if ($errors->has('shop_name'))
+                                <span class="help-block"> {{ $errors->first('shop_name') }} </span>
+                            @endif
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="inputImage" class="form-label">Shop Photo</label>
+                            <input type="file" class="form-control" name="shop_photo" >
+                            @if ($errors->has('shop_photo'))
+                                <span class="help-block"> {{ $errors->first('shop_photo') }} </span>
+                            @endif
+                        </div>
+                        
+                        
+                        <div class="col-md-6">
+                            <label for="" class="form-label"> Road / Route <span class="required">*</span></label>
+                            <select class="form-control" name="road_id" >
+                                <option value="">Select</option>
+                                
+                                @foreach($roads as $road)
+                                <option value="{{$road->id}}" @if($model->road_id == $road->id) {{'selected'}} @endif>{{$road->road_name}}</option>
+                                @endforeach
+                                
+                            </select>
+                            @if ($errors->has('road_id'))
+                                <span class="help-block"> {{ $errors->first('road_id') }} </span>
+                            @endif
+                        </div>
+                        
+                        @if($model->shop_photo)
+                        <div class="col-md-6">
+                            <img src="{{ URL::asset(asset_path('uploads/customer/' . $model->shop_photo)) }}" height="120" width="160">
+                        </div>
+                        @endif
+                        
+                        <hr class="text-white">
+
+                        <h5 class="text-white">Personal Details</h5>
                         <input type="hidden" name="customer_id" value="{{$model->id}}">
                         <div class="col-md-6">
                             <label for="" class="form-label">Customer's Name<span class="required">*</span></label>
@@ -93,65 +136,10 @@
                         </div>
                         
                         
-                        <hr>
-                        <h5>Shop Details</h5>
-                        
-                        <div class="col-md-6">
-                            <label for="" class="form-label">Shop's Name<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Shop's Name" name="shop_name" value="{{ (old('shop_name')!='') ? old('shop_name') : $model->shop_name}}" >
-                            @if ($errors->has('shop_name'))
-                                <span class="help-block"> {{ $errors->first('shop_name') }} </span>
-                            @endif
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label for="inputImage" class="form-label">Shop Photo</label>
-                            <input type="file" class="form-control" name="shop_photo" >
-                            @if ($errors->has('shop_photo'))
-                                <span class="help-block"> {{ $errors->first('shop_photo') }} </span>
-                            @endif
-                        </div>
                         
                         
-                        
-                        <div class="col-md-6">
-                            <label for="" class="form-label"> Area Name <span class="required">*</span></label>
-                            <select class="form-control" name="area_id" >
-                                <option value="">Select</option>
-                                
-                                @foreach($areas as $area)
-                                <option value="{{$area->id}}" @if($model->area_id == $area->id) {{'selected'}} @endif>{{$area->area_name}}</option>
-                                @endforeach
-                                
-                            </select>
-                            @if ($errors->has('area_id'))
-                                <span class="help-block"> {{ $errors->first('area_id') }} </span>
-                            @endif
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label for="" class="form-label"> Road / Route <span class="required">*</span></label>
-                            <select class="form-control" name="road_id" >
-                                <option value="">Select</option>
-                                
-                                @foreach($roads as $road)
-                                <option value="{{$road->id}}" @if($model->road_id == $road->id) {{'selected'}} @endif>{{$road->road_name}}</option>
-                                @endforeach
-                                
-                            </select>
-                            @if ($errors->has('road_id'))
-                                <span class="help-block"> {{ $errors->first('road_id') }} </span>
-                            @endif
-                        </div>
-                        
-                        @if($model->shop_photo)
-                        <div class="col-md-12">
-                            <img src="{{ URL::asset(asset_path('uploads/customer/' . $model->shop_photo)) }}" height="120" width="160">
-                        </div>
-                        @endif
-                        
-                        <hr>
-                        <h5>GPS location Details</h5>
+                        <hr class="text-white">
+                        <h5 class="text-white">GPS location Details</h5>
  
                         
                         <div class="col-md-6">
