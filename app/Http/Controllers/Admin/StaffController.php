@@ -103,6 +103,79 @@ class StaffController extends Controller {
     }
     
     
+    public function driverMonthlyAttendance($id, Request $request) {
+        $driver_id = base64_decode($id);
+        $driver = DB::table('admins')->where('id', $driver_id)->first();
+        
+        $month = $request->get('month', date('m'));
+        $year = $request->get('year', date('Y'));
+        
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        
+        $punch_ins = DB::table('driver_punch_in')
+            ->where('user_id', $driver_id)
+            ->whereMonth('punch_in_time', $month)
+            ->whereYear('punch_in_time', $year)
+            ->get();
+            
+        $attendance = [];
+        $present_count = 0;
+        $absent_count = 0;
+        
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . str_pad($i, 2, '0', STR_PAD_LEFT);
+            $record = $punch_ins->first(function ($val) use ($date) {
+                return substr($val->punch_in_time, 0, 10) == $date;
+            });
+            $attendance[$date] = $record;
+            
+            if ($record) {
+                $present_count++;
+            } else {
+                if (strtotime($date) <= strtotime(date('Y-m-d'))) {
+                    $absent_count++;
+                }
+            }
+        }
+
+        $data = [
+            'driver' => $driver,
+            'attendance' => $attendance,
+            'current_month' => $month,
+            'current_year' => $year,
+            'present_count' => $present_count,
+            'absent_count' => $absent_count,
+        ];
+        
+        return view('admin.staff.driver_monthly_attendance', $data);
+    }
+
+    public function driverMonthlyRouteLog($id, Request $request) {
+        $driver_id = base64_decode($id);
+        $driver = DB::table('admins')->where('id', $driver_id)->first();
+        
+        $month = $request->get('month', date('m'));
+        $year = $request->get('year', date('Y'));
+        
+        $logs = DB::table('driver_attendance_route_logs as t1')
+                ->leftJoin('road as t3', 't1.route_id', '=', 't3.id')
+                ->select('t1.*', 't3.road_name as route_name')
+                ->where('t1.driver_id', $driver_id)
+                ->whereMonth('t1.created_at', $month)
+                ->whereYear('t1.created_at', $year)
+                ->orderBy('t1.created_at', 'desc')
+                ->get();
+                
+        $data = [
+            'driver' => $driver,
+            'logs' => $logs,
+            'current_month' => $month,
+            'current_year' => $year,
+        ];
+        
+        return view('admin.staff.driver_monthly_route_log', $data);
+    }
+
     public function driverRouteLogs(Request $request) {
         $data = [];
         return view('admin.staff.driver_route_logs', $data);
@@ -245,17 +318,19 @@ class StaffController extends Controller {
                 return $status;
             })
             ->addColumn('action', function ($model) {
-                $edit = ''; $delete = $assign_route = $ware_house ='';
+                $edit = ''; $delete = $assign_route = $ware_house = $attendance_log = $route_log = '';
                 
                 $edit = '<a href="' . Route("staff-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
                 $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
                 $assign_route = '<a href="' . Route("driver-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Routes</span></a>';
                 $ware_house = '<a href="' . Route("driver-warehouse", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-secondary"><i class="fa fa-house"></i> Warehouse</span></a>';
+                $attendance_log = '<a href="' . Route("driver-monthly-attendance", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-info"><i class="fa fa-clock"></i> Attendance Log</span></a>';
+                $route_log = '<a href="' . Route("driver-monthly-route-log", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-warning"><i class="fa fa-map-marker-alt"></i> Route Log</span></a>';
 
                 return
                     '<div class="action-btns">'.
                         $assign_route.$edit .
-                        $delete. $ware_house.
+                        $delete. $ware_house. $attendance_log . $route_log .
                     '</div>';
             })
             ->rawColumns(['image','created_at','status', 'action'])

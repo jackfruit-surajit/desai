@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Admin;
+use App\Models\DriverPunchIn;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\SendOtpMail;
 use App\Mail\ForgotpasswordMail;
@@ -12,74 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Hash;
 use DB;
 class AuthController extends Controller
-{
-    
-
-    
-    
-    // public function sendMobileOtp(Request $request){
-    //     $validator = Validator::make($request->all(), [
-    //         // 'phone'    => 'required|integer|digits:10|unique:users',
-    //         'email'    => 'required|email|unique:users',
-    //     ]);
-        
-    //     if ($validator->fails()) {
-    //         return response()->json(['status' => 422,'message' => $validator->errors(), 'data'  =>[]], 422);
-    //     }
-        
-    //     $random_otp = rand(100000,999999);
-    //     $mailData = [
-    //         'title' => 'OTP from MYLUCK',
-    //         'body' => 'One-time-password for registration',
-    //         'otp' => $random_otp,
-    //     ];
-        
-    //     if(Mail::to($request->email)->send(new SendOtpMail($mailData))){
-    //         return response()->json(['status' => 200,'message' => 'OTP send successfully.', 'otp' => $random_otp],200);
-    //     }else{
-    //         return response()->json(['status' => 200,'message' => "We're unable to send the OTP right now.", 'otp'  =>''],200);
-    //     }
-    // }
-    
-    
-    // public function register(Request $request){
-    //     $validator = Validator::make($request->all(), [
-    //         'name'     => 'required|string',
-    //         'email'    => 'required|email|unique:users',
-    //         'phone'    => 'required|integer|digits:10|unique:users',
-    //         'password' => 'required|string',
-    //         'referral_code' => 'nullable|exists:users,self_referral_code',
-    //     ]);
-    //     if ($validator->fails()) {
-    //         return response()->json(['status' => 422,'message' => $validator->errors(), 'data'  =>[]], 422);
-    //     }
-
-    //     $register = User::create([
-    //         'name' => $request->name,
-    //         'email' => $request->email,
-    //         'phone' => $request->phone,
-    //         'password' => Hash::make($request->password),
-    //         'referral_by' => $request->referral_code,
-    //         'subcription_status' => '1',
-    //         'subcription_valid_to' => date('Y-m-d', strtotime('+30 days')),
-    //     ]);
-
-    //     if($register){
-    //         $customer_code = substr($request->name, 0, 4).substr($request->phone, 0, 4).$register->id;
-    //         $referral_code = 'MYLUCK'.$register->id.substr($request->phone, 0, 4);
-    //         User::where('id',$register->id)->update(['customer_code' => $customer_code, 'self_referral_code' => $referral_code]);
-            
-    //         if($request->referral_code){
-    //             $this->reward($request->referral_code,$register->id);
-    //         }
-            
-    //         return response()->json(['status' => 200,'message' => 'Registration Successfully.', 'data'  =>[]],200);
-    //     }else{
-    //         return response()->json(['status' => 200,'message' => 'Internal Server Error.', 'data'  =>[]],200);
-    //     }
-    // }
-    
-    
+{    
     public function forgotPassword(Request $request){
          $validator = Validator::make($request->all(), [
             'email'    => 'required|email',
@@ -148,6 +82,13 @@ class AuthController extends Controller
     
         // Create Sanctum token
         $token = $user->createToken('auth_token')->plainTextToken;
+        
+        if(DriverPunchIn::where('user_id',$user->id)->whereDate('created_at',date('Y-m-d'))->first()){
+            $user->panch_in_status = "active";
+        }else{
+            $user->panch_in_status = "inactive";
+        }
+        
         return response()->json([ 'status' => 200, 'message'      => 'Login successful.', 'access_token' => $token, 'token_type'   => 'Bearer', 'data' => $user], 200);
     }
 

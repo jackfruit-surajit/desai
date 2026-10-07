@@ -241,8 +241,6 @@ class DriverApiController extends Controller
     }
     
     public function addCustomer(Request $request){
-        
-        
         $validator = Validator::make($request->all(), [
             'route_id' => 'required|integer',
             'shop_name' => 'required|string',
@@ -281,9 +279,17 @@ class DriverApiController extends Controller
         
         
         
-        $road = Road::where('id',$request->route_id)->first(['id','road_name','area_id']);
-        // dd($road);
-        $area = Area::where('id',$road->area_id)->first(['area_name']);
+        if($road = Road::where('id',$request->route_id)->first(['id','road_name','area_id'])){
+            if($area = Area::where('id',$road->area_id)->first(['area_name'])){
+                $address = $road->road_name.','.$area->area_name.','.$request->landmark.','.$request->state.','.$request->city.','.$request->pin_code;
+            }else{
+               $address = $road->road_name.','.$request->landmark.','.$request->state.','.$request->city.','.$request->pin_code; 
+            }
+            
+        }
+        else{
+            $address = $road->road_name.','.$request->landmark.','.$request->state.','.$request->city.','.$request->pin_code;
+        }
             
         
         
@@ -291,7 +297,7 @@ class DriverApiController extends Controller
                 'shop_name' => $request->shop_name,
                 'road_id' => $request->route_id,
                 'name' => $request->owner_name,
-                'address' => $road->road_name.','.$area->area_name.','.$request->landmark.','.$request->state.','.$request->city.','.$request->pin_code,
+                'address' => $address,
                 'mobile_no' => $request->mobile_no,
                 'created_by' => $request->driver_id,
                 'landmark' => $request->landmark,

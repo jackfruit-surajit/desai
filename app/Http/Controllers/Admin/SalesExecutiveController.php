@@ -107,12 +107,13 @@ class SalesExecutiveController extends Controller {
                 $edit = '<a href="' . Route("staff-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
                 $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
                 $assign_route = '<a href="' . Route("sales-executive-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Area</span></a>';
-
+                $attendance_log = '<a href="' . Route("driver-monthly-attendance", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-info"><i class="fa fa-clock"></i> Attendance Log</span></a>';
+                $area_log = '<a href="' . Route("sales-executive-area-log", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-warning"><i class="fa fa-map-marker-alt"></i> Area Log</span></a>';
                 }
                 return
                     '<div class="action-btns">'.
                         $edit .
-                        $delete.$assign_route.
+                        $delete.$assign_route.$attendance_log.$area_log.
                     '</div>';
             })
             ->rawColumns(['image','created_at','status', 'action'])
@@ -156,6 +157,30 @@ class SalesExecutiveController extends Controller {
         }
     }
     
-    
+    public function salesExecutiveAreaLog($id, Request $request) {
+        $executive_id = base64_decode($id);
+        $executive = DB::table('admins')->where('id', $executive_id)->first();
+        
+        $month = $request->get('month', date('m'));
+        $year = $request->get('year', date('Y'));
+        
+        $logs = DB::table('sales_visit_history as t1')
+                ->leftJoin('customers as t2', 't1.shop_id', '=', 't2.id')
+                ->select('t1.*', 't2.shop_name')
+                ->where('t1.executive_id', $executive_id)
+                ->whereMonth('t1.created_at', $month)
+                ->whereYear('t1.created_at', $year)
+                ->orderBy('t1.created_at', 'desc')
+                ->get();
+                
+        $data = [
+            'executive' => $executive,
+            'logs' => $logs,
+            'current_month' => $month,
+            'current_year' => $year,
+        ];
+        
+        return view('admin.staff.sales_executive_area_log', $data);
+    }
     
 }

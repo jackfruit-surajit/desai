@@ -78,8 +78,8 @@
                         <tr>
                             <th scope="col">#</th>
                             <th scope="col">Photo</th>
-                            <th scope="col">Name</th>
-                            <th scope="col">Email</th>
+                            <th scope="col">Owner</th>
+                            <th scope="col">Shop Name</th>
                             <th scope="col">Mobile No</th>
                             <!--<th scope="col">Address</th>-->
                             <th scope="col">Status</th>
@@ -125,9 +125,8 @@
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {data: 'image', name: 'image'},
                 {data: 'name', name: 'name'},
-                {data: 'email', name: 'email'},
+                {data: 'shop_name', name: 'shop_name'},
                 {data: 'mobile_no', name: 'mobile_no'},
-                // {data: 'address', name: 'address'},
                 {data: 'status', name: 'status'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]

@@ -104,6 +104,7 @@ Route::middleware(['prevent_back_history'])->group(function (){
             Route::get('get-sales-executive-datatable', ['uses' => 'Admin\SalesExecutiveController@getSalesExecutiveDatatable', 'as' => 'sales-executive-datatable']);
             Route::get('sales-executive-assign-location/{id}', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAssignLoaction', 'as' => 'sales-executive-assign-location']);
             Route::post('sales-executive-area-update', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAreaUpdate', 'as' => 'sales-executive-area-update']);
+            Route::get('sales-executive-area-log/{id}', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAreaLog', 'as' => 'sales-executive-area-log']);
             
             Route::get('warehouses', ['uses' => 'Admin\WarehouseController@warehouseList', 'as' => 'warehouses']);
             Route::get('get-warehouse-datatable', ['uses' => 'Admin\WarehouseController@getWarehouseDatatable', 'as' => 'warehouse-datatable']);
@@ -124,6 +125,9 @@ Route::middleware(['prevent_back_history'])->group(function (){
             
             Route::get('driver-attendance', ['uses' => 'Admin\StaffController@driverAttendance', 'as' => 'driver-attendance']);
             Route::get('get-driver-attendance-datatable', ['uses' => 'Admin\StaffController@getDriverAttendanceDatatable', 'as' => 'driver-attendance-datatable']);
+
+            Route::get('driver-monthly-attendance/{id}', ['uses' => 'Admin\StaffController@driverMonthlyAttendance', 'as' => 'driver-monthly-attendance']);
+            Route::get('driver-monthly-route-log/{id}', ['uses' => 'Admin\StaffController@driverMonthlyRouteLog', 'as' => 'driver-monthly-route-log']);
 
             Route::get('driver-route-logs', ['uses' => 'Admin\StaffController@driverRouteLogs', 'as' => 'driver-route-logs']);
             Route::get('get-driver-route-logs-datatable', ['uses' => 'Admin\StaffController@getDriverRouteLogsDatatable', 'as' => 'driver-route-logs-datatable']);

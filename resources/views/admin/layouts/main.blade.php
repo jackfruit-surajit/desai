@@ -36,7 +36,7 @@
     @include('admin.layouts.head-css')
 </head>
 
-<body data-pc-preset="preset-1" data-pc-sidebar-theme="light" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" >
+<body data-pc-preset="preset-4" data-pc-sidebar-theme="dark" data-pc-sidebar-caption="true" data-pc-direction="ltr" data-pc-theme="light" >
     @include('admin.layouts.loader')
     @include('admin.layouts.sidebar')
     @include('admin.layouts.topbar')

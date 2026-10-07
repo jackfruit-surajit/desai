@@ -37,10 +37,10 @@
                     </div>
                     <div class="col-lg-8">
                         <div class="d-flex justify-content-end align-items-center">
-                            <label for="from_date" class="me-2 mb-0">From:</label>
+                            <label for="from_date" class="me-2 mb-0 text-light">From:</label>
                             <input type="date" id="from_date" class="form-control w-auto me-3" placeholder="From Date">
                             
-                            <label for="to_date" class="me-2 mb-0">To:</label>
+                            <label for="to_date" class="me-2 mb-0 text-light">To:</label>
                             <input type="date" id="to_date" class="form-control w-auto" placeholder="To Date">
                         </div>
                     </div>

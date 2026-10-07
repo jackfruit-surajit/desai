@@ -79,6 +79,7 @@
                 url: '{{ route("driver-attendance-datatable") }}',
                 data: function (d) {
                     d.filter_date = $('#filter_date').val();
+                    d.driver_id = getUrlParameter('driver_id');
                 }
             },
             columns: [
@@ -94,6 +95,23 @@
         $('#filter_date').on('change', function() {
             table.ajax.reload();
         });
+
+        // Function to get URL parameters
+        function getUrlParameter(sParam) {
+            var sPageURL = window.location.search.substring(1),
+                sURLVariables = sPageURL.split('&'),
+                sParameterName,
+                i;
+
+            for (i = 0; i < sURLVariables.length; i++) {
+                sParameterName = sURLVariables[i].split('=');
+
+                if (sParameterName[0] === sParam) {
+                    return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+                }
+            }
+            return false;
+        }
     });
     </script>
     <!-- [Page Specific JS] end -->
