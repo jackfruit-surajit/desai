@@ -103,6 +103,31 @@ class StaffController extends Controller {
     }
     
     
+    public function driverRouteLogs(Request $request) {
+        $data = [];
+        return view('admin.staff.driver_route_logs', $data);
+    }
+
+    public function getDriverRouteLogsDatatable(Request $request) {
+        $query = DB::table('driver_attendance_route_logs as t1')
+                ->leftJoin('admins as t2', 't1.driver_id', '=', 't2.id')
+                ->leftJoin('road as t3', 't1.route_id', '=', 't3.id')
+                ->select('t1.*', 't2.name as driver_name', 't3.road_name as route_name');
+
+        if ($request->has('filter_date') && !empty($request->filter_date)) {
+            $query->whereDate('t1.created_at', $request->filter_date);
+        }
+
+        $data = $query->orderBy('t1.id', 'desc')->get();
+
+        return Datatables::of($data)
+            ->addIndexColumn()
+            ->editColumn('created_at', function ($model) {
+                return $model->created_at ? date('d-m-Y H:i:s', strtotime($model->created_at)) : 'N/A';
+            })
+            ->make(true);
+    }
+
     public function driverAttendance(Request $request) {
         $data = [];
         return view('admin.staff.driver_attendance', $data);

@@ -32,18 +32,18 @@
               <div class="card-header">
                 <div class="row align-items-center">
 
-                    <div class="col-lg-6">
+                    <div class="col-lg-4">
                         <h4 class="mb-0">Invoice List</h4>
                     </div>
-                    <!--<div class="col-lg-6">-->
-                      
-                    <!--    <a href="{{route('road-add')}}" >-->
-                    <!--        <button class="btn btn-secondary float-end me-2" tabindex="0" aria-controls="custom-btn" type="button">-->
-                    <!--            <span>Add New <i class="fa fa-plus" aria-hidden="true"></i></span>-->
-                    <!--        </button>-->
-                    <!--    </a>-->
+                    <div class="col-lg-8">
+                        <div class="d-flex justify-content-end align-items-center">
+                            <label for="from_date" class="me-2 mb-0">From:</label>
+                            <input type="date" id="from_date" class="form-control w-auto me-3" placeholder="From Date">
                             
-                    <!--</div>-->
+                            <label for="to_date" class="me-2 mb-0">To:</label>
+                            <input type="date" id="to_date" class="form-control w-auto" placeholder="To Date">
+                        </div>
+                    </div>
                 </div>
               </div>
               <div class="card-body">
@@ -101,13 +101,15 @@
     $(document).ready(function () {
         var role = getUrlParameter('role'); // Get role from URL
 
-        $('#staff-management').DataTable({
+        var table = $('#staff-management').DataTable({
             serverSide: true,
             responsive: true,
             ajax: {
                 url: '{{ route("invoice-datatable") }}',
                 data: function (d) {
                     d.role = role;    // Passing role
+                    d.from_date = $('#from_date').val();
+                    d.to_date = $('#to_date').val();
                 }
             },
             columns: [
@@ -118,6 +120,10 @@
                 {data: 'invoice_grand_total', name: 'invoice_grand_total'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]
+        });
+
+        $('#from_date, #to_date').on('change', function() {
+            table.ajax.reload();
         });
 
         // Function to get URL parameters

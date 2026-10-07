@@ -193,8 +193,19 @@ class ProductController extends Controller
     
     public function getInvoiceDatatable(Request $request) {
         
-        $data = DB::table('invoice_history')->join('admins','invoice_history.driver_id','admins.id')
-                ->orderBy('invoice_history.id','desc')->get(['invoice_history.*','admins.name as driver_name']);
+        $query = DB::table('invoice_history')->join('admins','invoice_history.driver_id','admins.id')
+                ->orderBy('invoice_history.id','desc')
+                ->select('invoice_history.*','admins.name as driver_name');
+
+        if ($request->has('from_date') && !empty($request->from_date)) {
+            $query->whereDate('invoice_history.created_at', '>=', $request->from_date);
+        }
+        if ($request->has('to_date') && !empty($request->to_date)) {
+            $query->whereDate('invoice_history.created_at', '<=', $request->to_date);
+        }
+
+        $data = $query->get();
+
         return Datatables::of($data)
             ->addIndexColumn()
             
