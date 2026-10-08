@@ -39,8 +39,18 @@
             transform: translateY(-2px);
         }
         .pc-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, #0a192f 0%, #172a45 100%) !important;
+            box-shadow: 0 4px 15px rgba(10, 25, 47, 0.4) !important;
+        }
+        .pc-header .pc-head-link {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        .pc-header .pc-head-link i {
+            color: #ffffff !important;
+        }
+        .pc-header .user-avtar {
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .btn-primary {
             background: linear-gradient(45deg, var(--bs-primary), #6133ff);
@@ -70,5 +80,84 @@
         .pc-sidebar .pc-item.active > .pc-link {
             background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.1), transparent);
             border-left: 3px solid var(--bs-primary);
+        }
+
+        /* Global Table Responsiveness */
+        .table-responsive {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            display: block;
+        }
+        .table {
+            white-space: nowrap;
+            width: 100% !important;
+            max-width: 100%;
+        }
+        .table td, .table th {
+            vertical-align: middle;
+        }
+
+        /* Mobile Responsiveness Improvements */
+        @media (max-width: 767.98px) {
+            .card {
+                margin-bottom: 15px;
+            }
+            .card-header, .card-body {
+                padding: 15px;
+            }
+            .table-responsive {
+                border: 0;
+            }
+            .action-btns {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            .action-btns .badge, .action-btns a {
+                margin: 0 !important;
+                font-size: 11px;
+                padding: 6px 10px;
+                display: inline-block;
+            }
+            .pc-content {
+                padding: 15px 10px !important;
+            }
+            h4, .h4 {
+                font-size: 1.1rem;
+            }
+            .card-header .row > div {
+                margin-bottom: 10px;
+            }
+            .card-header .text-end, .card-header .float-end {
+                text-align: left !important;
+                float: none !important;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .d-inline-flex {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .form-select, .form-control {
+                width: 100% !important;
+                max-width: none !important;
+            }
+            .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_length {
+                text-align: left !important;
+                margin-bottom: 10px;
+            }
+            .dataTables_wrapper .dataTables_filter input {
+                width: 100%;
+                margin-left: 0;
+                margin-top: 5px;
+            }
+            .btn {
+                width: auto;
+            }
+            .pc-header .pc-head-link {
+                padding: 0.5rem;
+            }
         }
     </style>

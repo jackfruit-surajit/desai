@@ -601,7 +601,16 @@ class DriverApiController extends Controller
         }
         
         if($driver_atten = DriverPunchIn::where('user_id',$request->user_id)->whereDate('created_at',date('Y-m-d'))->first()){
-            return response()->json(['status' => 200,'message' => 'Record found.', 'panch_in_status' => 'active', 'data'  =>$driver_atten,],200);   
+            
+            if($driver_atten->punch_in_time && $driver_atten->punch_out_time){
+                return response()->json(['status' => 200,'message' => 'Record found.', 'panch_in_status' => 'logout', 'data'  =>$driver_atten,],200); 
+            }
+            elseif($driver_atten->punch_in_time){
+                return response()->json(['status' => 200,'message' => 'Record found.', 'panch_in_status' => 'active', 'data'  =>$driver_atten,],200); 
+            }
+            else{
+                return response()->json(['status' => 200,'message' => 'Record not found.', 'panch_in_status' => 'inactive', 'data'  =>$driver_atten,],200);
+            }
         }
         else{
             return response()->json(['status' => 200,'message' => 'Record not found.', 'panch_in_status' => 'inactive', 'data'  =>[],],200);
