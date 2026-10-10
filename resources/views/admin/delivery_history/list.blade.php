@@ -80,7 +80,13 @@
                     {data: 'delivery_date', name: 't1.delivery_date'},
                     {data: 'delivery_status', name: 't1.delivery_status'},
                     {data: 'selfie', name: 'selfie', orderable: false, searchable: false},
-                    {data: 'delivery_note', name: 't1.delivery_note'}
+                    {
+                        data: 'delivery_note', 
+                        name: 't1.delivery_note',
+                        render: function(data, type, row) {
+                            return '<div style="white-space: pre-wrap; word-wrap: break-word; min-width: 150px; max-width: 300px;">' + (data ? data : '') + '</div>';
+                        }
+                    }
                 ]
             });
             
