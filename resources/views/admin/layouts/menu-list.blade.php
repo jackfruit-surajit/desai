@@ -82,6 +82,7 @@ $role = Role::find($user->role_id);
       <li class="pc-item"><a class="pc-link" href="{{route('sales-executive-attendance')}}">Sales Executive Attendance</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('sales-executive-area-logs-list')}}">Sales Executive Area Logs</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('shop-delivery-history')}}">Shop Delivery History</a></li>
+      <li class="pc-item"><a class="pc-link" href="{{route('sales-visit-history')}}">Sales Visit History</a></li>
 
     </ul>
   </li>
