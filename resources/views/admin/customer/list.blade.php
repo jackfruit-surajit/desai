@@ -80,7 +80,9 @@
                             <th scope="col">Photo</th>
                             <th scope="col">Owner Name</th>
                             <th scope="col">Shop Name</th>
-                            <th scope="col">Mobile No</th>
+                            {{-- <th scope="col">Mobile No</th> --}}
+                            <th scope="col">Route</th>
+                            <th scope="col">Area</th>
                             <!--<th scope="col">Address</th>-->
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
@@ -126,7 +128,9 @@
                 {data: 'image', name: 'image'},
                 {data: 'name', name: 'name'},
                 {data: 'shop_name', name: 'shop_name'},
-                {data: 'mobile_no', name: 'mobile_no'},
+                //{data: 'mobile_no', name: 'mobile_no'},
+                {data: 'road_name', name: 'road_name'},
+                {data: 'area_name', name: 'area_name'},
                 {data: 'status', name: 'status'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]

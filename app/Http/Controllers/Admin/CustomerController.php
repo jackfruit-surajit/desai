@@ -22,7 +22,11 @@ class CustomerController extends Controller
     }
 
     public function getStudentDatatable(Request $request) {
-        $data = DB::table('customers')->orderBy('customers.id','desc')->get(['customers.*']);
+        $data = DB::table('customers')
+                ->leftJoin('road', 'customers.road_id', '=', 'road.id')
+                ->leftJoin('area', 'road.area_id', '=', 'area.id')
+                ->orderBy('customers.id', 'desc')
+                ->get(['customers.*', 'area.area_name', 'road.road_name']);
 
         return Datatables::of($data)
             ->addIndexColumn()
