@@ -60,8 +60,9 @@
                         <tr>
                             <th scope="col">#</th>
                             <th scope="col">Name</th>
-                            <th scope="col">Email</th>
+                            {{-- <th scope="col">Email</th> --}}
                             <th scope="col">Phone</th>
+                            <th scope="col">Vehicle</th>
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
@@ -104,8 +105,9 @@
             columns: [
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {data: 'name', name: 'name'},
-                {data: 'email', name: 'email'},
+                // {data: 'email', name: 'email'},
                 {data: 'phone', name: 'phone'},
+                {data: 'vehicle', name: 'vehicle'},
                 {data: 'status', name: 'status'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]

@@ -201,7 +201,7 @@ class DriverApiController extends Controller
             return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
         }
 
-        $result = UserBreakLog::where('user_id', $request->user_id)->whereDate('created_at','Y-m-d')->latest()->first();
+        $result = UserBreakLog::where('user_id', $request->user_id)->whereDate('created_at',date('Y-m-d'))->latest()->first();
         if($result && $result->break_start_time && empty($result->break_end_time)){
             return response()->json(['status' => 200,'message' => 'Record found.', 'break_status' =>'1', 'data'  =>$result],200);
         }

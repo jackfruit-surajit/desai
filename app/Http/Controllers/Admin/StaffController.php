@@ -153,7 +153,15 @@ class StaffController extends Controller {
                 }
             }
 
-            return redirect()->back()->with('success_msg', 'Staff created successfully.');
+            if($input['role'] == 3){
+                return redirect()->route('drivers')->with('success_msg', 'Driver created successfully.');
+            }
+            elseif($input['role'] == 2){
+                return redirect()->route('sales-executives')->with('success_msg', 'Sales Executive created successfully.');
+            }
+            else{
+                return redirect()->route('warehouses')->with('success_msg', 'Warehouse created successfully.');
+            }
         } else {
             return redirect()->back()->withErrors($validator)->withInput($request->all())->with('error_msg', 'Something went wrong please check your input.');
         }
@@ -307,14 +315,19 @@ class StaffController extends Controller {
 
     public function getDriverDatatable(Request $request) {
         
-        
-        $data = DB::table('admins as t1')->leftjoin('roles as t2','t1.role_id','t2.id')
-                ->select('t1.*','t2.name as role_name')
+        $data = DB::table('admins as t1')
+                ->leftjoin('roles as t2','t1.role_id','t2.id')
+                ->leftjoin('vehicle as t3','t1.vehicle_id','t3.id')
+                ->select('t1.*','t2.name as role_name', 't3.vehicle_name', 't3.vehicle_no')
                 ->where('t1.status', '<>','2')->where('t2.id', '=',3)
                 ->orderby('t1.id','desc')->get();
 
         return Datatables::of($data)
             ->addIndexColumn()
+            
+            ->addColumn('vehicle', function ($model) {
+                return $model->vehicle_name ? ($model->vehicle_name . ' - ' . $model->vehicle_no) : 'N/A';
+            })
 
             ->editColumn('image', function ($model) {
                 if (isset($model->image) && $model->image != '') {
