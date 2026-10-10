@@ -140,7 +140,7 @@ class VehicleManagement extends Controller
         }
         $data['id'] = $id;
         $data['model'] = $model;
-        return view('admin.road.edit', $data);
+        return view('admin.vehicle.edit', $data);
     }
 
     public function update(Request $request) {

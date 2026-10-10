@@ -55,21 +55,21 @@
 
                         
                         <div class="col-md-6">
-                            <label class="form-label text-white">
+                            <label class="form-label">
                                 Status <span class="required">*</span> :
                             </label>
                             <br>
                         
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="status" id="statusActive" value="1" checked>
-                                <label class="form-check-label text-white" for="statusActive">
+                                <label class="form-check-label" for="statusActive">
                                     Active
                                 </label>
                             </div>
                         
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="status" id="statusInactive" value="0">
-                                <label class="form-check-label text-white" for="statusInactive">
+                                <input class="form-check-input" type="radio" name="status" id="statusInactive" value="0" >
+                                <label class="form-check-label" for="statusInactive">
                                     Inactive
                                 </label>
                             </div>
