@@ -138,6 +138,9 @@ Route::middleware(['prevent_back_history'])->group(function (){
             Route::get('get-driver-attendance-datatable', ['uses' => 'Admin\StaffController@getDriverAttendanceDatatable', 'as' => 'driver-attendance-datatable']);
 
             Route::get('user-monthly-attendance/{id}', ['uses' => 'Admin\StaffController@driverMonthlyAttendance', 'as' => 'driver-monthly-attendance']);
+            
+            Route::get('shop-delivery-history', ['uses' => 'Admin\ShopDeliveryHistoryController@index', 'as' => 'shop-delivery-history']);
+            Route::get('get-shop-delivery-history-datatable', ['uses' => 'Admin\ShopDeliveryHistoryController@getDatatable', 'as' => 'shop-delivery-history.datatable']);
             Route::get('driver-monthly-route-log/{id}', ['uses' => 'Admin\StaffController@driverMonthlyRouteLog', 'as' => 'driver-monthly-route-log']);
 
             Route::get('driver-route-logs', ['uses' => 'Admin\StaffController@driverRouteLogs', 'as' => 'driver-route-logs']);
