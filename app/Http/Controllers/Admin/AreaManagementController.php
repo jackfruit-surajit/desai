@@ -78,7 +78,7 @@ class AreaManagementController extends Controller
                 $edit = $delete = '';
 
                 // $edit = '<a href="' . Route("banner-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="Edit banner"><i class="fa fa-edit"></i></span></a>';   
-                $delete = '<a href="' . Route("area-delete", ['id' => base64_encode($model->id)]) . '" ><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i></span></a>';
+                $delete = '<a href="' . Route("area-delete", ['id' => base64_encode($model->id)]) . '" ><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i> Delete</span></a>';
              
                 return
                     '<div class="action-btns">'.

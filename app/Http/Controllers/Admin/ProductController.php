@@ -90,8 +90,8 @@ class ProductController extends Controller
 
                 $edit = $delete = '';
 
-                $edit = '<a href="' . Route("product-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="Edit Product"><i class="fa fa-edit"></i></span></a>';   
-                $delete = '<a href="' . Route("product-delete", ['id' => base64_encode($model->id)]) . '" ><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i></span></a>';
+                $edit = '<a href="' . Route("product-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="Edit Product"><i class="fa fa-edit"></i> Edit</span></a>';   
+                $delete = '<a href="' . Route("product-delete", ['id' => base64_encode($model->id)]) . '" ><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i> Delete</span></a>';
              
                 return
                     '<div class="action-btns">'.
@@ -217,7 +217,7 @@ class ProductController extends Controller
 
                 $edit = $delete = '';
 
-                $edit = '<a href="' . $model->path . '" target="_blank"><span class="badge rounded-pill text-bg-primary" title="Download Invoice"><i class="fa fa-file"></i></span></a>';   
+                $edit = '<a href="' . $model->path . '" target="_blank"><span class="badge rounded-pill text-bg-primary" title="Download Invoice"><i class="fa fa-file"></i> Print</span></a>';   
 
                 return
                     '<div class="action-btns">'.

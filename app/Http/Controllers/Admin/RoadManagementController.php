@@ -57,8 +57,8 @@ class RoadManagementController extends Controller
 
                 $edit = $delete ='';
 
-                $edit = '<a href="' . Route("road-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="Edit"><i class="fa fa-edit"></i></span></a>';    
-                $delete = '<a href="' . Route("road-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i></span></a>';
+                $edit = '<a href="' . Route("road-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="Edit"><i class="fa fa-edit"></i> Edit</span></a>';    
+                $delete = '<a href="' . Route("road-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i> Delete</span></a>';
 
                 return
                     '<div class="action-btns">'.
