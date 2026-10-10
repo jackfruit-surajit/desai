@@ -105,6 +105,10 @@ Route::middleware(['prevent_back_history'])->group(function (){
             Route::get('sales-executive-assign-location/{id}', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAssignLoaction', 'as' => 'sales-executive-assign-location']);
             Route::post('sales-executive-area-update', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAreaUpdate', 'as' => 'sales-executive-area-update']);
             Route::get('sales-executive-area-log/{id}', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAreaLog', 'as' => 'sales-executive-area-log']);
+            Route::get('sales-executive-attendance', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAttendance', 'as' => 'sales-executive-attendance']);
+            Route::get('get-sales-executive-attendance-datatable', ['uses' => 'Admin\SalesExecutiveController@getSalesExecutiveAttendanceDatatable', 'as' => 'sales-executive-attendance-datatable']);
+            Route::get('sales-executive-area-logs-list', ['uses' => 'Admin\SalesExecutiveController@salesExecutiveAreaLogsList', 'as' => 'sales-executive-area-logs-list']);
+            Route::get('get-sales-executive-area-logs-list-datatable', ['uses' => 'Admin\SalesExecutiveController@getSalesExecutiveAreaLogsListDatatable', 'as' => 'sales-executive-area-logs-list-datatable']);
             
             Route::get('warehouses', ['uses' => 'Admin\WarehouseController@warehouseList', 'as' => 'warehouses']);
             Route::get('get-warehouse-datatable', ['uses' => 'Admin\WarehouseController@getWarehouseDatatable', 'as' => 'warehouse-datatable']);

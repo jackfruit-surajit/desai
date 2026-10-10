@@ -183,4 +183,68 @@ class SalesExecutiveController extends Controller {
         return view('admin.staff.sales_executive_area_log', $data);
     }
     
+    public function salesExecutiveAttendance(Request $request) {
+        $data = [];
+        return view('admin.staff.sales_executive_attendance', $data);
+    }
+
+    public function getSalesExecutiveAttendanceDatatable(Request $request) {
+        $query = DB::table('driver_punch_in as t1')
+                ->leftJoin('admins as t2', 't1.user_id', '=', 't2.id')
+                ->select('t1.*', 't2.name as executive_name')
+                ->where('t2.role_id','2');
+                
+        if ($request->has('filter_date') && !empty($request->filter_date)) {
+            $query->whereDate('t1.punch_in_time', $request->filter_date);
+        }
+
+        $data = $query->orderBy('t1.id', 'desc')->get();
+
+        return Datatables::of($data)
+            ->addIndexColumn()
+            ->editColumn('selfie', function ($model) {
+                if (isset($model->selfie) && $model->selfie != '') {
+                    $path = URL::asset('public/uploads/driver/' . $model->selfie);
+                    return '<img height="50" width="50" src="' . $path . '"/>';
+                } else {
+                    return 'N/A';
+                }
+            })
+            ->editColumn('punch_in_time', function ($model) {
+                return $model->punch_in_time ? date('d-m-Y H:i:s', strtotime($model->punch_in_time)) : 'N/A';
+            })
+            ->editColumn('break_time', function ($model) {
+                return $model->break_time ? date('d-m-Y H:i:s', strtotime($model->break_time)) : 'N/A';
+            })
+            ->editColumn('punch_out_time', function ($model) {
+                return $model->punch_out_time ? date('d-m-Y H:i:s', strtotime($model->punch_out_time)) : 'N/A';
+            })
+            ->rawColumns(['selfie'])
+            ->make(true);
+    }
+
+    public function salesExecutiveAreaLogsList(Request $request) {
+        $data = [];
+        return view('admin.staff.sales_executive_area_logs_list', $data);
+    }
+
+    public function getSalesExecutiveAreaLogsListDatatable(Request $request) {
+        $query = DB::table('sales_executive_area_visit_logs as t1')
+                ->leftJoin('admins as t2', 't1.sales_executive_id', '=', 't2.id')
+                ->leftJoin('area as t3', 't1.area_id', '=', 't3.id')
+                ->select('t1.*', 't2.name as executive_name', 't3.area_name as area_name');
+
+        if ($request->has('filter_date') && !empty($request->filter_date)) {
+            $query->whereDate('t1.created_at', $request->filter_date);
+        }
+
+        $data = $query->orderBy('t1.id', 'desc')->get();
+
+        return Datatables::of($data)
+            ->addIndexColumn()
+            ->editColumn('created_at', function ($model) {
+                return $model->created_at ? date('d-m-Y H:i:s', strtotime($model->created_at)) : 'N/A';
+            })
+            ->make(true);
+    }
 }
