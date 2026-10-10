@@ -297,7 +297,26 @@ class StaffController extends Controller {
                 return $model->punch_in_time ? date('d-m-Y H:i:s', strtotime($model->punch_in_time)) : 'N/A';
             })
             ->editColumn('break_time', function ($model) {
-                return $model->break_time ? date('d-m-Y H:i:s', strtotime($model->break_time)) : 'N/A';
+                if(!$model->punch_in_time) return 'N/A';
+                $punchInDate = date('Y-m-d', strtotime($model->punch_in_time));
+                $breakLogs = DB::table('user_break_logs')
+                                ->where('user_id', $model->user_id)
+                                ->whereDate('break_start_time', $punchInDate)
+                                ->get();
+                $totalSeconds = 0;
+                foreach($breakLogs as $log) {
+                    if($log->break_start_time && $log->break_end_time) {
+                        $start = strtotime($log->break_start_time);
+                        $end = strtotime($log->break_end_time);
+                        $totalSeconds += ($end - $start);
+                    }
+                }
+                
+                if($totalSeconds == 0) return '0 hrs 0 mins';
+                
+                $hours = floor($totalSeconds / 3600);
+                $minutes = floor(($totalSeconds / 60) % 60);
+                return $hours . ' hrs ' . $minutes . ' mins';
             })
             ->editColumn('punch_out_time', function ($model) {
                 return $model->punch_out_time ? date('d-m-Y H:i:s', strtotime($model->punch_out_time)) : 'N/A';

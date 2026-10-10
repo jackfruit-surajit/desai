@@ -158,7 +158,7 @@ class SalesExecutiveController extends Controller
             }
             
              $shop->status = $status;
-             $shop->image_path = url('uploads/sales_executive/'.$shop->shop_photo);
+             $shop->image_path = url('public/uploads/customer/'.$shop->shop_photo);
              return response()->json(['status' => 200,'message' => 'Record found.', 'data'  =>$shop],200);
         }
         else{
