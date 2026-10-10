@@ -281,27 +281,7 @@
                               </div>
                             </div>
                           </a>
-                        <div class="dropdown-menu">
-                            <ul>
-                                <li><a class="pc-user-links" href="{{route('warehouse-profile')}}">
-                                        <i class="ph-duotone ph-user"></i>
-                                        <span>My Account</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{route('warehouse-settings')}}">
-                                        <i class="ph-duotone ph-gear"></i>
-                                        <span>Settings</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{route('warehouse-clear-cache')}}">
-                                        <i class="ti ti-refresh"></i>
-                                        <span>Clear Cache</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{ route('warehouse-logout') }}">
-                                        <i class="ph-duotone ph-power"></i>
-                                        <span>Logout</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+                        
                     </div>
             
                 

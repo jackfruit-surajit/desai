@@ -280,27 +280,7 @@
                               </div>
                             </div>
                           </a>
-                        <div class="dropdown-menu">
-                            <ul>
-                                <li><a class="pc-user-links" href="{{route('admin-profile')}}">
-                                        <i class="ph-duotone ph-user"></i>
-                                        <span>My Account</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{route('settings')}}">
-                                        <i class="ph-duotone ph-gear"></i>
-                                        <span>Settings</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{route('clear-cache')}}">
-                                        <i class="ti ti-refresh"></i>
-                                        <span>Clear Cache</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{ route('admin-logout') }}">
-                                        <i class="ph-duotone ph-power"></i>
-                                        <span>Logout</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+                        
                     </div>
 
                 @elseif(Auth()->guard('backend')->user()->role_id == 4)
@@ -320,27 +300,7 @@
                               </div>
                             </div>
                           </a>
-                        <div class="dropdown-menu">
-                            <ul>
-                                <li><a class="pc-user-links" href="{{route('product-owner-profile')}}">
-                                        <i class="ph-duotone ph-user"></i>
-                                        <span>My Account</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{route('product-owner-settings')}}">
-                                        <i class="ph-duotone ph-gear"></i>
-                                        <span>Settings</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{route('product-owner-clear-cache')}}">
-                                        <i class="ti ti-refresh"></i>
-                                        <span>Clear Cache</span>
-                                    </a></li>
-                                <li><a class="pc-user-links" href="{{ route('product-owner-logout') }}">
-                                        <i class="ph-duotone ph-power"></i>
-                                        <span>Logout</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+                        
                     </div>
                 @endif
                 
