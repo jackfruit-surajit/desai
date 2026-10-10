@@ -195,6 +195,27 @@ class StaffController extends Controller {
             $attendance[$date] = $record;
             
             if ($record) {
+                $breakLogs = DB::table('user_break_logs')
+                                ->where('user_id', $driver_id)
+                                ->whereDate('break_start_time', $date)
+                                ->get();
+                $totalSeconds = 0;
+                foreach($breakLogs as $log) {
+                    if($log->break_start_time && $log->break_end_time) {
+                        $start = strtotime($log->break_start_time);
+                        $end = strtotime($log->break_end_time);
+                        $totalSeconds += ($end - $start);
+                    }
+                }
+                
+                if($totalSeconds == 0) {
+                    $record->total_break_time = '0 hrs 0 mins';
+                } else {
+                    $hours = floor($totalSeconds / 3600);
+                    $minutes = floor(($totalSeconds / 60) % 60);
+                    $record->total_break_time = $hours . ' hrs ' . $minutes . ' mins';
+                }
+                
                 $present_count++;
             } else {
                 if (strtotime($date) <= strtotime(date('Y-m-d'))) {

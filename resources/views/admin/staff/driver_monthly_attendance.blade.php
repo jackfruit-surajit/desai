@@ -79,7 +79,7 @@
                                     @endif
                                 </td>
                                 <td>{{ $record->punch_in_time ? date('H:i:s', strtotime($record->punch_in_time)) : 'N/A' }}</td>
-                                <td>{{ $record->break_time ? date('H:i:s', strtotime($record->break_time)) : 'N/A' }}</td>
+                                <td>{{ $record->total_break_time ?? 'N/A' }}</td>
                                 <td>{{ $record->punch_out_time ? date('H:i:s', strtotime($record->punch_out_time)) : 'N/A' }}</td>
                             @else
                                 @if(strtotime($date) > strtotime(date('Y-m-d')))
