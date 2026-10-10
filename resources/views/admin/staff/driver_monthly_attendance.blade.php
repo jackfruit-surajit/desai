@@ -42,7 +42,7 @@
                                 @endfor
                             </select>
                             <select name="year" class="form-select me-2" style="width: auto;">
-                                @for($y=date('Y')-2; $y<=date('Y'); $y++)
+                                @for($y=date('Y')-2; $y<=date('Y')+2; $y++)
                                     <option value="{{ $y }}" {{ $current_year == $y ? 'selected' : '' }}>{{ $y }}</option>
                                 @endfor
                             </select>
@@ -82,11 +82,19 @@
                                 <td>{{ $record->break_time ? date('H:i:s', strtotime($record->break_time)) : 'N/A' }}</td>
                                 <td>{{ $record->punch_out_time ? date('H:i:s', strtotime($record->punch_out_time)) : 'N/A' }}</td>
                             @else
-                                <td class="absent-text">Absent</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
+                                @if(strtotime($date) > strtotime(date('Y-m-d')))
+                                    <td>--</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                @else
+                                    <td class="absent-text">Absent</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                @endif
                             @endif
                         </tr>
                         @endforeach

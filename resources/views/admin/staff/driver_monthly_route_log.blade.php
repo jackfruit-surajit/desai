@@ -33,7 +33,7 @@
                                 @endfor
                             </select>
                             <select name="year" class="form-select me-2" style="width: auto;">
-                                @for($y=date('Y')-2; $y<=date('Y'); $y++)
+                                @for($y=date('Y')-2; $y<=date('Y')+2; $y++)
                                     <option value="{{ $y }}" {{ $current_year == $y ? 'selected' : '' }}>{{ $y }}</option>
                                 @endfor
                             </select>
