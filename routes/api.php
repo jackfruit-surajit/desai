@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::post('login', ['uses' => 'Api\AuthController@login', 'as' => 'login']);
     Route::post('forgot-password', ['uses' => 'Api\AuthController@forgotPassword', 'as' => 'forgotPassword']);
     Route::post('logout', ['uses' => 'Api\AuthController@logout', 'as' => 'logout']);
+    Route::get('admin-contact', ['uses' => 'Api\AuthController@adminContact', 'as' => 'admin-contact']);
 
 Route::prefix('sales-executive')->group(function() {
 

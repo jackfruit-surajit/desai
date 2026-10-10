@@ -191,5 +191,20 @@ class AuthController extends Controller
     }
 
 
+    public function adminContact(Request $request) {
+        $admin = DB::table('admins')->where('role_id', 1)->first(['phone', 'email']);
+        $site_contact = DB::table('settings')->where('slug', 'site_contact')->first();
+        
+        $contact = $admin && !empty($admin->phone) ? $admin->phone : ($site_contact ? $site_contact->value : '');
+        
+        return response()->json([
+            'status' => 200,
+            'message' => 'Admin contact fetched successfully.',
+            'data' => [
+                'phone' => $contact,
+                'email' => $admin ? $admin->email : ''
+            ]
+        ], 200);
+    }
 
 }
