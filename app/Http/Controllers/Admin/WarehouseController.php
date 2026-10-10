@@ -104,7 +104,7 @@ class WarehouseController extends Controller {
                 $user_role = Auth::guard('backend')->user()->role_id;
                 $edit = ''; $delete = $assign_route ='';
                 if($user_role == 1){
-                $edit = '<a href="' . Route("staff-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
+                $edit = '<a href="' . Route("warehouse-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
                 $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
                 // $assign_route = '<a href="' . Route("sales-executive-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-house"></i> Warehouse</span></a>';
 

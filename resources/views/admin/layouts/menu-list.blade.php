@@ -25,8 +25,6 @@ $role = Role::find($user->role_id);
       ><span class="pc-arrow"><i data-feather="chevron-right"></i></span
     ></a>
     <ul class="pc-submenu">
-    
-      <li class="pc-item"><a class="pc-link" href="{{route('user-create')}}">Create</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('drivers')}}">Drivers</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('sales-executives')}}">Sales Executives</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('warehouses')}}">Warehouse</a></li>

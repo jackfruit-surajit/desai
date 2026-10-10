@@ -86,7 +86,13 @@ Route::middleware(['prevent_back_history'])->group(function (){
             
             
             Route::get('staff-create', ['uses' => 'Admin\StaffController@create', 'as' => 'user-create']);
+            Route::get('driver-create', ['uses' => 'Admin\StaffController@driverCreate', 'as' => 'driver-create']);
+            Route::get('sales-executive-create', ['uses' => 'Admin\StaffController@salesExecutiveCreate', 'as' => 'sales-executive-create']);
+            Route::get('warehouse-create', ['uses' => 'Admin\StaffController@warehouseCreate', 'as' => 'warehouse-create']);
             Route::post('staff-store', ['uses' => 'Admin\StaffController@store', 'as' => 'user-store']);
+            Route::get('driver-edit/{id}', ['uses' => 'Admin\StaffController@driverEdit', 'as' => 'driver-edit']);
+            Route::get('sales-executive-edit/{id}', ['uses' => 'Admin\StaffController@salesExecutiveEdit', 'as' => 'sales-executive-edit']);
+            Route::get('warehouse-edit/{id}', ['uses' => 'Admin\StaffController@warehouseEdit', 'as' => 'warehouse-edit']);
             Route::get('staff-edit/{id}', ['uses' => 'Admin\StaffController@edit', 'as' => 'staff-edit']);
             Route::post('staff-update', ['uses' => 'Admin\StaffController@update', 'as' => 'staff-update']);
             Route::get('staff-delete/{id}', ['uses' => 'Admin\StaffController@delete', 'as' => 'staff-delete']);
@@ -97,6 +103,7 @@ Route::middleware(['prevent_back_history'])->group(function (){
             Route::get('driver-assign-location/{id}', ['uses' => 'Admin\StaffController@driverAssignLoaction', 'as' => 'driver-assign-location']);
             Route::post('driver-area-update', ['uses' => 'Admin\StaffController@driverAreaUpdate', 'as' => 'driver-area-update']);
             Route::post('driver-road-arrangement', ['uses' => 'Admin\StaffController@driverRoadArrangement', 'as' => 'driver-road-arrangement']);
+            Route::post('get-roads-by-area', ['uses' => 'Admin\StaffController@getRoadsByArea', 'as' => 'get-roads-by-area']);
             Route::get('driver-warehouse/{id}', ['uses' => 'Admin\StaffController@driverWarehouse', 'as' => 'driver-warehouse']);
             Route::post('driver-warehouse-update', ['uses' => 'Admin\StaffController@updateDriverWarehouse', 'as' => 'driver-warehouse-update']);
             

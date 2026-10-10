@@ -23,10 +23,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::post('logout', ['uses' => 'Api\AuthController@logout', 'as' => 'logout']);
     Route::get('admin-contact', ['uses' => 'Api\AuthController@adminContact', 'as' => 'admin-contact']);
 
-Route::prefix('sales-executive')->group(function() {
+    Route::post('check-break-status', ['uses' => 'Api\DriverApiController@checkBreakStatus', 'as' => 'check-break-status']);
 
-   
-});
+    
 
 Route::prefix('driver')->group(function() {
     Route::post('punch-in', ['uses' => 'Api\DriverApiController@driverPunchIn', 'as' => 'punch-in']);

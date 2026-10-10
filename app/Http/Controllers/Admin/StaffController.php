@@ -20,10 +20,30 @@ use App\Models\Area;
 use App\Models\Road;
 use App\Models\DriverRoute;
 use App\Models\DriverWarehouse;
+use App\Models\SalesExecutiveArea;
 
 class StaffController extends Controller {
     
     
+    public function driverCreate(){
+        $data = [];
+        $data['vehicles'] = DB::table('vehicle')->where('status','1')->get();
+        $data['areas'] = Area::where('status','1')->get();
+        $data['warehouses'] = DB::table('admins as t1')->where('t1.role_id', '=',4)->orderby('t1.id','desc')->get();
+        return view('admin.staff.driver_add', $data);
+    }
+    
+    public function salesExecutiveCreate(){
+        $data = [];
+        $data['areas'] = Area::where('status','1')->get();
+        return view('admin.staff.sales_executive_add', $data);
+    }
+    
+    public function warehouseCreate(){
+        $data = [];
+        return view('admin.staff.warehouse_add', $data);
+    }
+
     public function create(){
         $data = [];
         $data['roles'] = DB::table('roles')->whereNotIn('name',['Admin'])->get();
@@ -42,6 +62,14 @@ class StaffController extends Controller {
             'image' => 'nullable|mimes:png,jpeg,jpg,JPEG',
             'status' => 'required',
             'vehicle_id' =>'nullable|integer',
+            'area_id' => $request->role == 2 ? 'required|array|max:5' : 'required_if:role,3',
+            'warehouse_id' => 'required_if:role,3',
+        ], [
+            'area_id.required_if' => 'The assign area field is required.',
+            'area_id.required' => 'The assign area field is required.',
+            'area_id.array' => 'The assign area must be a list.',
+            'area_id.max' => 'You can assign maximum 5 areas.',
+            'warehouse_id.required_if' => 'The assign warehouse field is required.',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -76,6 +104,7 @@ class StaffController extends Controller {
            
             if($input['role'] == '3'){
                $data['vehicle_id'] = $input['vehicle_id']; 
+               $data['area_id'] = $input['area_id'] ?? null; 
             }
             
             if ($request->hasFile('image')) {
@@ -95,6 +124,34 @@ class StaffController extends Controller {
             $data['updated_at'] = date('Y-m-d H:i:s');
 
             $insertedId = DB::table('admins')->insertGetId($data);
+
+            if($input['role'] == '3'){
+                if(isset($input['warehouse_id']) && $input['warehouse_id']){
+                    DriverWarehouse::create([
+                        'warehouse_id' => $input['warehouse_id'],
+                        'driver_id' => $insertedId,
+                    ]);
+                }
+                
+                if($request->has('road_items') && is_array($request->road_items)) {
+                    foreach($request->road_items as $index => $road_id) {
+                        DriverRoute::create([
+                            'driver_id' => $insertedId,
+                            'road_id'   => $road_id,
+                            'serial_no' => $index + 1,
+                        ]);
+                    }
+                }
+            } elseif ($input['role'] == '2') {
+                if($request->has('area_id') && is_array($request->area_id)) {
+                    foreach($request->area_id as $area_id) {
+                        SalesExecutiveArea::create([
+                            'sales_executive_id' => $insertedId,
+                            'area_id' => $area_id,
+                        ]);
+                    }
+                }
+            }
 
             return redirect()->back()->with('success_msg', 'Staff created successfully.');
         } else {
@@ -320,10 +377,10 @@ class StaffController extends Controller {
             ->addColumn('action', function ($model) {
                 $edit = ''; $delete = $assign_route = $ware_house = $attendance_log = $route_log = '';
                 
-                $edit = '<a href="' . Route("staff-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
+                $edit = '<a href="' . Route("driver-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
                 $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
-                $assign_route = '<a href="' . Route("driver-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Routes</span></a>';
-                $ware_house = '<a href="' . Route("driver-warehouse", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-secondary"><i class="fa fa-house"></i> Warehouse</span></a>';
+                // $assign_route = '<a href="' . Route("driver-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Routes</span></a>';
+                // $ware_house = '<a href="' . Route("driver-warehouse", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-secondary"><i class="fa fa-house"></i> Warehouse</span></a>';
                 $attendance_log = '<a href="' . Route("driver-monthly-attendance", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-info"><i class="fa fa-clock"></i> Attendance Log</span></a>';
                 $route_log = '<a href="' . Route("driver-monthly-route-log", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-warning"><i class="fa fa-map-marker-alt"></i> Route Log</span></a>';
 
@@ -390,6 +447,61 @@ class StaffController extends Controller {
     }
     
     
+    public function getRoadsByArea(Request $request) {
+        $area_id = $request->area_id;
+        $roads = Road::where('status','1')->where('area_id', $area_id)->get();
+        return response()->json([
+            'status' => true,
+            'data' => $roads
+        ]);
+    }
+    
+    public function driverEdit($id) {
+        $id = base64_decode($id);
+        $model = DB::table('admins')->where('id', $id)->first();
+        if (!$model) {
+            return redirect()->back()->with('error_msg', 'Invalid Link!');
+        }
+        $data['id'] = $id;
+        $data['model'] = $model;
+        $data['vehicles'] = DB::table('vehicle')->where('status','1')->get();
+        $data['areas'] = Area::where('status','1')->get();
+        $data['warehouses'] = DB::table('admins as t1')->where('t1.role_id', '=',4)->orderby('t1.id','desc')->get();
+        $data['selected_warehouse'] = DB::table('driver_warehouse')->where('driver_id', $id)->value('warehouse_id');
+        
+        $data['driver_routes'] = DriverRoute::where('driver_id', $id)
+                                    ->join('road', 'road.id', '=', 'driver_route.road_id')
+                                    ->orderBy('driver_route.serial_no', 'ASC')
+                                    ->select('road.id', 'road.road_name', 'road.full_address', 'driver_route.serial_no')
+                                    ->get();
+
+        return view('admin.staff.driver_edit', $data);
+    }
+
+    public function salesExecutiveEdit($id) {
+        $id = base64_decode($id);
+        $model = DB::table('admins')->where('id', $id)->first();
+        if (!$model) {
+            return redirect()->back()->with('error_msg', 'Invalid Link!');
+        }
+        $data['id'] = $id;
+        $data['model'] = $model;
+        $data['areas'] = Area::where('status','1')->get();
+        $data['selected_areas'] = SalesExecutiveArea::where('sales_executive_id', $id)->pluck('area_id')->toArray();
+        return view('admin.staff.sales_executive_edit', $data);
+    }
+
+    public function warehouseEdit($id) {
+        $id = base64_decode($id);
+        $model = DB::table('admins')->where('id', $id)->first();
+        if (!$model) {
+            return redirect()->back()->with('error_msg', 'Invalid Link!');
+        }
+        $data['id'] = $id;
+        $data['model'] = $model;
+        return view('admin.staff.warehouse_edit', $data);
+    }
+
     public function edit($id) {
         $id = base64_decode($id);
         $model = DB::table('admins')->where('id', $id)->first();
@@ -415,6 +527,14 @@ class StaffController extends Controller {
             'status' => 'required',
             'id' => 'required|integer',
             'vehicle_id' => 'nullable|integer',
+            'area_id' => $request->role == 2 ? 'required|array|max:5' : 'required_if:role,3',
+            'warehouse_id' => 'required_if:role,3',
+        ], [
+            'area_id.required_if' => 'The assign area field is required.',
+            'area_id.required' => 'The assign area field is required.',
+            'area_id.array' => 'The assign area must be a list.',
+            'area_id.max' => 'You can assign maximum 5 areas.',
+            'warehouse_id.required_if' => 'The assign warehouse field is required.',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -444,8 +564,42 @@ class StaffController extends Controller {
             $data['role_id'] = $input['role'];
             $data['status'] = $input['status'];
             
-            if($input['role'] == '3' && $input['vehicle_id']){
-               $data['vehicle_id'] = $input['vehicle_id']; 
+            if($input['role'] == '3'){
+               if (isset($input['vehicle_id'])) {
+                   $data['vehicle_id'] = $input['vehicle_id']; 
+               }
+               $data['area_id'] = $input['area_id'] ?? null;
+               
+               if(isset($input['warehouse_id']) && $input['warehouse_id']){
+                    DriverWarehouse::updateOrCreate(
+                        ['driver_id' => $request->id],
+                        ['warehouse_id' => $input['warehouse_id']]
+                    );
+               }
+               
+               if($request->has('road_items') && is_array($request->road_items)) {
+                    DriverRoute::where('driver_id', $request->id)->delete();
+                    foreach($request->road_items as $index => $road_id) {
+                        DriverRoute::create([
+                            'driver_id' => $request->id,
+                            'road_id' => $road_id,
+                            'serial_no' => $index + 1
+                        ]);
+                    }
+                } elseif($request->has('area_id')) {
+                    // If no road_items are provided but area_id is, user might have cleared the routes for this area
+                    DriverRoute::where('driver_id', $request->id)->delete();
+                }
+            } elseif ($input['role'] == '2') {
+                SalesExecutiveArea::where('sales_executive_id', $request->id)->delete();
+                if($request->has('area_id') && is_array($request->area_id)) {
+                    foreach($request->area_id as $area_id) {
+                        SalesExecutiveArea::create([
+                            'sales_executive_id' => $request->id,
+                            'area_id' => $area_id,
+                        ]);
+                    }
+                }
             }
 
             if ($request->hasFile('image')) {
@@ -481,7 +635,7 @@ class StaffController extends Controller {
                 return redirect()->route('sales-executives')->with('success_msg', 'Sales Executive details updated successfully.');
             }
             else{
-                return redirect()->route('warehouses')->with('success_msg', 'Sales Executive details updated successfully.');
+                return redirect()->route('warehouses')->with('success_msg', 'Warehouse User details updated successfully.');
             }
             
         } else {

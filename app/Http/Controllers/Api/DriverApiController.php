@@ -13,6 +13,7 @@ use App\Models\Customer;
 use App\Models\ShopDeliveryHistory;
 use App\Models\InvoiceHistory;
 use App\Models\DriverAttendanceRouteLog;
+use App\Models\UserBreakLog;
 use Illuminate\Support\Facades\Validator;
 use Hash;
 use DB;
@@ -140,7 +141,12 @@ class DriverApiController extends Controller
                 ->update([
                     'break_time' => now(),
                 ]);
-    
+
+            UserBreakLog::create([
+                    'user_id' => $request->user_id,
+                    'break_start_time' => now(),
+            ]);
+
             if($result){
                 return response()->json(['status' => 200,'message' => 'Break time updated successfully.', 'data'  =>[]],200);
             }else{
@@ -169,6 +175,11 @@ class DriverApiController extends Controller
                 ->update([
                     'break_end' => now(),
                 ]);
+
+            UserBreakLog::where('user_id', $request->user_id)->whereNull('break_end_time')->latest()
+            ->update([
+                    'break_end_time' => now(),
+            ]);
     
             if($result){
                 return response()->json(['status' => 200,'message' => 'Break time updated successfully.', 'data'  =>[]],200);
@@ -179,6 +190,24 @@ class DriverApiController extends Controller
             return response()->json(['status' => 200,'message' => 'Please Punch in your daliy profile.', 'data'  =>[]],200);
         }
         
+    }
+
+    public function checkBreakStatus(Request $request){
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $result = UserBreakLog::where('user_id', $request->user_id)->whereDate('created_at','Y-m-d')->latest()->first();
+        if($result && $result->break_start_time && empty($result->break_end_time)){
+            return response()->json(['status' => 200,'message' => 'Record found.', 'break_status' =>'1', 'data'  =>$result],200);
+        }
+        else{
+            return response()->json(['status' => 200,'message' => 'Record found.', 'break_status' =>'0', 'data'  =>$result],200);
+        }
     }
     
     public function driverRoute(Request $request){

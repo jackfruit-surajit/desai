@@ -102,11 +102,11 @@ class SalesExecutiveController extends Controller {
             })
             ->addColumn('action', function ($model) {
                 $user_role = Auth::guard('backend')->user()->role_id;
-                $edit = ''; $delete = '';
+                $edit = ''; $delete = $assign_route = '';
                 if($user_role == 1){
-                $edit = '<a href="' . Route("staff-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
+                $edit = '<a href="' . Route("sales-executive-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
                 $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
-                $assign_route = '<a href="' . Route("sales-executive-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Area</span></a>';
+                // $assign_route = '<a href="' . Route("sales-executive-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Area</span></a>';
                 $attendance_log = '<a href="' . Route("driver-monthly-attendance", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-info"><i class="fa fa-clock"></i> Attendance Log</span></a>';
                 $area_log = '<a href="' . Route("sales-executive-area-log", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-warning"><i class="fa fa-map-marker-alt"></i> Area Log</span></a>';
                 }

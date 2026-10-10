@@ -43,7 +43,7 @@
 
                     <div class="col-lg-6">
                       
-                                 <a href="{{route('user-create')}}" >
+                                 <a href="{{route('sales-executive-create')}}" >
                                     <button class="btn btn-secondary float-end me-2" tabindex="0" aria-controls="custom-btn" type="button">
                                        <span>Add New <i class="fa fa-plus" aria-hidden="true"></i></span>
                                     </button>
