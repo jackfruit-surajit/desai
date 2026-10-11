@@ -114,7 +114,7 @@ class DriverManagementController extends Controller
             })
     
             ->addColumn('action', function ($model) {
-                $edit = '<a href="' . Route("driver-product-list", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="View Product List"><i class="fa fa-eye"></i></span></a>';   
+                $edit = '<a href="' . Route("driver-product-list", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="View Product List"><i class="fa fa-eye"></i> View</span></a>';   
                 return '<div class="action-btns">' .
                     $edit .
                     '</div>';

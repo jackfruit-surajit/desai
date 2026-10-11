@@ -73,7 +73,7 @@ class ProductController extends Controller
 
                 $edit = $delete = '';
 
-                $edit = '<a href="' . Route("warehouse-product-details", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="View Details"><i class="fa fa-eye"></i></span></a>';   
+                $edit = '<a href="' . Route("warehouse-product-details", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="View Details"><i class="fa fa-eye"></i> View</span></a>';   
                 // $delete = '<a href="' . Route("manufacture-product-delete", ['id' => base64_encode($model->id)]) . '" ><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i></span></a>';
              
                 return
