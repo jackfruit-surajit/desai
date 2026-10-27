@@ -1,0 +1,55 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/delivery-details/store
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"search_area\": \"Marine Drive\",\r
+
+    \  \"pickup_address\": \"123 Marine Drive, Churchgate, Mumbai\",\r
+
+    \  \"pickup_landmark\": \"Opposite Sea Face\",\r
+
+    \  \"pickup_latitude\": 18.9438,\r
+
+    \  \"pickup_longitude\": 72.8232,\r
+
+    \  \"pickup_source\": \"current\",\r
+
+    \  \"drop_address\": \"Shop 4, Linking Road, Bandra West, Mumbai\",\r
+
+    \  \"drop_landmark\": \"Near KFC\",\r
+
+    \  \"drop_latitude\": 19.0596,\r
+
+    \  \"drop_longitude\": 72.8295,\r
+
+    \  \"drop_source\": \"map\",\r
+
+    \  \"item_category\": \"Parcel\",\r
+
+    \  \"item_description\": \"Delivery glass vase in bubble wrap\",\r
+
+    \  \"weight_range\": \"0-8 kg\",\r
+
+    \  \"estimated_weight_kg\": 2.5,\r
+
+    \  \"sender_name\": \"Rahul Sharma\",\r
+
+    \  \"sender_phone\": \"+91 8760000000\",\r
+
+    \  \"receiver_name\": \"Priya Patel\",\r
+
+    \  \"receiver_phone\": \"+91 8760000001\",\r
+
+    \  \"is_fragile\": true,\r
+
+    \  \"delivery_type\":\"deliver_now\", //deliver_now,schedule,instant,scheduled\r
+
+    \  \"scheduled_date\":\"\",\r
+
+    \  \"time_slot\":\"\"\r
+
+    }"
+order: 10000

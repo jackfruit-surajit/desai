@@ -1,0 +1,23 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/profile/update
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \  \"name\": \"Rajib Das\",\r
+
+    \  \"email\":\"sura123@gmail.com\",\r
+
+    \  \"phone_number\": \"8017123458\",\r
+
+    \  \"language\": \"bn\",\r
+
+    \  \"dob\": \"1990-09-23\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: 1|BFAAwoKt5FvHkZgRHBgnqAgyzWCyi8DWgpmpbPvI158513ce
+order: 4000

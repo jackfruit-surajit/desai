@@ -1,0 +1,8 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/profile/addresses/1
+method: PUT
+auth:
+  type: bearer
+  credentials:
+    token: 1|QxFGoPhFl7sn2iFHWM2j2NUy8n66HwDFZtmIU0Lu19695b55
+order: 15000

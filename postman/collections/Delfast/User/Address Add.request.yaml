@@ -1,0 +1,25 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/profile/addresses
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"title\":\"My Address\",\r
+
+    \    \"address_line\":\"Rajnagar, namkhana\",\r
+
+    \    \"city\":\"Namkhana\",\r
+
+    \    \"state\":\"WB\",\r
+
+    \    \"pincode\":\"987678\",\r
+
+    \    \"landmark\":\"Rajnagar School\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: 1|QxFGoPhFl7sn2iFHWM2j2NUy8n66HwDFZtmIU0Lu19695b55
+order: 14000

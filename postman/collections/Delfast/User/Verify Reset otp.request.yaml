@@ -1,0 +1,13 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/auth/verify-reset-otp
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"identifier\":\"surajit100@gmail.com\",\r
+
+    \    \"otp\":\"123456\"\r
+
+    }"
+order: 6000

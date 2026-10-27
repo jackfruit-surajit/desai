@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/delivery-details/invoice
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"delivery_details_id\":1\r
+
+    }"
+order: 19000

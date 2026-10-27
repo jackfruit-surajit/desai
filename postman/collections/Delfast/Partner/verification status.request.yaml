@@ -1,0 +1,4 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/partner/auth/verification-status
+method: GET
+order: 13000

@@ -1,0 +1,8 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/profile
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: 1|BFAAwoKt5FvHkZgRHBgnqAgyzWCyi8DWgpmpbPvI158513ce
+order: 3000

@@ -11,6 +11,10 @@ use App\Models\WarehouseProduct;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DB;
 use URL;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Mail\ProductAssignedWarehouseMail;
 
 class ProductController extends Controller
 {
@@ -33,6 +37,7 @@ class ProductController extends Controller
             'products.*.per_case_quantity' => 'required|integer|min:1',
         ]);
     
+        $assignedProducts = [];
         foreach ($request->products as $product) {
     
             WarehouseProduct::create([
@@ -40,6 +45,32 @@ class ProductController extends Controller
                 'product_id' => $product['product_id'],
                 'per_case_quantity' => $product['per_case_quantity'],
             ]);
+
+            $productDetail = Product::find($product['product_id']);
+            $assignedProducts[] = [
+                'name' => $productDetail ? $productDetail->name : 'N/A',
+                'per_case_quantity' => $product['per_case_quantity'],
+            ];
+        }
+
+        // Send Email notification to Warehouse
+        try {
+            $warehouse = Admin::find($request->warehouse_id);
+            if ($warehouse && !empty($warehouse->email)) {
+                $manufacturer = Auth::guard('backend')->user();
+                $mailData = [
+                    'warehouse_name'    => $warehouse->name,
+                    'warehouse_email'   => $warehouse->email,
+                    'manufacturer_name' => $manufacturer ? $manufacturer->name : 'Manufacturer',
+                    'products'          => $assignedProducts,
+                    'date'              => date('d M, Y h:i A'),
+                    'login_url'         => route('warehouse-login'),
+                ];
+
+                Mail::to($warehouse->email)->send(new ProductAssignedWarehouseMail($mailData));
+            }
+        } catch (\Exception $e) {
+            Log::error('Error sending product assignment email to warehouse: ' . $e->getMessage());
         }
     
         return redirect()->route('manufacture-products')->withSuccess('Products assigned to warehouse successfully.');

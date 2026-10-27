@@ -1,0 +1,11 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/delivery-details/list
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"status\": \"scheduled\" //active / scheduled / delivered / cancelled\r
+
+    }"
+order: 17000

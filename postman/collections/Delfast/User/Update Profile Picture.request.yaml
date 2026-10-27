@@ -1,0 +1,15 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/v1/profile/profile-picture
+method: POST
+body:
+  type: formdata
+  content:
+    - type: file
+      key: profile_picture
+      src:
+        - /C:/Users/user/Pictures/526.jpg
+auth:
+  type: bearer
+  credentials:
+    token: 1|QxFGoPhFl7sn2iFHWM2j2NUy8n66HwDFZtmIU0Lu19695b55
+order: 18000

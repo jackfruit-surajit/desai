@@ -1,0 +1,4 @@
+$kind: http-request
+url: https://delfast.besthr.in/api/partner/auth/login
+method: POST
+order: 4000
