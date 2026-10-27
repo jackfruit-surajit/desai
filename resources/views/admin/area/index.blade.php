@@ -20,7 +20,6 @@
             height: 2em !important;
             border: 1px solid #aaa !important;
         }
-        
     </style>
     <!-- [Page specific CSS] end -->
 @endsection
@@ -33,90 +32,86 @@
                 <div class="row align-items-center">
 
                     <div class="col-lg-6">
-                        <h4 class="mb-0">Area List</h4>
+                        <h4 class="mb-0">
+                            <i class="fa fa-list text-primary me-2"></i> Area List
+                        </h4>
                     </div>
                     <div class="col-lg-6">
-                      
-                        <a href="{{route('area-add')}}" >
+                        <a href="{{ route('area-add') }}">
                             <button class="btn btn-secondary float-end me-2" tabindex="0" aria-controls="custom-btn" type="button">
                                 <span>Add New <i class="fa fa-plus" aria-hidden="true"></i></span>
                             </button>
                         </a>
-                            
                     </div>
                 </div>
               </div>
               <div class="card-body">
 
-                        @if (session('success'))
-                                <div class="alert alert-success">
-                                    {{ session('success') }}
-                                </div>
-                            @endif
-                            @if ($errors->any())
-                                <div class="alert alert-danger">
-                                    <ul>
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
 
                 <div class="table-responsive dt-responsive">
                   <table class="table table-striped table-bordered nowrap" id="staff-management">
                     <thead>
                         <tr>
-                            <th scope="col">#</th>
+                            <th scope="col" style="width: 5%;">#</th>
+                            <th scope="col">State</th>
                             <th scope="col">Area's Name</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Actions</th>
+                            <th scope="col" style="width: 15%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                     </tbody>
-                      
                    </table>
                 </div>
               </div>
             </div>
         </div>
-          <!-- Multiple Table Control Elements end -->
-          
-          
     </div>
-    <!-- [ Main Content ] end -->
-      
 @endsection
 
 @section('scripts')
     <!-- [Page Specific JS] start -->
-
     <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
-    
-    
+
     <script>
     $(document).ready(function () {
-        var role = getUrlParameter('role'); // Get role from URL
+        var role = getUrlParameter('role');
 
         $('#staff-management').DataTable({
+            processing: true,
             serverSide: true,
             responsive: true,
             ajax: {
                 url: '{{ route("area-datatable") }}',
                 data: function (d) {
-                     d.role = role;    // Passing role
+                     d.role = role;
                 }
             },
             columns: [
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                {data: 'area_name', name: 'area_name'},
-                {data: 'status', name: 'status'},
+                {data: 'state_name', name: 'states.state_name'},
+                {data: 'area_name', name: 'area.area_name'},
+                {data: 'status', name: 'area.status', orderable: false, searchable: false},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]
         });
 
-        // Function to get URL parameters
         function getUrlParameter(sParam) {
             var sPageURL = window.location.search.substring(1),
                 sURLVariables = sPageURL.split('&'),
@@ -133,8 +128,6 @@
             return false;
         }
     });
-</script>
-
-    
+    </script>
     <!-- [Page Specific JS] end -->
 @endsection

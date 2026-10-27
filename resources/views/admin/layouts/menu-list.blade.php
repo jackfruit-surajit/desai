@@ -31,6 +31,12 @@ $role = Role::find($user->role_id);
     </ul>
   </li>
   
+  <li class="pc-item pc-hasmenu {{ Request::is('admin/state*') ? 'active' : '' }}">
+    <a href="{{route('states')}}" class="pc-link"
+      ><span class="pc-micon"> <i class="fa fa-map-location-dot"></i></span><span class="pc-mtext">State Management</span
+      ></a>
+  </li>
+
   <li class="pc-item pc-hasmenu">
     <a href="{{route('areas')}}" class="pc-link"
       ><span class="pc-micon"> <i class="fa fa-list"></i></span><span class="pc-mtext">Area Management</span

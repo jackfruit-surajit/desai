@@ -38,19 +38,83 @@ $role = Role::find($user->role_id);
 
     
   <div class="row">
-
     
     <div class="col-md-3 col-xxl-3">
       <div class="card statistics-card-1">
-        <a href="">
+        <a href="{{ route('manufacture-stock') }}">
           <div class="card-body">
             <img src="{{ URL::asset(asset_path('backend/assets/images/widget/img-status-7.svg'))}}" alt="img" class="img-fluid img-bg" />
             <div class="d-flex align-items-center">
               <div class="avtar bg-brand-color-2 text-white me-3">
-                <i class="fa fa-book"></i>
+                <i class="fa fa-boxes-stacked"></i>
               </div>
               <div>
-                <p class="text-muted mb-0">Total Warehouse</p>
+                <p class="text-muted mb-0">Factory Stock</p>
+                <div class="d-flex align-items-end">
+                  <h2 class="mb-0 f-w-500">{{ number_format($totalFactoryStock ?? 0) }}</h2>
+                  <span class="text-muted ms-1 f-14">Cases</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-xxl-3">
+      <div class="card statistics-card-1">
+        <a href="{{ route('manufacture-stock') }}">
+          <div class="card-body">
+            <img src="{{ URL::asset(asset_path('backend/assets/images/widget/img-status-7.svg'))}}" alt="img" class="img-fluid img-bg" />
+            <div class="d-flex align-items-center">
+              <div class="avtar bg-brand-color-2 text-white me-3">
+                <i class="fa fa-list"></i>
+              </div>
+              <div>
+                <p class="text-muted mb-0">Total Products</p>
+                <div class="d-flex align-items-end">
+                  <h2 class="mb-0 f-w-500">{{ $totalProducts ?? 0 }}</h2>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-xxl-3">
+      <div class="card statistics-card-1">
+        <a href="{{ route('manufacture-stock-logs') }}">
+          <div class="card-body">
+            <img src="{{ URL::asset(asset_path('backend/assets/images/widget/img-status-7.svg'))}}" alt="img" class="img-fluid img-bg" />
+            <div class="d-flex align-items-center">
+              <div class="avtar bg-brand-color-2 text-white me-3">
+                <i class="fa fa-truck-fast"></i>
+              </div>
+              <div>
+                <p class="text-muted mb-0">Total Dispatched</p>
+                <div class="d-flex align-items-end">
+                  <h2 class="mb-0 f-w-500">{{ number_format($totalDispatched ?? 0) }}</h2>
+                  <span class="text-muted ms-1 f-14">Cases</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-xxl-3">
+      <div class="card statistics-card-1">
+        <a href="{{ route('manufacture-warehouse-stock') }}">
+          <div class="card-body">
+            <img src="{{ URL::asset(asset_path('backend/assets/images/widget/img-status-7.svg'))}}" alt="img" class="img-fluid img-bg" />
+            <div class="d-flex align-items-center">
+              <div class="avtar bg-brand-color-2 text-white me-3">
+                <i class="fa fa-warehouse"></i>
+              </div>
+              <div>
+                <p class="text-muted mb-0">Total Warehouses</p>
                 <div class="d-flex align-items-end">
                   <h2 class="mb-0 f-w-500">{{$warehouse}}</h2>
                 </div>
@@ -60,48 +124,8 @@ $role = Role::find($user->role_id);
         </a>
       </div>
     </div>
-
-    <!--<div class="col-md-3 col-xxl-3">-->
-    <!--  <div class="card statistics-card-1">-->
-    <!--    <a href="">-->
-    <!--      <div class="card-body">-->
-    <!--        <img src="{{ URL::asset(asset_path('backend/assets/images/widget/img-status-7.svg'))}}" alt="img" class="img-fluid img-bg" />-->
-    <!--        <div class="d-flex align-items-center">-->
-    <!--          <div class="avtar bg-brand-color-2 text-white me-3">-->
-    <!--            <i class="fa fa-book"></i>-->
-    <!--          </div>-->
-    <!--          <div>-->
-    <!--            <p class="text-muted mb-0">Total Service Providers</p>-->
-    <!--            <div class="d-flex align-items-end">-->
-    <!--              <h2 class="mb-0 f-w-500">10</h2>-->
-    <!--            </div>-->
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </a>-->
-    <!--  </div>-->
-    <!--</div>-->
-
-    <!--<div class="col-md-3 col-xxl-3">-->
-    <!--  <div class="card statistics-card-1">-->
-    <!--    <a href="">-->
-    <!--      <div class="card-body">-->
-    <!--        <img src="{{ URL::asset(asset_path('backend/assets/images/widget/img-status-7.svg'))}}" alt="img" class="img-fluid img-bg" />-->
-    <!--        <div class="d-flex align-items-center">-->
-    <!--          <div class="avtar bg-brand-color-2 text-white me-3">-->
-    <!--            <i class="fa fa-book"></i>-->
-    <!--          </div>-->
-    <!--          <div>-->
-    <!--            <p class="text-muted mb-0">Total Bookings</p>-->
-    <!--            <div class="d-flex align-items-end">-->
-    <!--              <h2 class="mb-0 f-w-500">10</h2>-->
-    <!--            </div>-->
-    <!--          </div>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </a>-->
-    <!--  </div>-->
-    <!--</div>-->
+ 
+  </div>
  
 
     

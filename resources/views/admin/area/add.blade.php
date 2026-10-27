@@ -2,97 +2,119 @@
 
 @section('title', 'Area Management')
 @section('breadcrumb-item', 'Area Management')
-
-@section('breadcrumb-item-active', 'Add')
+@section('breadcrumb-item-active', 'Add Area')
 
 @section('css')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
 @endsection
 
 @section('content')
     <!-- [ Main Content ] start -->
     <div class="row">
-
         <div class="col-lg-12">
-
             <div class="card">
                 <div class="card-header">
-                <h5>Add New Area</h5>
+                    <h5><i class="fa fa-plus-circle text-primary me-2"></i> Add New Area</h5>
                 </div>
                 <div class="card-body">
 
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
 
-                    <form class="row g-3" method="post" action="{{route('area-store')}}" enctype="multipart/form-data">
+                    <form class="row g-3" method="post" action="{{ route('area-store') }}">
                         @csrf
-   
+
+                        {{-- State Field --}}
                         <div class="col-md-6">
-                            <label for="" class="form-label">Area's Name<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Area Name" name="area_name" value="{{ (old('area_name')!='') ? old('area_name') : ''}}" >
-                            @if ($errors->has('area_name'))
-                                <span class="help-block"> {{ $errors->first('area_name') }} </span>
+                            <label for="state_id" class="form-label font-weight-bold">
+                                State <span class="required text-danger">*</span>
+                            </label>
+                            <select class="form-control select2" name="state_id" id="state_id" required>
+                                <option value="">-- Select State --</option>
+                                @foreach($states as $state)
+                                    <option value="{{ $state->id }}" {{ old('state_id') == $state->id ? 'selected' : '' }}>
+                                        {{ $state->state_name }} {{ $state->state_code ? '('.$state->state_code.')' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @if ($errors->has('state_id'))
+                                <span class="text-danger small">{{ $errors->first('state_id') }}</span>
                             @endif
                         </div>
 
-
-                        <!--<div class="col-md-6">-->
-                        <!--    <label for="inputStatus" class="form-label">Status<span class="required">*</span> : </label>-->
-                        <!--    <br/>-->
-                        <!--    <input type="radio" name="status" value="1" checked> Active-->
-                        <!--    <input type="radio" name="status" value="0"> Inactive-->
-                        <!--    @if ($errors->has('status'))-->
-                        <!--        <br/>-->
-                        <!--        <span class="help-block"> {{ $errors->first('status') }} </span>-->
-                        <!--    @endif-->
-                        <!--</div>-->
-                        
+                        {{-- Area Name Field --}}
                         <div class="col-md-6">
-                            <label class="form-label text-white">
-                                Status <span class="required">*</span> :
+                            <label for="area_name" class="form-label font-weight-bold">
+                                Area Name <span class="required text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" placeholder="Enter Area Name" name="area_name" id="area_name" value="{{ old('area_name') }}" required>
+                            @if ($errors->has('area_name'))
+                                <span class="text-danger small">{{ $errors->first('area_name') }}</span>
+                            @endif
+                        </div>
+
+                        {{-- Status Field --}}
+                        <div class="col-md-6">
+                            <label class="form-label font-weight-bold">
+                                Status <span class="required text-danger">*</span> :
                             </label>
                             <br>
-                        
+
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="status" id="statusActive" value="1" checked>
+                                <input class="form-check-input" type="radio" name="status" id="statusActive" value="1" {{ old('status', '1') == '1' ? 'checked' : '' }}>
                                 <label class="form-check-label text-white" for="statusActive">
                                     Active
                                 </label>
                             </div>
-                        
+
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="status" id="statusInactive" value="0">
+                                <input class="form-check-input" type="radio" name="status" id="statusInactive" value="0" {{ old('status') === '0' ? 'checked' : '' }}>
                                 <label class="form-check-label text-white" for="statusInactive">
                                     Inactive
                                 </label>
                             </div>
-                        
+
                             @if ($errors->has('status'))
                                 <br>
-                                <span class="text-danger">{{ $errors->first('status') }}</span>
+                                <span class="text-danger small">{{ $errors->first('status') }}</span>
                             @endif
                         </div>
 
-                        
-                        <div class="col-md-12 text-end btn-page">
-                            <a href="{{route('areas')}}" class="btn btn-outline-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary">Submit</button>
+                        <div class="col-md-12 text-end btn-page mt-4">
+                            <a href="{{ route('areas') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-check-circle me-1"></i> Submit
+                            </button>
                         </div>
                     </form>
 
                 </div>
             </div>
-          
         </div>
-        
     </div>
 @endsection
 
 @section('scripts')
-    <!-- [Page Specific JS] start -->
-    
-    <script>
-
-        
-    
-    </script>
-    
-    <!-- [Page Specific JS] end -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            placeholder: "-- Select State --",
+            allowClear: true
+        });
+    });
+</script>
 @endsection

@@ -8,6 +8,8 @@ use Yajra\Datatables\Datatables;
 use App\Models\Admin;
 use App\Models\Product;
 use App\Models\WarehouseProduct;
+use App\Models\ManufactureStock;
+use App\Models\ManufactureStockLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DB;
 use URL;
@@ -38,12 +40,32 @@ class ProductController extends Controller
         ]);
     
         $assignedProducts = [];
+        $mfg_id = Auth::guard('backend')->user()->id;
+        $warehouse = Admin::find($request->warehouse_id);
+
         foreach ($request->products as $product) {
     
             WarehouseProduct::create([
                 'warehouse_id' => $request->warehouse_id,
                 'product_id' => $product['product_id'],
                 'per_case_quantity' => $product['per_case_quantity'],
+            ]);
+
+            // Deduct from Manufacture Stock & Log
+            $mStock = ManufactureStock::firstOrCreate(
+                ['manufacture_id' => $mfg_id, 'product_id' => $product['product_id']],
+                ['stock' => 0]
+            );
+            $mStock->stock = max(0, $mStock->stock - $product['per_case_quantity']);
+            $mStock->save();
+
+            ManufactureStockLog::create([
+                'manufacture_id' => $mfg_id,
+                'product_id' => $product['product_id'],
+                'type' => 'dispatch',
+                'quantity' => $product['per_case_quantity'],
+                'warehouse_id' => $request->warehouse_id,
+                'note' => 'Dispatched to Warehouse: ' . ($warehouse ? $warehouse->name : '#' . $request->warehouse_id),
             ]);
 
             $productDetail = Product::find($product['product_id']);
@@ -55,7 +77,6 @@ class ProductController extends Controller
 
         // Send Email notification to Warehouse
         try {
-            $warehouse = Admin::find($request->warehouse_id);
             if ($warehouse && !empty($warehouse->email)) {
                 $manufacturer = Auth::guard('backend')->user();
                 $mailData = [
@@ -121,9 +142,25 @@ class ProductController extends Controller
         $model = DB::table('warehouse_products')->where('id', $id)->first();
         
         if (!empty($model)) {
+            // Restore manufacturer stock
+            $mfg_id = Auth::guard('backend')->user()->id;
+            $mStock = ManufactureStock::where('manufacture_id', $mfg_id)->where('product_id', $model->product_id)->first();
+            if ($mStock) {
+                $mStock->stock += $model->per_case_quantity;
+                $mStock->save();
+
+                ManufactureStockLog::create([
+                    'manufacture_id' => $mfg_id,
+                    'product_id' => $model->product_id,
+                    'type' => 'adjustment',
+                    'quantity' => $model->per_case_quantity,
+                    'warehouse_id' => $model->warehouse_id,
+                    'note' => 'Restored stock from deleted warehouse assignment #' . $model->id,
+                ]);
+            }
 
             if(DB::table('warehouse_products')->where('id',$id)->delete()){
-                return redirect()->route('warehouse_products')->withSuccess('Product deleted successfully.');
+                return redirect()->route('manufacture-products')->withSuccess('Product assignment deleted and stock restored successfully.');
             }
             else{
                 return redirect()->back()->withErrors('Error!! while deleting product!!!'); 

@@ -61,10 +61,22 @@
                 Route::post('customer-update', ['uses' => 'Admin\CustomerController@update', 'as' => 'customer-update']);
                 // Route::get('assigned-road-list/{id}', ['uses' => 'Admin\CustomerController@assignRoadList', 'as' => 'assigned-road-list',]);
                 
+                // State Management
+                Route::get('states', ['uses' => 'Admin\StateManagementController@index', 'as' => 'states']);
+                Route::get('get-state-datatable', ['uses' => 'Admin\StateManagementController@getStateDatatable', 'as' => 'state-datatable']);
+                Route::get('state-add', ['uses' => 'Admin\StateManagementController@create', 'as' => 'state-add']);
+                Route::post('state-store', ['uses' => 'Admin\StateManagementController@store', 'as' => 'state-store']);
+                Route::get('state-edit/{id}', ['uses' => 'Admin\StateManagementController@edit', 'as' => 'state-edit']);
+                Route::post('state-update', ['uses' => 'Admin\StateManagementController@update', 'as' => 'state-update']);
+                Route::get('state-delete/{id}', ['uses' => 'Admin\StateManagementController@delete', 'as' => 'state-delete']);
+                Route::get('state-status-change/{id}', ['uses' => 'Admin\StateManagementController@statusChange', 'as' => 'state-status-change']);
+
                 Route::get('areas', ['uses' => 'Admin\AreaManagementController@index', 'as' => 'areas']);
                 Route::get('get-area-datatable', ['uses' => 'Admin\AreaManagementController@getAreaDatatable', 'as' => 'area-datatable']);
                 Route::get('area-add', ['uses' => 'Admin\AreaManagementController@areaAdd', 'as' => 'area-add']);
                 Route::post('area-store', ['uses' => 'Admin\AreaManagementController@areaStore', 'as' => 'area-store']);
+                Route::get('area-edit/{id}', ['uses' => 'Admin\AreaManagementController@areaEdit', 'as' => 'area-edit']);
+                Route::post('area-update', ['uses' => 'Admin\AreaManagementController@areaUpdate', 'as' => 'area-update']);
                 Route::get('area-delete/{id}', ['uses' => 'Admin\AreaManagementController@areaDelete', 'as' => 'area-delete']);
                 Route::get('area-status-change/{id}', ['uses' => 'Admin\AreaManagementController@areaStatusChange', 'as' => 'area-status-change']);
 
@@ -186,6 +198,19 @@
                 Route::get('product-edit/{id}', ['uses' => 'Manufacture\ProductController@edit', 'as' => 'manufacture-product-edit']);
                 Route::post('product-update', ['uses' => 'Manufacture\ProductController@update', 'as' => 'manufacture-product-update']);
                 Route::get('product-delete/{id}', ['uses' => 'Manufacture\ProductController@delete', 'as' => 'manufacture-product-delete']);
+
+                // Stock Management
+                Route::get('stock', ['uses' => 'Manufacture\StockController@index', 'as' => 'manufacture-stock']);
+                Route::get('get-stock-datatable', ['uses' => 'Manufacture\StockController@getStockDatatable', 'as' => 'manufacture-stock-datatable']);
+                Route::get('stock-create', ['uses' => 'Manufacture\StockController@create', 'as' => 'manufacture-stock-create']);
+                Route::post('stock-store', ['uses' => 'Manufacture\StockController@store', 'as' => 'manufacture-stock-store']);
+                Route::post('stock-quick-add', ['uses' => 'Manufacture\StockController@quickAddStock', 'as' => 'manufacture-stock-quick-add']);
+                
+                Route::get('warehouse-stock', ['uses' => 'Manufacture\StockController@warehouseStock', 'as' => 'manufacture-warehouse-stock']);
+                Route::get('get-warehouse-stock-datatable', ['uses' => 'Manufacture\StockController@getWarehouseStockDatatable', 'as' => 'manufacture-warehouse-stock-datatable']);
+                
+                Route::get('stock-logs', ['uses' => 'Manufacture\StockController@stockLogs', 'as' => 'manufacture-stock-logs']);
+                Route::get('get-stock-logs-datatable', ['uses' => 'Manufacture\StockController@getStockLogsDatatable', 'as' => 'manufacture-stock-logs-datatable']);
                 
             });
     
