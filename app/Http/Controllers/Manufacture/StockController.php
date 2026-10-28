@@ -213,14 +213,26 @@ class StockController extends Controller
      */
     public function warehouseStock(Request $request)
     {
-        $warehouses = Admin::where('role_id', '4')->where('status', '1')->get();
+        $warehouses = Admin::where('role_id', '4')->where('status', '1')->orderBy('name', 'asc')->get();
         $products = Product::where('status', '1')->orderBy('name', 'asc')->get();
-        $totalWarehouseStock = WarehouseStock::sum('stock');
+        
+        // Comprehensive Overview Statistics
+        $totalWarehouses = Admin::where('role_id', '4')->where('status', '1')->count();
+        $totalWarehouseStock = (int)WarehouseStock::sum('stock');
+        $totalPendingStock = (int)WarehouseProduct::where('status', '0')->sum('per_case_quantity');
+        $totalStockValue = (float)DB::table('warehouse_stock')
+            ->join('products', 'warehouse_stock.product_id', '=', 'products.id')
+            ->sum(DB::raw('warehouse_stock.stock * products.per_case_price'));
+        $totalSkusStocked = WarehouseStock::where('stock', '>', 0)->distinct('product_id')->count('product_id');
 
         return view('manufacture.stock.warehouse_stock', compact([
             'warehouses',
             'products',
-            'totalWarehouseStock'
+            'totalWarehouses',
+            'totalWarehouseStock',
+            'totalPendingStock',
+            'totalStockValue',
+            'totalSkusStocked'
         ]));
     }
 
@@ -229,22 +241,54 @@ class StockController extends Controller
      */
     public function getWarehouseStockDatatable(Request $request)
     {
-        $query = DB::table('warehouse_stock')
-            ->join('admins', 'warehouse_stock.warehouse_id', '=', 'admins.id')
-            ->join('products', 'warehouse_stock.product_id', '=', 'products.id')
+        $whProducts = DB::table('warehouse_products')->select('warehouse_id', 'product_id')->distinct();
+        $whStock = DB::table('warehouse_stock')->select('warehouse_id', 'product_id')->distinct();
+        $combined = $whProducts->union($whStock);
+
+        $query = DB::query()->fromSub($combined, 'base')
+            ->join('admins', 'base.warehouse_id', '=', 'admins.id')
+            ->join('products', 'base.product_id', '=', 'products.id')
+            ->leftJoin('warehouse_stock', function($join) {
+                $join->on('base.warehouse_id', '=', 'warehouse_stock.warehouse_id')
+                     ->on('base.product_id', '=', 'warehouse_stock.product_id');
+            })
+            ->leftJoin(DB::raw('(SELECT warehouse_id, product_id, SUM(per_case_quantity) as pending_qty FROM warehouse_products WHERE status = "0" GROUP BY warehouse_id, product_id) as pending'), function($join) {
+                $join->on('base.warehouse_id', '=', 'pending.warehouse_id')
+                     ->on('base.product_id', '=', 'pending.product_id');
+            })
             ->select([
-                'warehouse_stock.*',
+                'base.warehouse_id',
+                'base.product_id',
                 'admins.name as warehouse_name',
                 'products.name as product_name',
-                'products.per_case_quantity as bottles_per_case'
+                'products.per_case_quantity as bottles_per_case',
+                'products.per_case_price',
+                DB::raw('COALESCE(warehouse_stock.stock, 0) as current_stock'),
+                DB::raw('COALESCE(pending.pending_qty, 0) as pending_stock'),
+                'warehouse_stock.updated_at'
             ]);
 
+        // Filter by Warehouse
         if ($request->filled('warehouse_id')) {
-            $query->where('warehouse_stock.warehouse_id', $request->warehouse_id);
+            $query->where('base.warehouse_id', $request->warehouse_id);
         }
 
+        // Filter by Product
         if ($request->filled('product_id')) {
-            $query->where('warehouse_stock.product_id', $request->product_id);
+            $query->where('base.product_id', $request->product_id);
+        }
+
+        // Filter by Stock Status
+        if ($request->filled('stock_status')) {
+            if ($request->stock_status === 'in_stock') {
+                $query->where(DB::raw('COALESCE(warehouse_stock.stock, 0)'), '>', 50);
+            } elseif ($request->stock_status === 'low_stock') {
+                $query->whereBetween(DB::raw('COALESCE(warehouse_stock.stock, 0)'), [1, 50]);
+            } elseif ($request->stock_status === 'out_of_stock') {
+                $query->where(DB::raw('COALESCE(warehouse_stock.stock, 0)'), '<=', 0);
+            } elseif ($request->stock_status === 'pending') {
+                $query->where(DB::raw('COALESCE(pending.pending_qty, 0)'), '>', 0);
+            }
         }
 
         $query->orderBy('admins.name', 'asc')->orderBy('products.name', 'asc');
@@ -252,28 +296,61 @@ class StockController extends Controller
         return Datatables::of($query)
             ->addIndexColumn()
             ->addColumn('warehouse_name', function ($model) {
-                return '<i class="fa fa-warehouse text-primary me-1"></i> <strong>' . e($model->warehouse_name) . '</strong>';
+                return '<div class="d-flex align-items-center">
+                            <span class="me-2 text-primary"><i class="fa fa-warehouse fa-lg"></i></span>
+                            <div>
+                                <span class="fw-bold text-dark">' . e($model->warehouse_name) . '</span>
+                                <div class="text-muted small">ID: #' . $model->warehouse_id . '</div>
+                            </div>
+                        </div>';
             })
             ->addColumn('product_name', function ($model) {
-                return '<strong>' . e($model->product_name) . '</strong>';
+                return '<div>
+                            <span class="fw-bold text-dark">' . e($model->product_name) . '</span>
+                            <div class="text-muted small">Product ID: #' . $model->product_id . '</div>
+                        </div>';
             })
             ->addColumn('bottles_per_case', function ($model) {
-                return ($model->bottles_per_case ?? 0) . ' Bottles/Case';
+                return '<span class="badge bg-light text-dark border px-2 py-1">' . ($model->bottles_per_case ?? 0) . ' Bottles/Case</span>';
             })
-            ->addColumn('stock', function ($model) {
-                $stock = (int)$model->stock;
+            ->addColumn('per_case_price', function ($model) {
+                return '<strong>₹' . number_format((float)($model->per_case_price ?? 0), 2) . '</strong>';
+            })
+            ->addColumn('current_stock', function ($model) {
+                $stock = (int)$model->current_stock;
                 if ($stock <= 0) {
-                    return '<span class="badge bg-danger" style="font-size:13px;">0 Cases</span>';
+                    return '<span class="badge bg-danger p-2" style="font-size:12px;"><i class="fa fa-circle-xmark me-1"></i> 0 Cases (Out of Stock)</span>';
                 } elseif ($stock <= 50) {
-                    return '<span class="badge bg-warning text-dark" style="font-size:13px;">' . $stock . ' Cases (Low)</span>';
+                    return '<span class="badge bg-warning text-dark p-2" style="font-size:12px;"><i class="fa fa-triangle-exclamation me-1"></i> ' . $stock . ' Cases (Low)</span>';
                 } else {
-                    return '<span class="badge bg-success" style="font-size:13px;">' . $stock . ' Cases</span>';
+                    return '<span class="badge bg-success p-2" style="font-size:12px;"><i class="fa fa-circle-check me-1"></i> ' . $stock . ' Cases</span>';
                 }
             })
-            ->addColumn('updated_date', function ($model) {
-                return date('d M, Y h:i A', strtotime($model->updated_at));
+            ->addColumn('pending_stock', function ($model) {
+                $pending = (int)$model->pending_stock;
+                if ($pending > 0) {
+                    return '<span class="badge bg-info text-dark p-2" style="font-size:12px;"><i class="fa fa-truck-fast me-1"></i> ' . $pending . ' Cases (In-Transit)</span>';
+                }
+                return '<span class="text-muted">-</span>';
             })
-            ->rawColumns(['warehouse_name', 'product_name', 'stock'])
+            ->addColumn('total_pipeline', function ($model) {
+                $total = (int)$model->current_stock + (int)$model->pending_stock;
+                return '<strong class="text-primary" style="font-size:14px;">' . $total . ' Cases</strong>';
+            })
+            ->addColumn('stock_value', function ($model) {
+                $value = (float)($model->current_stock * ($model->per_case_price ?? 0));
+                return '<span class="fw-bold text-success">₹' . number_format($value, 2) . '</span>';
+            })
+            ->addColumn('updated_date', function ($model) {
+                return !empty($model->updated_at) ? date('d M, Y h:i A', strtotime($model->updated_at)) : '<span class="text-muted small">Awaiting verification</span>';
+            })
+            ->addColumn('action', function ($model) {
+                $assignUrl = route('manufacture-product-create') . '?warehouse_id=' . $model->warehouse_id . '&product_id=' . $model->product_id;
+                return '<a href="' . $assignUrl . '" class="btn btn-sm btn-outline-primary" title="Assign More Stock">
+                            <i class="fa fa-paper-plane me-1"></i> Assign Stock
+                        </a>';
+            })
+            ->rawColumns(['warehouse_name', 'product_name', 'bottles_per_case', 'per_case_price', 'current_stock', 'pending_stock', 'total_pipeline', 'stock_value', 'updated_date', 'action'])
             ->make(true);
     }
 

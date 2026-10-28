@@ -26,9 +26,20 @@ class ProductController extends Controller
     }
     
     public function create(Request $request){
+        $mfg_id = Auth::guard('backend')->user()->id;
         $warehouses = Admin::where('role_id','4')->where('status','1')->get();
-        $products = Product::where('status','1')->get();
-        return view('manufacture.product.add',compact(['warehouses','products']));
+        $products = Product::where('status','1')->orderBy('name', 'asc')->get();
+
+        // Attach current factory stock for this manufacturer
+        $stocks = ManufactureStock::where('manufacture_id', $mfg_id)
+            ->pluck('stock', 'product_id')
+            ->toArray();
+
+        foreach ($products as $product) {
+            $product->factory_stock = isset($stocks[$product->id]) ? (int)$stocks[$product->id] : 0;
+        }
+
+        return view('manufacture.product.add', compact(['warehouses','products']));
     }
     
     public function store(Request $request){
@@ -37,42 +48,93 @@ class ProductController extends Controller
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
             'products.*.per_case_quantity' => 'required|integer|min:1',
+        ], [
+            'warehouse_id.required' => 'Please select a warehouse.',
+            'products.required' => 'Please add at least one product.',
+            'products.*.product_id.required' => 'Please select a product.',
+            'products.*.per_case_quantity.required' => 'Please enter quantity in case.',
+            'products.*.per_case_quantity.min' => 'Quantity must be at least 1 case.',
         ]);
-    
-        $assignedProducts = [];
+
         $mfg_id = Auth::guard('backend')->user()->id;
         $warehouse = Admin::find($request->warehouse_id);
 
-        foreach ($request->products as $product) {
-    
-            WarehouseProduct::create([
-                'warehouse_id' => $request->warehouse_id,
-                'product_id' => $product['product_id'],
-                'per_case_quantity' => $product['per_case_quantity'],
-            ]);
+        // Sum requested quantities per product to validate combined rows
+        $requestedTotals = [];
+        foreach ($request->products as $p) {
+            $pId = (int)$p['product_id'];
+            $qty = (int)$p['per_case_quantity'];
+            $requestedTotals[$pId] = ($requestedTotals[$pId] ?? 0) + $qty;
+        }
 
-            // Deduct from Manufacture Stock & Log
-            $mStock = ManufactureStock::firstOrCreate(
-                ['manufacture_id' => $mfg_id, 'product_id' => $product['product_id']],
-                ['stock' => 0]
-            );
-            $mStock->stock = max(0, $mStock->stock - $product['per_case_quantity']);
-            $mStock->save();
+        // Validate available factory stock for each product
+        $stockErrors = [];
+        foreach ($requestedTotals as $pId => $totalRequestedQty) {
+            $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
+                ->where('product_id', $pId)
+                ->first();
+            $availableStock = $mStock ? (int)$mStock->stock : 0;
+            $productObj = Product::find($pId);
+            $productName = $productObj ? $productObj->name : "Product #{$pId}";
 
-            ManufactureStockLog::create([
-                'manufacture_id' => $mfg_id,
-                'product_id' => $product['product_id'],
-                'type' => 'dispatch',
-                'quantity' => $product['per_case_quantity'],
-                'warehouse_id' => $request->warehouse_id,
-                'note' => 'Dispatched to Warehouse: ' . ($warehouse ? $warehouse->name : '#' . $request->warehouse_id),
-            ]);
+            if ($availableStock <= 0) {
+                $stockErrors[] = "{$productName}: Factory stock is out of stock (Available: 0 Cases, Requested: {$totalRequestedQty} Cases).";
+            } elseif ($totalRequestedQty > $availableStock) {
+                $stockErrors[] = "{$productName}: Requested quantity ({$totalRequestedQty} Cases) exceeds available factory stock ({$availableStock} Cases).";
+            }
+        }
 
-            $productDetail = Product::find($product['product_id']);
-            $assignedProducts[] = [
-                'name' => $productDetail ? $productDetail->name : 'N/A',
-                'per_case_quantity' => $product['per_case_quantity'],
-            ];
+        if (!empty($stockErrors)) {
+            return redirect()->back()
+                ->withErrors($stockErrors)
+                ->withInput()
+                ->with('error_msg', 'Product assignment failed: Insufficient factory stock available.');
+        }
+
+        $assignedProducts = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->products as $product) {
+                WarehouseProduct::create([
+                    'warehouse_id' => $request->warehouse_id,
+                    'product_id' => $product['product_id'],
+                    'per_case_quantity' => $product['per_case_quantity'],
+                ]);
+
+                // Deduct from Manufacture Stock
+                $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
+                    ->where('product_id', $product['product_id'])
+                    ->first();
+                if ($mStock) {
+                    $mStock->stock = max(0, $mStock->stock - $product['per_case_quantity']);
+                    $mStock->save();
+                }
+
+                // Log deduction in ManufactureStockLog
+                ManufactureStockLog::create([
+                    'manufacture_id' => $mfg_id,
+                    'product_id' => $product['product_id'],
+                    'type' => 'dispatch',
+                    'quantity' => $product['per_case_quantity'],
+                    'warehouse_id' => $request->warehouse_id,
+                    'note' => 'Dispatched to Warehouse: ' . ($warehouse ? $warehouse->name : '#' . $request->warehouse_id),
+                ]);
+
+                $productDetail = Product::find($product['product_id']);
+                $assignedProducts[] = [
+                    'name' => $productDetail ? $productDetail->name : 'N/A',
+                    'per_case_quantity' => $product['per_case_quantity'],
+                ];
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error assigning products to warehouse: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('error_msg', 'Something went wrong while assigning products: ' . $e->getMessage());
         }
 
         // Send Email notification to Warehouse
@@ -93,7 +155,7 @@ class ProductController extends Controller
         } catch (\Exception $e) {
             Log::error('Error sending product assignment email to warehouse: ' . $e->getMessage());
         }
-    
+
         return redirect()->route('manufacture-products')->withSuccess('Products assigned to warehouse successfully.');
     }
     
@@ -174,12 +236,22 @@ class ProductController extends Controller
         $id = base64_decode($id);
         $model = WarehouseProduct::where('id', $id)->first();
         $warehouses = Admin::where('role_id','4')->where('status','1')->get();
-        $products = Product::where('status','1')->get();
+        $products = Product::where('status','1')->orderBy('name', 'asc')->get();
         
         if (!$model) {
             return redirect()->back()->with('error_msg', 'Invalid Link!');
         }
-        return view('manufacture.product.edit',compact(['model','warehouses','products','id']));
+
+        $mfg_id = Auth::guard('backend')->user()->id;
+        $stocks = ManufactureStock::where('manufacture_id', $mfg_id)
+            ->pluck('stock', 'product_id')
+            ->toArray();
+
+        foreach ($products as $product) {
+            $product->factory_stock = isset($stocks[$product->id]) ? (int)$stocks[$product->id] : 0;
+        }
+
+        return view('manufacture.product.edit', compact(['model','warehouses','products','id']));
     }
     
     public function update(Request $request){
@@ -189,16 +261,63 @@ class ProductController extends Controller
             'product_id' => 'required|exists:products,id',
             'per_case_quantity' => 'required|integer|min:1',
         ]);
-    
 
-            WarehouseProduct::where('id',$request->warehouse_products_id)->update([
-                'warehouse_id'      => $request->warehouse_id,
-                'product_id'        => $request->product_id,
-                'per_case_quantity' => $request->per_case_quantity,
-            ]);
-        
-    
-        return redirect()->route('manufacture-products')->withSuccess('Products assigned to warehouse successfully.');
+        $mfg_id = Auth::guard('backend')->user()->id;
+        $oldRecord = WarehouseProduct::find($request->warehouse_products_id);
+        if (!$oldRecord) {
+            return redirect()->back()->with('error_msg', 'Assigned product record not found.');
+        }
+
+        if ($oldRecord->status != '0') {
+            return redirect()->back()->with('error_msg', 'Only pending product assignments can be edited.');
+        }
+
+        $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
+            ->where('product_id', $request->product_id)
+            ->first();
+        $availableStock = $mStock ? (int)$mStock->stock : 0;
+
+        // If editing same product
+        if ($oldRecord->product_id == $request->product_id) {
+            $diff = $request->per_case_quantity - $oldRecord->per_case_quantity;
+            if ($diff > 0 && $diff > $availableStock) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error_msg', "Insufficient factory stock. Additional needed: {$diff} Cases, but only {$availableStock} Cases available.");
+            }
+            if ($mStock) {
+                $mStock->stock = max(0, $mStock->stock - $diff);
+                $mStock->save();
+            }
+        } else {
+            // Changed product
+            if ($request->per_case_quantity > $availableStock) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error_msg', "Insufficient factory stock for selected product. Requested: {$request->per_case_quantity} Cases, Available: {$availableStock} Cases.");
+            }
+            // Refund old product stock
+            $oldStock = ManufactureStock::where('manufacture_id', $mfg_id)
+                ->where('product_id', $oldRecord->product_id)
+                ->first();
+            if ($oldStock) {
+                $oldStock->stock += $oldRecord->per_case_quantity;
+                $oldStock->save();
+            }
+            // Deduct new product stock
+            if ($mStock) {
+                $mStock->stock = max(0, $mStock->stock - $request->per_case_quantity);
+                $mStock->save();
+            }
+        }
+
+        WarehouseProduct::where('id', $request->warehouse_products_id)->update([
+            'warehouse_id'      => $request->warehouse_id,
+            'product_id'        => $request->product_id,
+            'per_case_quantity' => $request->per_case_quantity,
+        ]);
+
+        return redirect()->route('manufacture-products')->withSuccess('Assigned product updated successfully.');
     }
 
 

@@ -177,21 +177,19 @@ class DriverManagementController extends Controller
     
     private function WarehouseStock($warehouse_products_id){
         $stock_details = WarehouseProduct::where('id',$warehouse_products_id)->first();
-        
-        if($product_stock = WarehouseStock::where('product_id',$stock_details->product_id)->first()){
-            
+        if(!$stock_details) return;
+
+        if($product_stock = WarehouseStock::where('warehouse_id', $stock_details->warehouse_id)->where('product_id',$stock_details->product_id)->first()){
             $final_stock = $product_stock->stock + $stock_details->per_case_quantity;
-            WarehouseStock::where('product_id',$stock_details->product_id)->update(['stock' => $final_stock]);
+            WarehouseStock::where('id', $product_stock->id)->update(['stock' => $final_stock]);
         }
         else{
-            
             WarehouseStock::create([
                 'warehouse_id' => $stock_details->warehouse_id,
                 'product_id' => $stock_details->product_id,
                 'stock' => $stock_details->per_case_quantity,
             ]);
         }
-            
     }
 
 

@@ -1,4 +1,4 @@
-@extends('manufacture.layouts.main')
+@extends('warehouse.layouts.main')
 
 @section('title', 'Product Management')
 @section('breadcrumb-item', 'Product Management')

@@ -6,7 +6,7 @@
 
 @section('css')
     <!-- [Page specific CSS] start -->
-    <link href="{{ URL::asset('public/backend/assets/css/jquery-confirm.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" rel="stylesheet" type="text/css" />
     <style>
         .stat-card {
             border-radius: 10px;
@@ -33,75 +33,8 @@
 
 @section('content')
 
-    <!-- Statistics Cards -->
-    <div class="row mb-3">
-        <div class="col-md-3 col-sm-6">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="avtar bg-light-primary text-primary me-3">
-                            <i class="fa fa-boxes-stacked f-22"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-1 font-weight-bold">Total Products</p>
-                            <h3 class="mb-0 text-dark">{{ $totalProducts }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3 col-sm-6">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="avtar bg-light-success text-success me-3">
-                            <i class="fa fa-cubes-stacked f-22"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-1 font-weight-bold">Factory Stock (Cases)</p>
-                            <h3 class="mb-0 text-success">{{ number_format($totalFactoryStock) }}</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3 col-sm-6">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="avtar bg-light-info text-info me-3">
-                            <i class="fa fa-truck-fast f-22"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-1 font-weight-bold">Total Dispatched</p>
-                            <h3 class="mb-0 text-info">{{ number_format($totalDispatched) }} <small class="f-14">Cases</small></h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3 col-sm-6">
-            <div class="card stat-card bg-white">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="avtar bg-light-warning text-warning me-3">
-                            <i class="fa fa-warehouse f-22"></i>
-                        </div>
-                        <div>
-                            <p class="text-muted mb-1 font-weight-bold">In Warehouses</p>
-                            <h3 class="mb-0 text-warning">{{ number_format($totalWarehouseStock) }} <small class="f-14">Cases</small></h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Navigation Tabs -->
-    <ul class="nav nav-tabs mb-3" id="stockTabs" role="tablist">
+    <ul class="nav nav-tabs mb-4" id="stockTabs" role="tablist">
         <li class="nav-item">
             <a class="nav-link active" href="{{ route('manufacture-stock') }}">
                 <i class="fa fa-industry me-1"></i> Factory Stock
@@ -109,7 +42,7 @@
         </li>
         <li class="nav-item">
             <a class="nav-link" href="{{ route('manufacture-warehouse-stock') }}">
-                <i class="fa fa-warehouse me-1"></i> Warehouse Stock Overview
+                <i class="fa fa-warehouse me-1"></i> Warehouse Stock View
             </a>
         </li>
         <li class="nav-item">
