@@ -63,6 +63,8 @@
                             {{-- <th scope="col">Email</th> --}}
                             <th scope="col">Phone</th>
                             <th scope="col">Vehicle</th>
+                            <th scope="col">Licence No</th>
+                            <th scope="col">Expiry of Licence</th>
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
@@ -108,6 +110,8 @@
                 // {data: 'email', name: 'email'},
                 {data: 'phone', name: 'phone'},
                 {data: 'vehicle', name: 'vehicle'},
+                {data: 'licence_no', name: 'licence_no', defaultContent: '-'},
+                {data: 'licence_expiry', name: 'licence_expiry', defaultContent: '-'},
                 {data: 'status', name: 'status'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]

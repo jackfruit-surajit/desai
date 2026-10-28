@@ -123,6 +123,21 @@
                             @endif
                         </div>
 
+                        <div class="col-md-6">
+                            <label for="licence_no" class="form-label">Licence No.</label>
+                            <input type="text" class="form-control" placeholder="Licence No." name="licence_no" id="licence_no" value="{{ old('licence_no', $model->licence_no) }}" >
+                            @if ($errors->has('licence_no'))
+                                <span class="help-block text-danger"> {{ $errors->first('licence_no') }} </span>
+                            @endif
+                        </div>
+                        <div class="col-md-6">
+                            <label for="licence_expiry" class="form-label">Expiry of Licence</label>
+                            <input type="date" class="form-control" placeholder="Expiry of Licence" name="licence_expiry" id="licence_expiry" value="{{ old('licence_expiry', $model->licence_expiry) }}" >
+                            @if ($errors->has('licence_expiry'))
+                                <span class="help-block text-danger"> {{ $errors->first('licence_expiry') }} </span>
+                            @endif
+                        </div>
+
                         <div class="col-md-4">
                             <label for="inputImage" class="form-label">Driver Photo</label>
                             <input type="file" class="form-control" name="image" >

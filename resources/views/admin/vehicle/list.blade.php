@@ -20,7 +20,6 @@
             height: 2em !important;
             border: 1px solid #aaa !important;
         }
-        
     </style>
     <!-- [Page specific CSS] end -->
 @endsection
@@ -48,20 +47,34 @@
               </div>
               <div class="card-body">
 
-                        @if (session('success'))
-                                <div class="alert alert-success">
-                                    {{ session('success') }}
-                                </div>
-                            @endif
-                            @if ($errors->any())
-                                <div class="alert alert-danger">
-                                    <ul>
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
+                    @if (session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if (session('success_msg'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('success_msg') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if (session('error_msg'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            {{ session('error_msg') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
 
                 <div class="table-responsive dt-responsive">
                   <table class="table table-striped table-bordered nowrap" id="staff-management">
@@ -70,6 +83,12 @@
                             <th scope="col">#</th>
                             <th scope="col">Vehicle Name</th>
                             <th scope="col">Vehicle No</th>
+                            <th scope="col">Chassi No</th>
+                            <th scope="col">Engine No</th>
+                            <th scope="col">GPS/IMEI No</th>
+                            <th scope="col">Pollution</th>
+                            <th scope="col">Fitness</th>
+                            <th scope="col">PUC</th>
                             <th scope="col">Fuel Type</th>
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
@@ -77,29 +96,22 @@
                     </thead>
                     <tbody>
                     </tbody>
-                      
                    </table>
                 </div>
               </div>
             </div>
         </div>
-          <!-- Multiple Table Control Elements end -->
-          
-          
     </div>
     <!-- [ Main Content ] end -->
-      
 @endsection
 
 @section('scripts')
     <!-- [Page Specific JS] start -->
-
     <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
-    
     
     <script>
     $(document).ready(function () {
-        var role = getUrlParameter('role'); // Get role from URL
+        var role = getUrlParameter('role');
 
         $('#staff-management').DataTable({
             serverSide: true,
@@ -107,20 +119,25 @@
             ajax: {
                 url: '{{ route("vehicle-datatable") }}',
                 data: function (d) {
-                    d.role = role;    // Passing role
+                    d.role = role;
                 }
             },
             columns: [
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {data: 'vehicle_name', name: 'vehicle_name'},
                 {data: 'vehicle_no', name: 'vehicle_no'},
-                {data: 'fuel_type', name: 'fuel_type'},
+                {data: 'chassis_no', name: 'chassis_no', defaultContent: '-'},
+                {data: 'engine_no', name: 'engine_no', defaultContent: '-'},
+                {data: 'gps_imei_no', name: 'gps_imei_no', defaultContent: '-'},
+                {data: 'pollution', name: 'pollution', defaultContent: '-'},
+                {data: 'fitness', name: 'fitness', defaultContent: '-'},
+                {data: 'puc', name: 'puc', defaultContent: '-'},
+                {data: 'fuel_type', name: 'fuel_type', defaultContent: '-'},
                 {data: 'status', name: 'status'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]
         });
 
-        // Function to get URL parameters
         function getUrlParameter(sParam) {
             var sPageURL = window.location.search.substring(1),
                 sURLVariables = sPageURL.split('&'),
@@ -137,8 +154,6 @@
             return false;
         }
     });
-</script>
-
-    
+    </script>
     <!-- [Page Specific JS] end -->
 @endsection

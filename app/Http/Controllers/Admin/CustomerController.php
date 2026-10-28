@@ -100,26 +100,22 @@ class CustomerController extends Controller
     public function store(Request $request) {
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|regex:/^[a-zA-Z\s]+$/',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:customers,email',
             'phone' => 'required|numeric|digits:10|unique:customers,mobile_no',
             'status' => 'required',
-            'gst_no'   => 'nullable|string',
-            'pan_no'   => 'nullable|string',
-            'shop_name' => 'required|string',
+            'gst_no'   => 'nullable|string|max:100',
+            'pan_no'   => 'nullable|string|max:100',
+            'shop_name' => 'required|string|max:255',
             'shop_photo' => 'required|mimes:png,jpeg,jpg,JPEG',
-            'area_id' => 'required|integer',
+            'area_id' => 'nullable|integer',
             'road_id' => 'required|integer',
-            
-            // 'address'   => 'required|string',
-            'latitude'  => 'required|string',
-            'longitude' => 'required|string',
-            
-            'state'   => 'required|string',
-            'city'  => 'required|string',
-            'pin_code' => 'required|string',
-            'landmark'   => 'required|string',
-            
+            'latitude'  => 'required|string|max:100',
+            'longitude' => 'required|string|max:100',
+            'state'   => 'required|string|max:255',
+            'city'  => 'required|string|max:255',
+            'pin_code' => 'required|string|max:50',
+            'landmark'   => 'required|string|max:255',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -128,17 +124,28 @@ class CustomerController extends Controller
 
         if ($validator->passes()) {
 
-            $input = [];
-            $data = [];
             $input = $request->all();
-
             unset($input['_token']);
             
-            $road = Road::where('id',$input['road_id'])->first(['road_name']);
-            $area = Area::where('id',$input['area_id'])->first(['area_name']);
+            $road = Road::where('id', $input['road_id'])->first(['road_name', 'area_id']);
+            $area_id = !empty($input['area_id']) ? $input['area_id'] : ($road ? $road->area_id : null);
+            $area = $area_id ? Area::where('id', $area_id)->first(['area_name']) : null;
 
-            $data['name'] = $input['name'];
-            $data['email'] = $input['email'];
+            $road_name = $road ? $road->road_name : '';
+            $area_name = $area ? $area->area_name : '';
+            $name = mb_strtoupper($input['name'], 'UTF-8');
+            $shop_name = mb_strtoupper($input['shop_name'], 'UTF-8');
+            $gst_no = !empty($input['gst_no']) ? mb_strtoupper($input['gst_no'], 'UTF-8') : null;
+            $pan_no = !empty($input['pan_no']) ? mb_strtoupper($input['pan_no'], 'UTF-8') : null;
+            $state = mb_strtoupper($input['state'], 'UTF-8');
+            $city = mb_strtoupper($input['city'], 'UTF-8');
+            $pin_code = mb_strtoupper($input['pin_code'], 'UTF-8');
+            $landmark = mb_strtoupper($input['landmark'], 'UTF-8');
+            $address = mb_strtoupper(trim("{$road_name}, {$area_name}, {$landmark}, {$state}, {$city}, {$pin_code}", ', '), 'UTF-8');
+
+            $data = [];
+            $data['name'] = $name;
+            $data['email'] = strtolower($input['email']);
             $data['mobile_no'] = $input['phone'];
             $data['status'] = $input['status'];
            
@@ -150,27 +157,27 @@ class CustomerController extends Controller
                 $data['shop_photo'] = $imagename;
             }
 
-            $data['address'] = $road->road_name.', '.$area->area_name.', '.$input['landmark'].', '.$input['state'].', '.$input['city'].', '.$input['pin_code'];
-            $data['gst_no'] = $input['gst_no'];
-            $data['pan_no'] = $input['pan_no'];
+            $data['address'] = $address;
+            $data['gst_no'] = $gst_no;
+            $data['pan_no'] = $pan_no;
             $data['latitude'] = $input['latitude'];
             $data['longitude'] = $input['longitude'];
             
-            $data['shop_name'] = $input['shop_name'];
-            $data['area_id'] = $input['area_id'];
+            $data['shop_name'] = $shop_name;
+            $data['area_id'] = $area_id;
             $data['road_id'] = $input['road_id'];
 
-            $data['state'] = $input['state'];
-            $data['city'] = $input['city'];
-            $data['pin_code'] = $input['pin_code'];
-            $data['landmark'] = $input['landmark'];
+            $data['state'] = $state;
+            $data['city'] = $city;
+            $data['pin_code'] = $pin_code;
+            $data['landmark'] = $landmark;
 
             $data['created_at'] = date('Y-m-d H:i:s');
             $data['updated_at'] = date('Y-m-d H:i:s');
 
             DB::table('customers')->insertGetId($data);
 
-            return redirect()->route('customer-list')->with('success_msg', 'Customer created successfully.');
+            return redirect()->route('customer-list')->with('success', 'Customer created successfully.')->with('success_msg', 'Customer created successfully.');
         } else {
             return redirect()->back()->withErrors($validator)->withInput($request->all())->with('error_msg', 'Something went wrong please check your input.');
         }
@@ -226,25 +233,22 @@ class CustomerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required|integer',
-            'name' => 'required|regex:/^[a-zA-Z\s]+$/',
-            'email' => 'required|email|unique:customers,email,'.$request->customer_id,
-            'phone' => 'required|numeric|digits:10|unique:customers,mobile_no,'.$request->customer_id,
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:customers,email,'.$request->customer_id.',id',
+            'phone' => 'required|numeric|digits:10|unique:customers,mobile_no,'.$request->customer_id.',id',
             'status' => 'required',
-            'gst_no'   => 'nullable|string',
-            'shop_name' => 'required|string',
+            'gst_no'   => 'nullable|string|max:100',
+            'pan_no'   => 'nullable|string|max:100',
+            'shop_name' => 'required|string|max:255',
             'shop_photo' => 'nullable|mimes:png,jpeg,jpg,JPEG',
-            'area_id' => 'required|integer',
+            'area_id' => 'nullable|integer',
             'road_id' => 'required|integer',
-            
-            // 'address'   => 'required|string',
-            'latitude'  => 'required|string',
-            'longitude' => 'required|string',
-            
-            'state'   => 'required|string',
-            'city'  => 'required|string',
-            'pin_code' => 'required|string',
-            'landmark'   => 'required|string',
-            
+            'latitude'  => 'required|string|max:100',
+            'longitude' => 'required|string|max:100',
+            'state'   => 'required|string|max:255',
+            'city'  => 'required|string|max:255',
+            'pin_code' => 'required|string|max:50',
+            'landmark'   => 'required|string|max:255',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -253,27 +257,40 @@ class CustomerController extends Controller
 
         if ($validator->passes()) {
             
-            $road = Road::where('id',$request->road_id)->first(['road_name']);
-            $area = Area::where('id',$request->area_id)->first(['area_name']);
+            $road = Road::where('id', $request->road_id)->first(['road_name', 'area_id']);
+            $area_id = !empty($request->area_id) ? $request->area_id : ($road ? $road->area_id : null);
+            $area = $area_id ? Area::where('id', $area_id)->first(['area_name']) : null;
+
+            $road_name = $road ? $road->road_name : '';
+            $area_name = $area ? $area->area_name : '';
+            $name = mb_strtoupper($request->name, 'UTF-8');
+            $shop_name = mb_strtoupper($request->shop_name, 'UTF-8');
+            $gst_no = !empty($request->gst_no) ? mb_strtoupper($request->gst_no, 'UTF-8') : null;
+            $pan_no = !empty($request->pan_no) ? mb_strtoupper($request->pan_no, 'UTF-8') : null;
+            $state = mb_strtoupper($request->state, 'UTF-8');
+            $city = mb_strtoupper($request->city, 'UTF-8');
+            $pin_code = mb_strtoupper($request->pin_code, 'UTF-8');
+            $landmark = mb_strtoupper($request->landmark, 'UTF-8');
+            $address = mb_strtoupper(trim("{$road_name}, {$area_name}, {$landmark}, {$state}, {$city}, {$pin_code}", ', '), 'UTF-8');
 
             $data = array(
-                'name' => $request->name,
-                'email' => $request->email,
+                'name' => $name,
+                'email' => strtolower($request->email),
                 'mobile_no' => $request->phone,
                 'status' => $request->status,
-                'shop_name' => $request->shop_name,
-                'area_id' => $request->area_id,
+                'shop_name' => $shop_name,
+                'area_id' => $area_id,
                 'road_id' => $request->road_id,
-                'gst_no' => $request->gst_no,
-                'pan_no' => $request->pan_no,
-                'address' =>$road->road_name.', '.$area->area_name.', '.$request->landmark.', '.$request->state.', '.$request->city.', '.$request->pin_code,
+                'gst_no' => $gst_no,
+                'pan_no' => $pan_no,
+                'address' => $address,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
-                
-                'state' => $request->state,
-                'city' => $request->city,
-                'pin_code' => $request->pin_code,
-                'landmark' => $request->landmark,
+                'state' => $state,
+                'city' => $city,
+                'pin_code' => $pin_code,
+                'landmark' => $landmark,
+                'updated_at' => date('Y-m-d H:i:s'),
             );
 
             if ($request->hasFile('shop_photo')) {
@@ -285,7 +302,7 @@ class CustomerController extends Controller
             }
             
             Customer::where('id', $request->customer_id)->update($data);
-            return redirect()->route('customer-list')->with('success_msg', 'Customer updated successfully.');
+            return redirect()->route('customer-list')->with('success', 'Customer updated successfully.')->with('success_msg', 'Customer updated successfully.');
         } else {
             return redirect()->back()->withErrors($validator)->withInput($request->all())->with('error_msg', 'Something went wrong please check your input.');
         }

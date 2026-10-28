@@ -64,6 +64,8 @@ class StaffController extends Controller {
             'vehicle_id' =>'nullable|integer',
             'area_id' => $request->role == 2 ? 'required|array|max:5' : 'required_if:role,3',
             'warehouse_id' => 'required_if:role,3',
+            'licence_no' => 'nullable|string|max:100',
+            'licence_expiry' => 'nullable|date',
         ], [
             'area_id.required_if' => 'The assign area field is required.',
             'area_id.required' => 'The assign area field is required.',
@@ -103,8 +105,10 @@ class StaffController extends Controller {
             $data['type_id'] = '2';
            
             if($input['role'] == '3'){
-               $data['vehicle_id'] = $input['vehicle_id']; 
-               $data['area_id'] = $input['area_id'] ?? null; 
+               $data['vehicle_id'] = $input['vehicle_id'] ?? null;
+               $data['area_id'] = $input['area_id'] ?? null;
+               $data['licence_no'] = $input['licence_no'] ?? ($input['license_no'] ?? null);
+               $data['licence_expiry'] = !empty($input['licence_expiry']) ? $input['licence_expiry'] : (!empty($input['license_expiry']) ? $input['license_expiry'] : null);
             }
             
             if ($request->hasFile('image')) {
@@ -378,6 +382,12 @@ class StaffController extends Controller {
                 return '<img height="50" width="50" src="' . $path . '"/>';
             })
             
+            ->editColumn('licence_no', function ($model) {
+                return !empty($model->licence_no) ? $model->licence_no : '-';
+            })
+            ->editColumn('licence_expiry', function ($model) {
+                return !empty($model->licence_expiry) ? date('d-m-Y', strtotime($model->licence_expiry)) : '-';
+            })
             ->editColumn('role', function ($model) {
                 return $model->role_name;
             })
@@ -582,6 +592,8 @@ class StaffController extends Controller {
             'vehicle_id' => 'nullable|integer',
             'area_id' => $request->role == 2 ? 'required|array|max:5' : 'required_if:role,3',
             'warehouse_id' => 'required_if:role,3',
+            'licence_no' => 'nullable|string|max:100',
+            'licence_expiry' => 'nullable|date',
         ], [
             'area_id.required_if' => 'The assign area field is required.',
             'area_id.required' => 'The assign area field is required.',
@@ -619,9 +631,11 @@ class StaffController extends Controller {
             
             if($input['role'] == '3'){
                if (isset($input['vehicle_id'])) {
-                   $data['vehicle_id'] = $input['vehicle_id']; 
+                   $data['vehicle_id'] = $input['vehicle_id'];
                }
                $data['area_id'] = $input['area_id'] ?? null;
+               $data['licence_no'] = $input['licence_no'] ?? ($input['license_no'] ?? null);
+               $data['licence_expiry'] = !empty($input['licence_expiry']) ? $input['licence_expiry'] : (!empty($input['license_expiry']) ? $input['license_expiry'] : null);
                
                if(isset($input['warehouse_id']) && $input['warehouse_id']){
                     DriverWarehouse::updateOrCreate(

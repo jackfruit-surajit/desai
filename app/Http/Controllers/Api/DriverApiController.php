@@ -29,7 +29,7 @@ class DriverApiController extends Controller
             return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
         }
         
-        $result = DB::table('admins')->where('id',$request->user_id)->first(['id','role_id','name','email','phone','image']);
+        $result = DB::table('admins')->where('id',$request->user_id)->first(['id','role_id','name','email','phone','image','licence_no','licence_expiry']);
 
         if($result){
             $result->image = url('public/uploads/staff/'.$result->image);

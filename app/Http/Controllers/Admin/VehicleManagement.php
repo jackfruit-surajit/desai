@@ -74,10 +74,16 @@ class VehicleManagement extends Controller
 
     public function store(Request $request) {
         $validator = Validator::make($request->all(), [
-            'vehicle_name'=> 'required|string',
-            'vehicle_no'  => 'required|string',
-            'fuel_type'   => 'nullable|string',
-            'status'      => 'required',
+            'vehicle_name' => 'required|string|max:255',
+            'vehicle_no'   => 'required|string|max:255',
+            'fuel_type'    => 'nullable|string|max:255',
+            'chassis_no'   => 'nullable|string|max:255',
+            'engine_no'    => 'nullable|string|max:255',
+            'gps_imei_no'  => 'nullable|string|max:255',
+            'pollution'    => 'nullable|string|max:255',
+            'fitness'      => 'nullable|string|max:255',
+            'puc'          => 'nullable|string|max:255',
+            'status'       => 'required',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -86,14 +92,20 @@ class VehicleManagement extends Controller
 
         if ($validator->passes()) {
             $data = array(
-                'vehicle_name'=> $request->vehicle_name,
-                'vehicle_no'  => $request->vehicle_no,
-                'fuel_type'   => $request->fuel_type,
-                'status'      => $request->status,
+                'vehicle_name' => $request->vehicle_name,
+                'vehicle_no'   => $request->vehicle_no,
+                'fuel_type'    => $request->fuel_type,
+                'chassis_no'   => $request->chassis_no ?? $request->chassi_no,
+                'engine_no'    => $request->engine_no,
+                'gps_imei_no'  => $request->gps_imei_no,
+                'pollution'    => $request->pollution,
+                'fitness'      => $request->fitness,
+                'puc'          => $request->puc,
+                'status'       => $request->status,
             );
 
             Vehicle::create($data);
-            return redirect()->route('vehicles')->with('success_msg', 'Vehicle details added successfully.');
+            return redirect()->route('vehicles')->with('success', 'Vehicle details added successfully.')->with('success_msg', 'Vehicle details added successfully.');
         } else {
             return redirect()->back()->withErrors($validator)->withInput($request->all())->with('error_msg', 'Something went wrong please check your input.');
         }
@@ -145,11 +157,17 @@ class VehicleManagement extends Controller
 
     public function update(Request $request) {
         $validator = Validator::make($request->all(), [
-            'vehicle_name'=> 'required|string',
-            'vehicle_no'  => 'required|string',
-            'fuel_type'   => 'nullable|string',
-            'status'      => 'required',
-            'id' => 'required|integer',
+            'vehicle_name' => 'required|string|max:255',
+            'vehicle_no'   => 'required|string|max:255',
+            'fuel_type'    => 'nullable|string|max:255',
+            'chassis_no'   => 'nullable|string|max:255',
+            'engine_no'    => 'nullable|string|max:255',
+            'gps_imei_no'  => 'nullable|string|max:255',
+            'pollution'    => 'nullable|string|max:255',
+            'fitness'      => 'nullable|string|max:255',
+            'puc'          => 'nullable|string|max:255',
+            'status'       => 'required',
+            'id'           => 'required|integer',
         ]);
 
         $validator->after(function ($validator) use ($request) {
@@ -158,14 +176,20 @@ class VehicleManagement extends Controller
 
         if ($validator->passes()) {
             $data = array(
-                'vehicle_name'  => $request->vehicle_name,
-                'vehicle_no'    => $request->vehicle_no,
-                'fuel_type'     => $request->fuel_type,
-                'status'        => $request->status,
+                'vehicle_name' => $request->vehicle_name,
+                'vehicle_no'   => $request->vehicle_no,
+                'fuel_type'    => $request->fuel_type,
+                'chassis_no'   => $request->chassis_no ?? $request->chassi_no,
+                'engine_no'    => $request->engine_no,
+                'gps_imei_no'  => $request->gps_imei_no,
+                'pollution'    => $request->pollution,
+                'fitness'      => $request->fitness,
+                'puc'          => $request->puc,
+                'status'       => $request->status,
             );
 
             Vehicle::where('id',$request->id)->update($data);
-            return redirect()->route('vehicles')->with('success_msg', 'Vehicle details updated successfully.');
+            return redirect()->route('vehicles')->with('success', 'Vehicle details updated successfully.')->with('success_msg', 'Vehicle details updated successfully.');
         } else {
             return redirect()->back()->withErrors($validator)->withInput($request->all())->with('error_msg', 'Something went wrong please check your input.');
         }

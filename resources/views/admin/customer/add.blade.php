@@ -6,6 +6,11 @@
 @section('breadcrumb-item-active', 'Add')
 
 @section('css')
+<style>
+    .uppercase-input {
+        text-transform: uppercase;
+    }
+</style>
 @endsection
 
 @section('content')
@@ -20,6 +25,23 @@
                 </div>
                 <div class="card-body">
 
+                    @if (session('error_msg'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            {{ session('error_msg') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
 
                     <form class="row g-3" method="post" action="{{route('customer-store')}}" enctype="multipart/form-data">
                         @csrf
@@ -28,7 +50,7 @@
                         
                         <div class="col-md-6">
                             <label for="" class="form-label">Customer's Name<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Customer's Name" name="name" value="{{ (old('name')!='') ? old('name') : ''}}" >
+                            <input type="text" class="form-control uppercase-input" placeholder="Customer's Name" name="name" value="{{ (old('name')!='') ? old('name') : ''}}" >
                             @if ($errors->has('name'))
                                 <span class="help-block"> {{ $errors->first('name') }} </span>
                             @endif
@@ -52,7 +74,7 @@
                         
                         <div class="col-md-6">
                             <label for="inputPhone" class="form-label">GST NO</label>
-                            <input type="text" class="form-control" placeholder="GST No" name="gst_no" value="{{ (old('gst_no')!='') ? old('gst_no') : ''}}" >
+                            <input type="text" class="form-control uppercase-input" placeholder="GST No" name="gst_no" value="{{ (old('gst_no')!='') ? old('gst_no') : ''}}" >
                             @if ($errors->has('gst_no'))
                                 <span class="help-block"> {{ $errors->first('gst_no') }} </span>
                             @endif
@@ -60,7 +82,7 @@
                         
                         <div class="col-md-6">
                             <label for="inputPhone" class="form-label">PAN NO</label>
-                            <input type="text" class="form-control" placeholder="PAN No" name="pan_no" value="{{ (old('pan_no')!='') ? old('pan_no') : ''}}" >
+                            <input type="text" class="form-control uppercase-input" placeholder="PAN No" name="pan_no" value="{{ (old('pan_no')!='') ? old('pan_no') : ''}}" >
                             @if ($errors->has('pan_no'))
                                 <span class="help-block"> {{ $errors->first('pan_no') }} </span>
                             @endif
@@ -98,7 +120,7 @@
                         
                         <div class="col-md-6">
                             <label for="" class="form-label">Shop's Name<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Shop's Name" name="shop_name" value="{{ (old('shop_name')!='') ? old('shop_name') : ''}}" >
+                            <input type="text" class="form-control uppercase-input" placeholder="Shop's Name" name="shop_name" value="{{ (old('shop_name')!='') ? old('shop_name') : ''}}" >
                             @if ($errors->has('shop_name'))
                                 <span class="help-block"> {{ $errors->first('shop_name') }} </span>
                             @endif
@@ -148,7 +170,7 @@
                         
                         <div class="col-md-6">
                             <label for="inputPhone" class="form-label">State<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="State" name="state" value="{{ (old('state')!='') ? old('state') : ''}}">
+                            <input type="text" class="form-control uppercase-input" placeholder="State" name="state" value="{{ (old('state')!='') ? old('state') : ''}}">
                             @if ($errors->has('state'))
                                 <span class="help-block"> {{ $errors->first('state') }} </span>
                             @endif
@@ -156,7 +178,7 @@
                         
                         <div class="col-md-6">
                             <label for="inputPhone" class="form-label">City<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="City" name="city" value="{{ (old('city')!='') ? old('city') : ''}}">
+                            <input type="text" class="form-control uppercase-input" placeholder="City" name="city" value="{{ (old('city')!='') ? old('city') : ''}}">
                             @if ($errors->has('state'))
                                 <span class="help-block"> {{ $errors->first('city') }} </span>
                             @endif
@@ -164,7 +186,7 @@
                         
                         <div class="col-md-6">
                             <label for="inputPhone" class="form-label">PIN Code<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="PIN Code" name="pin_code" value="{{ (old('pin_code')!='') ? old('pin_code') : ''}}">
+                            <input type="text" class="form-control uppercase-input" placeholder="PIN Code" name="pin_code" value="{{ (old('pin_code')!='') ? old('pin_code') : ''}}">
                             @if ($errors->has('pin_code'))
                                 <span class="help-block"> {{ $errors->first('pin_code') }} </span>
                             @endif
@@ -172,7 +194,7 @@
                         
                         <div class="col-md-6">
                             <label for="inputPhone" class="form-label">Land Mark<span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Land Mark" name="landmark" value="{{ (old('landmark')!='') ? old('landmark') : ''}}">
+                            <input type="text" class="form-control uppercase-input" placeholder="Land Mark" name="landmark" value="{{ (old('landmark')!='') ? old('landmark') : ''}}">
                             @if ($errors->has('landmark'))
                                 <span class="help-block"> {{ $errors->first('landmark') }} </span>
                             @endif
@@ -217,6 +239,16 @@
         $(function () {
             //Initialize Select2 Elements
             $('.select2').select2();
+
+            $('.uppercase-input').on('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+
+            $('form').on('submit', function() {
+                $('.uppercase-input').each(function() {
+                    this.value = this.value.toUpperCase();
+                });
+            });
         });
     
         function passwordGenerator(){
