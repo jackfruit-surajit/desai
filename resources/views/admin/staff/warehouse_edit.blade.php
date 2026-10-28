@@ -58,7 +58,7 @@
                         </div>
                         <div class="col-md-2">
                             @if(!empty($model->image))
-                                <a href="{{!empty($model->image)?URL::asset('public/uploads/staff/'.$model->image):'#'}}" class="btn btn-xs btn-primary pull-left mt-4" target="_blank"><i class="fa fa-eye"></i>View Image</a>
+                                <a href="{{!empty($model->image)?URL::asset(asset_path('uploads/staff/'.$model->image)):'#'}}" class="btn btn-xs btn-primary pull-left mt-4" target="_blank"><i class="fa fa-eye"></i>View Image</a>
                             @endif
                         </div>
                         

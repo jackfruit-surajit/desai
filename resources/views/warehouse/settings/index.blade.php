@@ -133,7 +133,7 @@
                                                             break;
 
                                                         case 'file':
-                                                            $photo = $settings->value ? URL::asset('public/uploads/setting/' . $settings->value) : '#';
+                                                            $photo = $settings->value ? URL::asset(asset_path('uploads/setting/' . $settings->value)) : '#';
                                                             $html .= "<div class=\"col-md-12 col-lg-12 type-{$settings->type}\">";
                                                             $html .= "<input type=\"file\" class=\"form-control\" id=\"{$settings->slug}\" name=\"settings[{$settings->slug}]\" >";
 

@@ -96,7 +96,7 @@
                         @if($model->shop_photo)
                         <div class="col-md-12">
                             <label class="form-label">Current Photo:</label><br>
-                            <img src="{{ URL::asset(asset_path('uploads/customer/' . $model->shop_photo)) }}" height="120" width="160" class="img-thumbnail">
+                            <img src="{{ URL::asset(asset_path('uploads/customer/' . $model->shop_photo)) }}" height="120" width="160" class="img-thumbnail" onerror="this.src='{{ URL::asset(asset_path('common/image/no-img.png')) }}'">
                         </div>
                         @endif
                         

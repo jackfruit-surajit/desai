@@ -32,13 +32,14 @@ class CustomerController extends Controller
             ->addIndexColumn()
 
             ->editColumn('image', function ($model) {
-                if (isset($model->shop_photo) && $model->shop_photo != '') {
+                $noImg = URL::asset(asset_path('common/image/no-img.png'));
+                if (isset($model->shop_photo) && $model->shop_photo != '' && file_exists(public_path('uploads/customer/' . $model->shop_photo))) {
                     $path = URL::asset(asset_path('uploads/customer/' . $model->shop_photo));
+                    return '<a href="' . $path . '" target="_blank"><img height="50" width="50" src="' . $path . '" class="img-thumbnail" onerror="this.src=\'' . $noImg . '\'"/></a>';
                 } else {
-                    $path =URL::asset(asset_path('common/image/no-img.png'));
+                    $path = $noImg;
+                    return '<img height="50" width="50" src="' . $path . '" class="img-thumbnail" onerror="this.src=\'' . $noImg . '\'"/>';
                 }
-
-                return '<img height="50" width="50" src="' . $path . '"/>';
             })
 
             ->editColumn('address', function ($model) {

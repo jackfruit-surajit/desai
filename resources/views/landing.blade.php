@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Desai</title>
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('assets_front/icon/desai-fav.jpg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ URL::asset(asset_path('assets_front/icon/desai-fav.jpg')) }}">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -117,7 +117,7 @@
     
     <div class="mb-14 text-center z-10 drop-shadow-lg px-4 flex flex-col items-center">
         <!-- Desai Logo -->
-        <img src="{{ asset('backend/assets/images/authentication/desai-delivery.png') }}" alt="Desai Logo" class="h-24 md:h-32 mb-6 drop-shadow-md">
+        <img src="{{ URL::asset(asset_path('backend/assets/images/authentication/desai-delivery.png')) }}" alt="Desai Logo" class="h-24 md:h-32 mb-6 drop-shadow-md">
 
         <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-4 tracking-wide" style="text-shadow: 2px 3px 6px rgba(0,0,0,0.3);">Welcome to Desai</h1>
         <p class="text-2xl text-white font-semibold drop-shadow-md">Select your portal to log in</p>

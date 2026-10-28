@@ -73,7 +73,7 @@
                                 <td class="present-text">Present</td>
                                 <td>
                                     @if($record->selfie)
-                                        <img src="{{ URL::asset('public/uploads/driver/' . $record->selfie) }}" height="50" width="50" alt="selfie">
+                                        <img src="{{ URL::asset(asset_path('uploads/driver/' . $record->selfie)) }}" height="50" width="50" alt="selfie">
                                     @else
                                         N/A
                                     @endif

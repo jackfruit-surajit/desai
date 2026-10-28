@@ -23,7 +23,7 @@ $site_title = DB::table('settings')->where('slug','=','site_title')->first();
                                                 <tr>
                                                     <td style="border-collapse:collapse;text-align:left;vertical-align:top ;background-color:#ccccff; padding-left: 100px;" align="left" valign="top">
                                                         <a href="{{ URL('/') }}" style="color:#a30046;font-weight:normal;text-decoration:none" target="_blank">
-                                                            <img alt="{{isset($site_title->value) ? $site_title->value : env('APP_NAME', '') }}" src="{{ isset($logo->value) ? URL::asset('public/uploads/setting/'.$logo->value) : URL::asset('public/backend/assets/img/logo.png')}}" style="border:0;min-height:auto;line-height:100%;max-width:162px;outline:none;text-decoration:none" class="CToWUd">
+                                                            <img alt="{{isset($site_title->value) ? $site_title->value : env('APP_NAME', '') }}" src="{{ isset($logo->value) ? URL::asset(asset_path('uploads/setting/'.$logo->value)) : URL::asset(asset_path('backend/assets/img/logo.png'))}}" style="border:0;min-height:auto;line-height:100%;max-width:162px;outline:none;text-decoration:none" class="CToWUd">
                                                         </a>
                                                     </td>
                                                 </tr>

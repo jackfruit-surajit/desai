@@ -36,8 +36,8 @@ class SalesVisitHistoryController extends Controller
             ->addIndexColumn()
             ->editColumn('shop_photo', function ($model) {
                 if (isset($model->shop_photo) && $model->shop_photo != '') {
-                    $path = URL::asset('public/uploads/sales_executive/' . $model->shop_photo); // Assuming folder path
-                    return '<img height="50" width="50" src="' . $path . '" onerror="this.src=\''.URL::asset('public/common/image/no-img.png').'\'"/>';
+                    $path = URL::asset(asset_path('uploads/sales_executive/' . $model->shop_photo)); // Assuming folder path
+                    return '<img height="50" width="50" src="' . $path . '" onerror="this.src=\''.URL::asset(asset_path('common/image/no-img.png')).'\'"/>';
                 } else {
                     return 'N/A';
                 }

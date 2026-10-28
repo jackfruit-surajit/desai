@@ -10,7 +10,7 @@
 
 @section('css')
     <!-- [Page specific CSS] start -->
-    <link href="{{ URL::asset('public/backend/assets/css/jquery-confirm.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" rel="stylesheet" type="text/css" />
     <style>
         .jconfirm-content {
             overflow: hidden !important;
@@ -107,7 +107,7 @@
 @section('scripts')
     <!-- [Page Specific JS] start -->
 
-    <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
+    <script src="{{ URL::asset(asset_path('backend/assets/js/jquery-confirm.js')) }}" type="text/javascript"></script>
     
     
     <script>
@@ -125,7 +125,7 @@
             },
             columns: [
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                {data: 'image', name: 'image'},
+                {data: 'image', name: 'image', orderable: false, searchable: false},
                 {data: 'name', name: 'name'},
                 {data: 'shop_name', name: 'shop_name'},
                 //{data: 'mobile_no', name: 'mobile_no'},

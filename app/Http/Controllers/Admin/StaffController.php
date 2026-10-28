@@ -312,7 +312,7 @@ class StaffController extends Controller {
             ->addIndexColumn()
             ->editColumn('selfie', function ($model) {
                 if (isset($model->selfie) && $model->selfie != '') {
-                    $path = URL::asset('public/uploads/driver/' . $model->selfie);
+                    $path = URL::asset(asset_path('uploads/driver/' . $model->selfie));
                     return '<img height="50" width="50" src="' . $path . '"/>';
                 } else {
                     return 'N/A';
@@ -375,9 +375,9 @@ class StaffController extends Controller {
 
             ->editColumn('image', function ($model) {
                 if (isset($model->image) && $model->image != '') {
-                    $path = URL::asset('public/uploads/staff/' . $model->image);
+                    $path = URL::asset(asset_path('uploads/staff/' . $model->image));
                 } else {
-                    $path = URL::asset('public/common/image/no-img.png');
+                    $path = URL::asset(asset_path('common/image/no-img.png'));
                 }
                 return '<img height="50" width="50" src="' . $path . '"/>';
             })

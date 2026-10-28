@@ -32,7 +32,7 @@ class DriverApiController extends Controller
         $result = DB::table('admins')->where('id',$request->user_id)->first(['id','role_id','name','email','phone','image','licence_no','licence_expiry']);
 
         if($result){
-            $result->image = url('public/uploads/staff/'.$result->image);
+            $result->image = url(asset_path('uploads/staff/'.$result->image));
             return response()->json(['status' => 200,'message' => 'Record found.', 'data'  =>$result,],200);
         }
         else{
@@ -447,7 +447,7 @@ class DriverApiController extends Controller
                 $result->invoice = '';
             }
             
-            return response()->json(['status' => 200,'message' => 'Record found.', 'image_url' => url('public/uploads/customer/'), 'data'  =>$result,],200);
+            return response()->json(['status' => 200,'message' => 'Record found.', 'image_url' => url(asset_path('uploads/customer/')), 'data'  =>$result,],200);
         }else{
             return response()->json(['status' => 200,'message' => 'Record not found.', 'data'  =>[],],200);
         }

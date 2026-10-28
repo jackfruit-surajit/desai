@@ -22,7 +22,7 @@
                   <div class="text-center mt-3">
                     <div class="chat-avtar d-inline-flex mx-auto">
                       <img class="rounded-circle img-fluid wid-90 img-thumbnail"
-                        src="{{isset($model->image) ? URL::asset('public/uploads/staff/'.$model->image ) : URL::asset('public/uploads/user/no-img.png')}}" alt="User image">
+                        src="{{isset($model->image) ? URL::asset(asset_path('uploads/staff/'.$model->image )) : URL::asset(asset_path('uploads/user/no-img.png'))}}" alt="User image">
                       <i class="chat-badge bg-success me-2 mb-2"></i>
                     </div>
                     <h5 class="mb-0">{{$model->name}}</h5>
