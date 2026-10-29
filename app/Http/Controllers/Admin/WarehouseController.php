@@ -122,7 +122,7 @@ class WarehouseController extends Controller {
     public function salesExecutiveAssignLoaction(Request $request,$id){
         $user_id = base64_decode($id);
         $model = DB::table('admins')->where('id', $user_id)->first();
-        $selected_areas = SalesExecutiveArea::where('sales_executive_id',$user_id)->get(['area_id']);
+        $selected_areas = SalesExecutiveArea::where('sales_executive_id',$user_id)->orderBy('id', 'asc')->get(['area_id']);
         $areas = Area::where('status','1')->get();
         return view('admin.staff.sales_executive_assign_location',compact(['areas','model','selected_areas']));
     }
@@ -141,8 +141,25 @@ class WarehouseController extends Controller {
                 SalesExecutiveArea::where('sales_executive_id',$request->user_id)->delete();
             }
             
-            foreach($request->area_id as $area_id){
-                
+            $areaIds = $request->area_id;
+            if ($request->filled('area_order')) {
+                $orderedIds = explode(',', $request->area_order);
+                $ordered = [];
+                foreach ($orderedIds as $oid) {
+                    $oid = trim($oid);
+                    if (in_array($oid, $areaIds)) {
+                        $ordered[] = $oid;
+                    }
+                }
+                foreach ($areaIds as $aid) {
+                    if (!in_array($aid, $ordered)) {
+                        $ordered[] = $aid;
+                    }
+                }
+                $areaIds = $ordered;
+            }
+
+            foreach($areaIds as $area_id){
                 SalesExecutiveArea::create([
                     'sales_executive_id' => $request->user_id,
                     'area_id' => $area_id,

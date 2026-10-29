@@ -49,10 +49,27 @@
                         
                         <div class="col-md-6" id="area_details">
                             <label for="" class="form-label">Area<span class="required">*</span> (Maximum 5 area)</label>
+                            @php
+                                $oldOrder = old('area_order') ? explode(',', old('area_order')) : (old('area_id') ?? []);
+                                $oldOrder = array_values(array_filter(array_map('strval', (array)$oldOrder)));
+                                $areaKeyed = $areas->keyBy(function($item) { return (string)$item->id; });
+                                $orderedAreas = collect();
+                                foreach ($oldOrder as $sId) {
+                                    if ($areaKeyed->has($sId)) {
+                                        $orderedAreas->push($areaKeyed->get($sId));
+                                    }
+                                }
+                                foreach ($areas as $a) {
+                                    if (!in_array((string)$a->id, $oldOrder)) {
+                                        $orderedAreas->push($a);
+                                    }
+                                }
+                            @endphp
+                            <input type="hidden" name="area_order" id="area_order" value="{{ implode(',', $oldOrder) }}">
                             <select class="form-control select2" name="area_id[]" id= "area_id" multiple>
                                 <option value="" class="option selected focus" disabled>Select Area</option>
-                                @forelse($areas as $area)
-                                    <option value="{{ $area->id }}">{{$area->area_name}}</option>
+                                @forelse($orderedAreas as $area)
+                                    <option value="{{ $area->id }}" {{ in_array((string)$area->id, $oldOrder) ? 'selected' : '' }}>{{$area->area_name}}</option>
                                 @empty
                                 @endforelse
                             </select>
@@ -132,6 +149,52 @@
         $(function () {
             //Initialize Select2 Elements
             $('.select2').select2();
+
+            var $areaSelect = $('#area_id');
+            var initialVal = $('#area_order').val();
+            var selectedAreaOrder = initialVal ? initialVal.split(',').filter(Boolean) : [];
+
+            if (selectedAreaOrder.length === 0) {
+                $areaSelect.find('option:selected').each(function () {
+                    var val = $(this).val();
+                    if (val && selectedAreaOrder.indexOf(val) === -1) {
+                        selectedAreaOrder.push(val);
+                    }
+                });
+                $('#area_order').val(selectedAreaOrder.join(','));
+            }
+
+            $areaSelect.on('select2:select', function (e) {
+                var id = String(e.params.data.id);
+                selectedAreaOrder = selectedAreaOrder.filter(function(x) { return x !== id; });
+                selectedAreaOrder.push(id);
+                $('#area_order').val(selectedAreaOrder.join(','));
+
+                var $opt = $(this).find('option[value="' + id + '"]');
+                if ($opt.length) {
+                    $opt.detach();
+                    $opt.prop('selected', true);
+                    $(this).append($opt);
+                }
+            });
+
+            $areaSelect.on('select2:unselect', function (e) {
+                var id = String(e.params.data.id);
+                selectedAreaOrder = selectedAreaOrder.filter(function(x) { return x !== id; });
+                $('#area_order').val(selectedAreaOrder.join(','));
+            });
+
+            $areaSelect.closest('form').on('submit', function () {
+                $.each(selectedAreaOrder, function (index, id) {
+                    var $opt = $areaSelect.find('option[value="' + id + '"]');
+                    if ($opt.length) {
+                        $opt.detach();
+                        $opt.prop('selected', true);
+                        $areaSelect.append($opt);
+                    }
+                });
+                $('#area_order').val(selectedAreaOrder.join(','));
+            });
         });
     
         function passwordGenerator(){

@@ -148,7 +148,25 @@ class StaffController extends Controller {
                 }
             } elseif ($input['role'] == '2') {
                 if($request->has('area_id') && is_array($request->area_id)) {
-                    foreach($request->area_id as $area_id) {
+                    $areaIds = $request->area_id;
+                    if ($request->filled('area_order')) {
+                        $orderedIds = explode(',', $request->area_order);
+                        $ordered = [];
+                        foreach ($orderedIds as $oid) {
+                            $oid = trim($oid);
+                            if (in_array($oid, $areaIds)) {
+                                $ordered[] = $oid;
+                            }
+                        }
+                        foreach ($areaIds as $aid) {
+                            if (!in_array($aid, $ordered)) {
+                                $ordered[] = $aid;
+                            }
+                        }
+                        $areaIds = $ordered;
+                    }
+
+                    foreach($areaIds as $area_id) {
                         SalesExecutiveArea::create([
                             'sales_executive_id' => $insertedId,
                             'area_id' => $area_id,
@@ -550,7 +568,7 @@ class StaffController extends Controller {
         $data['id'] = $id;
         $data['model'] = $model;
         $data['areas'] = Area::where('status','1')->get();
-        $data['selected_areas'] = SalesExecutiveArea::where('sales_executive_id', $id)->pluck('area_id')->toArray();
+        $data['selected_areas'] = SalesExecutiveArea::where('sales_executive_id', $id)->orderBy('id', 'asc')->pluck('area_id')->toArray();
         return view('admin.staff.sales_executive_edit', $data);
     }
 
@@ -660,7 +678,25 @@ class StaffController extends Controller {
             } elseif ($input['role'] == '2') {
                 SalesExecutiveArea::where('sales_executive_id', $request->id)->delete();
                 if($request->has('area_id') && is_array($request->area_id)) {
-                    foreach($request->area_id as $area_id) {
+                    $areaIds = $request->area_id;
+                    if ($request->filled('area_order')) {
+                        $orderedIds = explode(',', $request->area_order);
+                        $ordered = [];
+                        foreach ($orderedIds as $oid) {
+                            $oid = trim($oid);
+                            if (in_array($oid, $areaIds)) {
+                                $ordered[] = $oid;
+                            }
+                        }
+                        foreach ($areaIds as $aid) {
+                            if (!in_array($aid, $ordered)) {
+                                $ordered[] = $aid;
+                            }
+                        }
+                        $areaIds = $ordered;
+                    }
+
+                    foreach($areaIds as $area_id) {
                         SalesExecutiveArea::create([
                             'sales_executive_id' => $request->id,
                             'area_id' => $area_id,

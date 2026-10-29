@@ -363,7 +363,9 @@ class SalesExecutiveController extends Controller
         }
         
         $areas = SalesExecutiveArea::join('area','sales_executive_area.area_id','area.id')
-                ->where('sales_executive_area.sales_executive_id',$request->user_id)->get(['area.id','area.area_name']);
+                ->where('sales_executive_area.sales_executive_id',$request->user_id)
+                ->orderBy('sales_executive_area.id', 'asc')
+                ->get(['area.id','area.area_name']);
         
         if(count($areas) > 0){
             return response()->json(['status' => 200,'message' => 'Record found.', 'total_area' => count($areas), 'data'  =>$areas],200);
