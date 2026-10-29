@@ -20,7 +20,44 @@
             height: 2em !important;
             border: 1px solid #aaa !important;
         }
-        
+        /* Table Header & Dark Background Styling */
+        #staff-management thead th,
+        .table thead th {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            vertical-align: middle !important;
+            padding: 12px 14px !important;
+        }
+        #staff-management tbody td,
+        .table tbody td {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            border-color: #334155 !important;
+            vertical-align: middle !important;
+        }
+        #staff-management.table-striped > tbody > tr:nth-of-type(odd) > *,
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: #243247 !important;
+            color: #ffffff !important;
+        }
+        #staff-management.table-hover > tbody > tr:hover > *,
+        #staff-management tbody tr:hover > *,
+        .table tbody tr:hover > * {
+            background-color: #2e3e57 !important;
+            color: #ffffff !important;
+        }
+        #staff-management tbody td strong,
+        #staff-management tbody td span:not(.badge),
+        #staff-management tbody td div:not(.badge),
+        #staff-management tbody td small,
+        .table tbody td strong,
+        .table tbody td span:not(.badge),
+        .table tbody td div:not(.badge),
+        .table tbody td small {
+            color: #ffffff !important;
+        }
     </style>
     <!-- [Page specific CSS] end -->
 @endsection
@@ -33,13 +70,13 @@
                 <div class="row align-items-center">
 
                     <div class="col-lg-6">
-                        <h4 class="mb-0">Products</h4>
+                        <h4 class="mb-0 text-dark fw-bold">Assigned Products to Warehouses</h4>
                     </div>
                     <div class="col-lg-6">
                       
                         <a href="{{route('manufacture-product-create')}}" >
                             <button class="btn btn-secondary float-end me-2" tabindex="0" aria-controls="custom-btn" type="button">
-                                <span>Add New <i class="fa fa-plus" aria-hidden="true"></i></span>
+                                <span>Assign New <i class="fa fa-plus" aria-hidden="true"></i></span>
                             </button>
                         </a>
                             
@@ -67,13 +104,13 @@
                   <table class="table table-striped table-bordered nowrap" id="staff-management">
                     <thead>
                         <tr>
-                            <th scope="col">#</th>
+                            <th scope="col" style="width: 5%;">#</th>
                             <th scope="col">Warehouse</th>
                             <th scope="col">Product Name</th>
                             <th scope="col">Quantity (Case)</th>
                             <th scope="col">Status</th>
                             <th scope="col">Date</th>
-                            <th scope="col">Actions</th>
+                            <th scope="col" style="width: 10%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -96,7 +133,6 @@
     <!-- [Page Specific JS] start -->
 
     <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
-    
     
     <script>
     $(document).ready(function () {
@@ -141,6 +177,5 @@
     });
 </script>
 
-    
     <!-- [Page Specific JS] end -->
 @endsection

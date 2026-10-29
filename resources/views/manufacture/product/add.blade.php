@@ -14,19 +14,40 @@
     }
 
     .product-row {
-        border: 1px solid #dee2e6;
+        border: 1px solid #cbd5e1;
         padding: 16px;
         border-radius: 8px;
         margin-bottom: 16px;
-        background: #f8f9fa;
+        background: #f8fafc;
         position: relative;
         transition: all 0.2s ease;
     }
 
     .product-row:hover {
-        background: #fdfdfd;
+        background: #ffffff;
         border-color: #04A9F5;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .product-row label, form label {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+
+    .product-row .form-control {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #0f172a !important;
+        font-weight: 500 !important;
     }
 
     .required {
@@ -39,9 +60,34 @@
         letter-spacing: 0.3px;
     }
 
+    .bg-danger-subtle {
+        background-color: #fee2e2 !important;
+        color: #b91c1c !important;
+    }
+
+    .bg-warning-subtle {
+        background-color: #fef3c7 !important;
+        color: #92400e !important;
+    }
+
+    .bg-success-subtle {
+        background-color: #dcfce7 !important;
+        color: #15803d !important;
+    }
+
     .qty-feedback {
         font-size: 12px;
         line-height: 1.4;
+    }
+
+    .qty-feedback .text-success {
+        color: #15803d !important;
+        font-weight: 600;
+    }
+
+    .qty-feedback .text-danger {
+        color: #b91c1c !important;
+        font-weight: 600;
     }
 </style>
 @endsection
@@ -56,7 +102,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="mb-1"><i class="fa fa-paper-plane text-primary me-2"></i>Assign Products to Warehouse</h5>
-                    <small class="text-muted">Only products with available factory stock can be assigned to warehouses.</small>
+                    <small class="text-light">Only products with available factory stock can be assigned to warehouses.</small>
                 </div>
 
                 <button type="button" class="btn btn-success btn-sm" id="addProduct">
@@ -106,7 +152,7 @@
                     {{-- Warehouse Selection --}}
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label class="form-label text-dark fw-bold">
+                            <label class="form-label text-white fw-bold">
                                 Select Destination Warehouse <span class="required">*</span>
                             </label>
 

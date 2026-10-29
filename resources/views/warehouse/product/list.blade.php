@@ -20,6 +20,11 @@
             height: 2em !important;
             border: 1px solid #aaa !important;
         }
+        .table thead th {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            background-color: #f1f5f9 !important;
+        }
         
     </style>
     <!-- [Page specific CSS] end -->

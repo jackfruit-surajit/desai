@@ -30,15 +30,25 @@ class StockController extends Controller
         return Datatables::of($data)
             ->addIndexColumn()
 
+            ->editColumn('product_name', function ($model) {
+                return '<strong class="text-dark">' . e($model->product_name) . '</strong>';
+            })
+
             ->editColumn('stock_quantity', function ($model) { 
                 $user = Auth::guard('backend')->user()->id;
                 $stock_quantity = 0;
                 if($stock = WarehouseStock::where('product_id',$model->id)->where('warehouse_id',$user)->first()){
-                    $stock_quantity = $stock->stock;
+                    $stock_quantity = (int)$stock->stock;
                 }
-                return $stock_quantity;
+                if ($stock_quantity <= 0) {
+                    return '<span class="badge bg-danger fw-bold" style="font-size:13px;">0 Cases</span>';
+                } elseif ($stock_quantity <= 50) {
+                    return '<span class="badge bg-warning text-dark fw-bold" style="font-size:13px;">' . $stock_quantity . ' Cases</span>';
+                } else {
+                    return '<span class="badge bg-success fw-bold" style="font-size:13px;">' . $stock_quantity . ' Cases</span>';
+                }
             })
-            ->rawColumns(['stock_quantity'])
+            ->rawColumns(['product_name', 'stock_quantity'])
             ->make(true);
     }
 

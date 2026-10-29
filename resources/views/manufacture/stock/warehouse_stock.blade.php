@@ -11,7 +11,8 @@
         .stat-card {
             border-radius: 10px;
             transition: all 0.3s ease;
-            border: 1px solid rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
         }
         .stat-card:hover {
             transform: translateY(-3px);
@@ -19,11 +20,12 @@
         }
         .nav-tabs .nav-link {
             font-weight: 600;
-            color: #555;
+            color: #1e293b;
             padding: 10px 20px;
         }
         .nav-tabs .nav-link.active {
             color: #04A9F5;
+            font-weight: 700;
             border-bottom: 3px solid #04A9F5;
             background: transparent;
         }
@@ -31,7 +33,63 @@
             background-color: #f8fafc;
             border-radius: 8px;
             padding: 16px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
+        }
+        .filter-box label {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+        }
+        .filter-box select.form-control {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            font-weight: 500 !important;
+        }
+        /* Table Header & Dark Background Styling */
+        #staff-management thead th,
+        .table thead th {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            vertical-align: middle !important;
+            padding: 12px 14px !important;
+        }
+        #staff-management tbody td,
+        .table tbody td {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            border-color: #334155 !important;
+            vertical-align: middle !important;
+        }
+        #staff-management.table-striped > tbody > tr:nth-of-type(odd) > *,
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: #243247 !important;
+            color: #ffffff !important;
+        }
+        #staff-management.table-hover > tbody > tr:hover > *,
+        #staff-management tbody tr:hover > *,
+        .table tbody tr:hover > * {
+            background-color: #2e3e57 !important;
+            color: #ffffff !important;
+        }
+        #staff-management tbody td strong,
+        #staff-management tbody td span:not(.badge),
+        #staff-management tbody td div:not(.badge),
+        #staff-management tbody td small,
+        .table tbody td strong,
+        .table tbody td span:not(.badge),
+        .table tbody td div:not(.badge),
+        .table tbody td small {
+            color: #ffffff !important;
+        }
+        .avatar-stat {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
     <!-- [Page specific CSS] end -->
@@ -65,11 +123,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 11px;">Active Warehouses</p>
-                            <h3 class="mb-0 fw-bold text-dark">{{ $totalWarehouses }}</h3>
+                            <p class="text-uppercase mb-1 fw-bold text-white" style="font-size: 11px; color: #475569;">Active Warehouses</p>
+                            <h3 class="mb-0 fw-bold" style="color: #0f172a;">{{ $totalWarehouses }}</h3>
                             <small class="text-muted">Stocked & active depots</small>
                         </div>
-                        <div class="avatar-lg bg-light-primary rounded-circle p-3 text-center text-primary">
+                        <div class="avatar-stat" style="background-color: #e0f2fe; color: #0284c7;">
                             <i class="fa fa-warehouse fa-2x"></i>
                         </div>
                     </div>
@@ -82,11 +140,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 11px;">Available in Warehouses</p>
-                            <h3 class="mb-0 fw-bold text-success">{{ number_format($totalWarehouseStock) }} <span style="font-size: 14px;">Cases</span></h3>
+                            <p class="text-uppercase mb-1 fw-bold text-white" style="font-size: 11px; color: #475569;">Available in Warehouses</p>
+                            <h3 class="mb-0 fw-bold" style="color: #15803d;">{{ number_format($totalWarehouseStock) }} <span style="font-size: 14px;">Cases</span></h3>
                             <small class="text-muted">Verified & ready for delivery</small>
                         </div>
-                        <div class="avatar-lg bg-light-success rounded-circle p-3 text-center text-success">
+                        <div class="avatar-stat" style="background-color: #dcfce7; color: #15803d;">
                             <i class="fa fa-boxes-stacked fa-2x"></i>
                         </div>
                     </div>
@@ -99,11 +157,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 11px;">In-Transit / Pending</p>
-                            <h3 class="mb-0 fw-bold text-info">{{ number_format($totalPendingStock) }} <span style="font-size: 14px;">Cases</span></h3>
+                            <p class="text-uppercase mb-1 fw-bold text-white" style="font-size: 11px; color: #475569;">In-Transit / Pending</p>
+                            <h3 class="mb-0 fw-bold" style="color: #0284c7;">{{ number_format($totalPendingStock) }} <span style="font-size: 14px;">Cases</span></h3>
                             <small class="text-muted">Awaiting warehouse receipt</small>
                         </div>
-                        <div class="avatar-lg bg-light-info rounded-circle p-3 text-center text-info">
+                        <div class="avatar-stat" style="background-color: #e0f2fe; color: #0284c7;">
                             <i class="fa fa-truck-fast fa-2x"></i>
                         </div>
                     </div>
@@ -116,11 +174,11 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <p class="text-muted text-uppercase mb-1 fw-bold" style="font-size: 11px;">Stock Valuation</p>
-                            <h3 class="mb-0 fw-bold text-warning">₹{{ number_format($totalStockValue, 2) }}</h3>
+                            <p class="text-uppercase mb-1 fw-bold text-white" style="font-size: 11px; color: #475569;">Stock Valuation</p>
+                            <h3 class="mb-0 fw-bold" style="color: #b45309;">₹{{ number_format($totalStockValue, 2) }}</h3>
                             <small class="text-muted">Across {{ $totalSkusStocked }} stocked SKUs</small>
                         </div>
-                        <div class="avatar-lg bg-light-warning rounded-circle p-3 text-center text-warning">
+                        <div class="avatar-stat" style="background-color: #fef3c7; color: #b45309;">
                             <i class="fa fa-indian-rupee-sign fa-2x"></i>
                         </div>
                     </div>
@@ -136,7 +194,7 @@
                 <div class="card-header bg-white py-3">
                     <div class="row align-items-center">
                         <div class="col-lg-6">
-                            <h5 class="mb-1 fw-bold">
+                            <h5 class="mb-1 fw-bold text-dark">
                                 <i class="fa fa-warehouse text-primary me-2"></i> Real-time Warehouse Inventory & Pipeline
                             </h5>
                             <small class="text-muted">Monitor verified physical stock and dispatched in-transit shipments across all warehouses.</small>
@@ -204,8 +262,8 @@
 
                     <!-- DataTable -->
                     <div class="table-responsive dt-responsive">
-                        <table class="table table-striped table-bordered align-middle nowrap" id="warehouse-stock-table" style="width:100%;">
-                            <thead class="table-light">
+                        <table class="table table-striped table-bordered align-middle nowrap" id="staff-management" style="width:100%;">
+                            <thead>
                                 <tr>
                                     <th scope="col" style="width: 4%;">#</th>
                                     <th scope="col">Warehouse</th>
@@ -237,7 +295,7 @@
 
     <script>
     $(document).ready(function () {
-        var table = $('#warehouse-stock-table').DataTable({
+        var table = $('#staff-management').DataTable({
             processing: true,
             serverSide: true,
             responsive: true,

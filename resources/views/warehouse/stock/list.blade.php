@@ -20,7 +20,11 @@
             height: 2em !important;
             border: 1px solid #aaa !important;
         }
-        
+        .table thead th {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            background-color: #f1f5f9 !important;
+        }
     </style>
     <!-- [Page specific CSS] end -->
 @endsection
@@ -33,12 +37,9 @@
                 <div class="row align-items-center">
 
                     <div class="col-lg-6">
-                        <h4 class="mb-0">Product Stock</h4>
+                        <h4 class="mb-0 text-dark fw-bold">Product Stock</h4>
                     </div>
                     <div class="col-lg-6">
-                      
-
-                            
                     </div>
                 </div>
               </div>
@@ -63,7 +64,7 @@
                   <table class="table table-striped table-bordered nowrap" id="staff-management">
                     <thead>
                         <tr>
-                            <th scope="col">#</th>
+                            <th scope="col" style="width: 5%;">#</th>
                             <th scope="col">Product Name</th>
                             <th scope="col">Stock (Case)</th>
                         </tr>
@@ -89,7 +90,6 @@
 
     <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
     
-    
     <script>
     $(document).ready(function () {
         var role = getUrlParameter('role'); // Get role from URL
@@ -106,10 +106,7 @@
             columns: [
                 {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {data: 'product_name', name: 'product_name'},
-                {data: 'stock_quantity', name: 'stock_quantity'},
-                // {data: 'status', name: 'status'},
-                // {data: 'assign_date', name: 'assign_date'},
-                // {data: 'action', name: 'action', orderable: false, searchable: false}
+                {data: 'stock_quantity', name: 'stock_quantity'}
             ]
         });
 
@@ -132,6 +129,5 @@
     });
 </script>
 
-    
     <!-- [Page Specific JS] end -->
 @endsection

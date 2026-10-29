@@ -19,13 +19,64 @@
         }
         .nav-tabs .nav-link {
             font-weight: 600;
-            color: #555;
+            color: #1e293b;
             padding: 10px 20px;
         }
         .nav-tabs .nav-link.active {
             color: #04A9F5;
+            font-weight: 700;
             border-bottom: 3px solid #04A9F5;
             background: transparent;
+        }
+        /* Table Header & Dark Background Styling */
+        #staff-management thead th,
+        .table thead th {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+            vertical-align: middle !important;
+            padding: 12px 14px !important;
+        }
+        #staff-management tbody td,
+        .table tbody td {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            border-color: #334155 !important;
+            vertical-align: middle !important;
+        }
+        #staff-management.table-striped > tbody > tr:nth-of-type(odd) > *,
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: #243247 !important;
+            color: #ffffff !important;
+        }
+        #staff-management.table-hover > tbody > tr:hover > *,
+        #staff-management tbody tr:hover > *,
+        .table tbody tr:hover > * {
+            background-color: #2e3e57 !important;
+            color: #ffffff !important;
+        }
+        #staff-management tbody td strong,
+        #staff-management tbody td span:not(.badge),
+        #staff-management tbody td div:not(.badge),
+        #staff-management tbody td small,
+        .table tbody td strong,
+        .table tbody td span:not(.badge),
+        .table tbody td div:not(.badge),
+        .table tbody td small {
+            color: #ffffff !important;
+        }
+        .form-control[readonly], 
+        .form-control:disabled {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+            font-weight: 600 !important;
+            border: 1px solid #94a3b8 !important;
+            -webkit-text-fill-color: #0f172a !important;
+        }
+        .modal-body label {
+            color: #0f172a !important;
+            font-weight: 600 !important;
         }
     </style>
     <!-- [Page specific CSS] end -->
@@ -59,7 +110,7 @@
                 <div class="card-header">
                     <div class="row align-items-center">
                         <div class="col-lg-6">
-                            <h4 class="mb-0">
+                            <h4 class="mb-0 text-dark fw-bold">
                                 <i class="fa fa-industry text-primary me-2"></i> Factory Stock (Current Available Inventory)
                             </h4>
                         </div>
@@ -93,7 +144,7 @@
                     @endif
 
                     <div class="table-responsive dt-responsive">
-                        <table class="table table-striped table-bordered nowrap" id="factory-stock-table">
+                        <table class="table table-striped table-bordered nowrap" id="staff-management">
                             <thead>
                                 <tr>
                                     <th scope="col" style="width: 5%;">#</th>
@@ -123,7 +174,7 @@
                     <input type="hidden" name="product_id" id="modal_product_id">
                     
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title text-white" id="quickAddStockModalLabel">
+                        <h5 class="modal-title text-white fw-bold" id="quickAddStockModalLabel">
                             <i class="fa fa-plus-circle me-1"></i> Add Stock (Production Entry)
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -133,27 +184,27 @@
                         <div class="alert alert-danger d-none" id="modalAlert"></div>
 
                         <div class="mb-3">
-                            <label class="form-label font-weight-bold">Product:</label>
+                            <label class="form-label fw-bold text-dark">Product:</label>
                             <input type="text" class="form-control" id="modal_product_name" readonly>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label font-weight-bold">Current Factory Stock:</label>
+                            <label class="form-label fw-bold text-dark">Current Factory Stock:</label>
                             <input type="text" class="form-control" id="modal_current_stock" readonly>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label font-weight-bold">Add Quantity (Cases) <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold text-dark">Add Quantity (Cases) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" name="quantity" id="modal_quantity" min="1" placeholder="Enter number of cases" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Batch Number (Optional)</label>
+                            <label class="form-label fw-bold text-dark">Batch Number (Optional)</label>
                             <input type="text" class="form-control" name="batch_no" id="modal_batch_no" placeholder="e.g. BATCH-2026-001">
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Notes / Remarks (Optional)</label>
+                            <label class="form-label fw-bold text-dark">Notes / Remarks (Optional)</label>
                             <textarea class="form-control" name="note" id="modal_note" rows="2" placeholder="e.g. Fresh production batch completed"></textarea>
                         </div>
                     </div>
@@ -177,7 +228,7 @@
 
     <script>
     $(document).ready(function () {
-        var table = $('#factory-stock-table').DataTable({
+        var table = $('#staff-management').DataTable({
             processing: true,
             serverSide: true,
             responsive: true,
@@ -250,4 +301,3 @@
     </script>
     <!-- [Page Specific JS] end -->
 @endsection
-

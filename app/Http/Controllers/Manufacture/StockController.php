@@ -54,13 +54,13 @@ class StockController extends Controller
         return Datatables::of($products)
             ->addIndexColumn()
             ->addColumn('product_name', function ($model) {
-                return '<strong>' . e($model->name) . '</strong>';
+                return '<strong class="text-white">' . e($model->name) . '</strong>';
             })
             ->addColumn('per_case_quantity', function ($model) {
-                return ($model->per_case_quantity ?? 0) . ' Bottles/Case';
+                return '<span class="text-white">' . ($model->per_case_quantity ?? 0) . ' Bottles/Case</span>';
             })
             ->addColumn('price', function ($model) {
-                return '₹' . number_format((float)($model->per_case_price ?? 0), 2);
+                return '<strong class="text-white">₹' . number_format((float)($model->per_case_price ?? 0), 2) . '</strong>';
             })
             ->addColumn('stock_quantity', function ($model) use ($mfg_id) {
                 $stockItem = ManufactureStock::where('manufacture_id', $mfg_id)
@@ -104,7 +104,7 @@ class StockController extends Controller
 
                 return '<div class="action-btns d-flex">' . $quickBtn . $logBtn . '</div>';
             })
-            ->rawColumns(['product_name', 'stock_quantity', 'total_dispatched', 'action'])
+            ->rawColumns(['product_name', 'per_case_quantity', 'price', 'stock_quantity', 'total_dispatched', 'action'])
             ->make(true);
     }
 
@@ -299,22 +299,22 @@ class StockController extends Controller
                 return '<div class="d-flex align-items-center">
                             <span class="me-2 text-primary"><i class="fa fa-warehouse fa-lg"></i></span>
                             <div>
-                                <span class="fw-bold text-dark">' . e($model->warehouse_name) . '</span>
-                                <div class="text-muted small">ID: #' . $model->warehouse_id . '</div>
+                                <span class="fw-bold text-white">' . e($model->warehouse_name) . '</span>
+                                <div class="small text-white-50">ID: #' . $model->warehouse_id . '</div>
                             </div>
                         </div>';
             })
             ->addColumn('product_name', function ($model) {
                 return '<div>
-                            <span class="fw-bold text-dark">' . e($model->product_name) . '</span>
-                            <div class="text-muted small">Product ID: #' . $model->product_id . '</div>
+                            <span class="fw-bold text-white">' . e($model->product_name) . '</span>
+                            <div class="small text-white-50">Product ID: #' . $model->product_id . '</div>
                         </div>';
             })
             ->addColumn('bottles_per_case', function ($model) {
-                return '<span class="badge bg-light text-dark border px-2 py-1">' . ($model->bottles_per_case ?? 0) . ' Bottles/Case</span>';
+                return '<span class="badge bg-secondary text-white border-0 px-2 py-1">' . ($model->bottles_per_case ?? 0) . ' Bottles/Case</span>';
             })
             ->addColumn('per_case_price', function ($model) {
-                return '<strong>₹' . number_format((float)($model->per_case_price ?? 0), 2) . '</strong>';
+                return '<strong class="text-white">₹' . number_format((float)($model->per_case_price ?? 0), 2) . '</strong>';
             })
             ->addColumn('current_stock', function ($model) {
                 $stock = (int)$model->current_stock;
@@ -331,18 +331,18 @@ class StockController extends Controller
                 if ($pending > 0) {
                     return '<span class="badge bg-info text-dark p-2" style="font-size:12px;"><i class="fa fa-truck-fast me-1"></i> ' . $pending . ' Cases (In-Transit)</span>';
                 }
-                return '<span class="text-muted">-</span>';
+                return '<span class="text-white-50">-</span>';
             })
             ->addColumn('total_pipeline', function ($model) {
                 $total = (int)$model->current_stock + (int)$model->pending_stock;
-                return '<strong class="text-primary" style="font-size:14px;">' . $total . ' Cases</strong>';
+                return '<strong class="text-white" style="font-size:14px;">' . $total . ' Cases</strong>';
             })
             ->addColumn('stock_value', function ($model) {
                 $value = (float)($model->current_stock * ($model->per_case_price ?? 0));
-                return '<span class="fw-bold text-success">₹' . number_format($value, 2) . '</span>';
+                return '<span class="fw-bold text-white">₹' . number_format($value, 2) . '</span>';
             })
             ->addColumn('updated_date', function ($model) {
-                return !empty($model->updated_at) ? date('d M, Y h:i A', strtotime($model->updated_at)) : '<span class="text-muted small">Awaiting verification</span>';
+                return !empty($model->updated_at) ? '<span class="text-white">' . date('d M, Y h:i A', strtotime($model->updated_at)) . '</span>' : '<span class="text-white-50 small">Awaiting verification</span>';
             })
             ->addColumn('action', function ($model) {
                 $assignUrl = route('manufacture-product-create') . '?warehouse_id=' . $model->warehouse_id . '&product_id=' . $model->product_id;
@@ -396,10 +396,10 @@ class StockController extends Controller
         return Datatables::of($query)
             ->addIndexColumn()
             ->addColumn('date', function ($model) {
-                return date('d M, Y h:i A', strtotime($model->created_at));
+                return '<span class="text-white">' . date('d M, Y h:i A', strtotime($model->created_at)) . '</span>';
             })
             ->addColumn('product_name', function ($model) {
-                return '<strong>' . e($model->product_name) . '</strong>';
+                return '<strong class="text-white">' . e($model->product_name) . '</strong>';
             })
             ->addColumn('type', function ($model) {
                 if ($model->type == 'production') {
@@ -412,22 +412,22 @@ class StockController extends Controller
             })
             ->addColumn('quantity', function ($model) {
                 $prefix = ($model->type == 'production') ? '+' : (($model->type == 'dispatch') ? '-' : '');
-                $color = ($model->type == 'production') ? 'text-success' : (($model->type == 'dispatch') ? 'text-danger' : 'text-primary');
+                $color = ($model->type == 'production') ? 'text-success' : (($model->type == 'dispatch') ? 'text-danger' : 'text-info');
                 return '<strong class="' . $color . '" style="font-size:14px;">' . $prefix . $model->quantity . ' Cases</strong>';
             })
             ->addColumn('destination', function ($model) {
                 if (!empty($model->warehouse_name)) {
-                    return '<i class="fa fa-warehouse text-primary me-1"></i> ' . e($model->warehouse_name);
+                    return '<i class="fa fa-warehouse text-info me-1"></i> <span class="text-white">' . e($model->warehouse_name) . '</span>';
                 }
-                return '<span class="text-muted">Factory / In-House</span>';
+                return '<span class="text-white-50">Factory / In-House</span>';
             })
             ->addColumn('batch_no', function ($model) {
-                return $model->batch_no ? '<span class="badge bg-light text-dark border">' . e($model->batch_no) . '</span>' : '-';
+                return $model->batch_no ? '<span class="badge bg-secondary text-white border-0">' . e($model->batch_no) . '</span>' : '<span class="text-white-50">-</span>';
             })
             ->addColumn('note', function ($model) {
-                return e($model->note ?? '-');
+                return '<span class="text-white">' . e($model->note ?? '-') . '</span>';
             })
-            ->rawColumns(['product_name', 'type', 'quantity', 'destination', 'batch_no'])
+            ->rawColumns(['date', 'product_name', 'type', 'quantity', 'destination', 'batch_no', 'note'])
             ->make(true);
     }
 }

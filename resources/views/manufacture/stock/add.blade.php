@@ -11,11 +11,20 @@
         width: 100% !important;
     }
     .product-row {
-        border: 1px solid #dee2e6;
-        padding: 15px;
+        border: 1px solid #cbd5e1;
+        padding: 16px;
         border-radius: 8px;
-        margin-bottom: 15px;
-        background: #f8f9fa;
+        margin-bottom: 16px;
+        background: #f8fafc;
+    }
+    .product-row label, .bg-light label {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+    .product-row .form-control, .bg-light .form-control {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
     }
     .remove-product {
         margin-top: 30px;
@@ -32,7 +41,7 @@
     <div class="col-lg-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
+                <h5 class="mb-0 text-dark fw-bold">
                     <i class="fa fa-plus-circle text-primary me-2"></i> Add Production Stock (Multiple Products)
                 </h5>
 
@@ -59,21 +68,21 @@
                     <!-- Meta Information: Batch No, Date, Notes -->
                     <div class="row mb-4 p-3 bg-light rounded border">
                         <div class="col-md-4">
-                            <label class="form-label font-weight-bold">Batch Number (Optional)</label>
+                            <label class="form-label fw-bold text-dark">Batch Number (Optional)</label>
                             <input type="text" name="batch_no" class="form-control" placeholder="e.g. BATCH-{{ date('Ymd') }}-01" value="{{ old('batch_no') }}">
                             <small class="text-muted">Auto-generated if left blank</small>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label font-weight-bold">Production Date</label>
+                            <label class="form-label fw-bold text-dark">Production Date</label>
                             <input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label font-weight-bold">Notes / Production Remarks</label>
+                            <label class="form-label fw-bold text-dark">Notes / Production Remarks</label>
                             <input type="text" name="note" class="form-control" placeholder="e.g. Daily morning production batch" value="{{ old('note') }}">
                         </div>
                     </div>
 
-                    <h6 class="mb-3 text-primary font-weight-bold">
+                    <h6 class="mb-3 text-primary fw-bold">
                         <i class="fa fa-box me-1"></i> Products Produced
                     </h6>
 
@@ -83,7 +92,7 @@
                             <div class="row">
                                 {{-- Product Select --}}
                                 <div class="col-md-6">
-                                    <label class="form-label text-dark font-weight-bold">
+                                    <label class="form-label text-dark fw-bold">
                                         Product <span class="required">*</span>
                                     </label>
                                     <select name="products[0][product_id]" class="form-control product-select" required>
@@ -98,7 +107,7 @@
 
                                 {{-- Quantity --}}
                                 <div class="col-md-4">
-                                    <label class="form-label text-dark font-weight-bold">
+                                    <label class="form-label text-dark fw-bold">
                                         Quantity (Cases) <span class="required">*</span>
                                     </label>
                                     <input type="number" name="products[0][quantity]" class="form-control" placeholder="Enter cases produced" min="1" required>
@@ -157,7 +166,7 @@ $(document).ready(function () {
             <div class="product-row">
                 <div class="row">
                     <div class="col-md-6">
-                        <label class="form-label text-dark font-weight-bold">
+                        <label class="form-label text-dark fw-bold">
                             Product <span class="required">*</span>
                         </label>
                         <select name="products[${productIndex}][product_id]" class="form-control product-select" required>
@@ -170,7 +179,7 @@ $(document).ready(function () {
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-dark font-weight-bold">
+                        <label class="form-label text-dark fw-bold">
                             Quantity (Cases) <span class="required">*</span>
                         </label>
                         <input type="number" name="products[${productIndex}][quantity]" class="form-control" placeholder="Enter cases produced" min="1" required>
@@ -207,4 +216,3 @@ $(document).ready(function () {
 });
 </script>
 @endsection
-

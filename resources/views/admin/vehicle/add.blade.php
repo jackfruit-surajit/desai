@@ -63,6 +63,7 @@
                                 <option value="Diesel" {{ old('fuel_type') == 'Diesel' ? 'selected' : '' }}>Diesel</option>
                                 <option value="Electric" {{ old('fuel_type') == 'Electric' ? 'selected' : '' }}>Electric</option>
                                 <option value="CNG" {{ old('fuel_type') == 'CNG' ? 'selected' : '' }}>CNG</option>
+                                <option value="Petrol" {{ old('fuel_type') == 'Petrol / CNG' ? 'selected' : '' }}>Petrol / CNG</option>
                             </select>
                             @if ($errors->has('fuel_type'))
                                 <span class="text-danger"> {{ $errors->first('fuel_type') }} </span>

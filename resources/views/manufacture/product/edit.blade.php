@@ -7,6 +7,34 @@
 
 @section('css')
 <link href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" rel="stylesheet" type="text/css" />
+<style>
+    .form-label {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+    }
+    .form-control {
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1;
+    }
+    .form-control:disabled, 
+    .form-control[readonly], 
+    select.form-control:disabled {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        opacity: 1 !important;
+        font-weight: 600 !important;
+        border: 1px solid #94a3b8 !important;
+        -webkit-text-fill-color: #0f172a !important;
+    }
+    .bg-danger-subtle {
+        background-color: #fee2e2 !important;
+        color: #b91c1c !important;
+    }
+    .bg-success-subtle {
+        background-color: #dcfce7 !important;
+        color: #15803d !important;
+    }
+</style>
 @endsection
 
 @section('content')
@@ -15,11 +43,11 @@
         
         @php
             if ($model->status == '0') {
-                $status = '<span class="badge bg-warning float-end">Pending</span>';
+                $status = '<span class="badge bg-warning text-dark fw-bold float-end px-3 py-2" style="font-size:13px;">Pending</span>';
             } else if ($model->status == '1') {
-                $status = '<span class="badge bg-success float-end">Verified</span>';
+                $status = '<span class="badge bg-success fw-bold float-end px-3 py-2" style="font-size:13px;">Verified</span>';
             } else if ($model->status == '2') {
-                $status = '<span class="badge bg-danger float-end">Rejected</span>';
+                $status = '<span class="badge bg-danger fw-bold float-end px-3 py-2" style="font-size:13px;">Rejected</span>';
             }
         @endphp
 
@@ -29,7 +57,7 @@
                 <div class="card-header">
                     <div class="row align-items-center">
                         <div class="col-md-6">
-                            <h4 class="mb-0">Edit Assigning Product Details</h4>
+                            <h4 class="mb-0 text-dark fw-bold">Edit Assigning Product Details</h4>
                         </div>
                         <div class="col-md-6">
                             @php echo $status; @endphp
@@ -72,7 +100,7 @@
                         <input type="hidden" id="original_product_id" value="{{$model->product_id}}">
    
                         <div class="col-md-12">
-                            <label class="form-label">Warehouse <span class="required">*</span></label>
+                            <label class="form-label">Warehouse <span class="required text-danger">*</span></label>
                             <select name="warehouse_id" class="form-control" required {{ $model->status != '0' ? 'disabled' : '' }}>
                                 <option value="">Select Warehouse</option>
                                 @foreach($warehouses as $warehouse)
@@ -87,7 +115,7 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label class="form-label">Product Name <span class="required">*</span></label>
+                            <label class="form-label">Product Name <span class="required text-danger">*</span></label>
                             <select name="product_id" id="product_id" class="form-control product-select" required {{ $model->status != '0' ? 'disabled' : '' }}>
                                 <option value="">Select Product</option>
                                 @foreach($products as $product)
@@ -107,7 +135,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Quantity (Case)<span class="required">*</span></label>
+                            <label class="form-label">Quantity (Case)<span class="required text-danger">*</span></label>
                             <input type="number" 
                                    name="per_case_quantity" 
                                    id="per_case_quantity" 

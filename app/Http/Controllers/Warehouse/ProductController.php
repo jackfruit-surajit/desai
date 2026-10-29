@@ -55,11 +55,11 @@ class ProductController extends Controller
 
             ->editColumn('status', function ($model) {                
                 if ($model->status == '0') {
-                    $status = '<span class="badge bg-warning">Pending</span>';
+                    $status = '<span class="badge bg-warning text-dark fw-bold">Pending</span>';
                 } else if ($model->status == '1') {
-                    $status = '<span class="badge bg-success">Verified</span>';
+                    $status = '<span class="badge bg-success fw-bold">Verified</span>';
                 } else if ($model->status == '2') {
-                    $status = '<span class="badge bg-danger">Rejected</span>';
+                    $status = '<span class="badge bg-danger fw-bold">Rejected</span>';
                 }
                     
                 return $status;
