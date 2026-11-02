@@ -1,4 +1,0 @@
-$kind: http-request
-url: https://delfast.besthr.in/api/partner/auth/send-otp
-method: POST
-order: 2000

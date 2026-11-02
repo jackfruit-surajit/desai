@@ -1,4 +1,0 @@
-$kind: http-request
-url: https://delfast.besthr.in/api/partner/auth/verify-reset-otp
-method: POST
-order: 6000

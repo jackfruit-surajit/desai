@@ -1,4 +1,0 @@
-$kind: http-request
-url: https://delfast.besthr.in/api/partner/orders/incoming-request
-method: GET
-order: 17000

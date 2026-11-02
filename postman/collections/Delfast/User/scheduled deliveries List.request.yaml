@@ -1,4 +1,0 @@
-$kind: http-request
-url: https://delfast.besthr.in/api/v1/delivery-details/scheduled-deliveries
-method: GET
-order: 11000

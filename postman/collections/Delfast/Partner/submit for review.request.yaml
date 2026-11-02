@@ -1,4 +1,0 @@
-$kind: http-request
-url: https://delfast.besthr.in/api/partner/auth/submit-for-review
-method: POST
-order: 14000

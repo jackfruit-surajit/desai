@@ -98,11 +98,22 @@ class StockController extends Controller
                                 <i class="fa fa-plus-circle me-1"></i> Add Stock
                              </button>';
 
+                $editBtn = '<button type="button" class="btn btn-sm btn-warning text-dark edit-stock-btn ms-1" 
+                                data-id="' . $model->id . '" 
+                                data-name="' . e($model->name) . '" 
+                                data-stock="' . $currentStock . '"
+                                data-packaging="' . ($model->per_case_quantity ?? 0) . '"
+                                data-price="' . number_format((float)($model->per_case_price ?? 0), 2) . '"
+                                data-url="' . route('manufacture-stock-edit', ['id' => base64_encode($model->id)]) . '"
+                                title="Edit Stock (Adjustment)">
+                                <i class="fa fa-edit me-1"></i> Edit Stock
+                             </button>';
+
                 $logBtn = '<a href="' . route('manufacture-stock-logs', ['product_id' => $model->id]) . '" class="btn btn-sm btn-outline-secondary ms-1" title="View History">
                                 <i class="fa fa-history"></i>
                            </a>';
 
-                return '<div class="action-btns d-flex">' . $quickBtn . $logBtn . '</div>';
+                return '<div class="action-btns d-flex align-items-center" style="white-space: nowrap;">' . $quickBtn . $editBtn . $logBtn . '</div>';
             })
             ->rawColumns(['product_name', 'per_case_quantity', 'price', 'stock_quantity', 'total_dispatched', 'action'])
             ->make(true);
@@ -206,6 +217,115 @@ class StockController extends Controller
             'message' => 'Stock updated successfully! New Stock: ' . $mStock->stock . ' Cases.',
             'new_stock' => $mStock->stock
         ], 200);
+    }
+
+    /**
+     * Edit Page - Edit / Adjust Factory Stock for a Product
+     */
+    public function edit($id)
+    {
+        $decoded_id = is_numeric($id) ? (int)$id : (int)base64_decode($id);
+        $product = Product::findOrFail($decoded_id);
+        $mfg_id = Auth::guard('backend')->user()->id;
+
+        $stockItem = ManufactureStock::where('manufacture_id', $mfg_id)
+            ->where('product_id', $decoded_id)
+            ->first();
+        $currentStock = $stockItem ? (int)$stockItem->stock : 0;
+
+        $totalDispatched = ManufactureStockLog::where('manufacture_id', $mfg_id)
+            ->where('product_id', $decoded_id)
+            ->where('type', 'dispatch')
+            ->sum('quantity');
+
+        $recentLogs = ManufactureStockLog::where('manufacture_id', $mfg_id)
+            ->where('product_id', $decoded_id)
+            ->orderBy('id', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('manufacture.stock.edit', compact([
+            'product',
+            'currentStock',
+            'totalDispatched',
+            'recentLogs',
+            'id'
+        ]));
+    }
+
+    /**
+     * Update / Adjust Factory Stock
+     */
+    public function update(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'product_id' => 'required|exists:products,id',
+            'stock' => 'required|integer|min:0',
+            'batch_no' => 'nullable|string|max:100',
+            'note' => 'nullable|string|max:500',
+            'date' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput()->with('error_msg', $validator->errors()->first());
+        }
+
+        $mfg_id = Auth::guard('backend')->user()->id;
+        $product_id = (int)$request->product_id;
+        $newStock = (int)$request->stock;
+
+        $mStock = ManufactureStock::firstOrCreate(
+            ['manufacture_id' => $mfg_id, 'product_id' => $product_id],
+            ['stock' => 0]
+        );
+
+        $oldStock = (int)$mStock->stock;
+        $diff = $newStock - $oldStock;
+
+        $mStock->stock = $newStock;
+        $mStock->save();
+
+        // Compose meaningful adjustment log note
+        $noteText = trim((string)$request->note);
+        if ($diff > 0) {
+            $changeDesc = "Stock increased from {$oldStock} to {$newStock} Cases (+{$diff} Cases)";
+        } elseif ($diff < 0) {
+            $absDiff = abs($diff);
+            $changeDesc = "Stock reduced from {$oldStock} to {$newStock} Cases (-{$absDiff} Cases)";
+        } else {
+            $changeDesc = "Stock confirmed / updated at {$newStock} Cases (No change)";
+        }
+
+        $fullNote = $noteText !== '' ? "{$changeDesc} | Note: {$noteText}" : $changeDesc;
+
+        ManufactureStockLog::create([
+            'manufacture_id' => $mfg_id,
+            'product_id' => $product_id,
+            'type' => 'adjustment',
+            'quantity' => abs($diff),
+            'batch_no' => $request->batch_no ?? null,
+            'note' => $fullNote,
+            'created_at' => $request->date ? date('Y-m-d H:i:s', strtotime($request->date . ' ' . date('H:i:s'))) : now(),
+        ]);
+
+        $productName = $mStock->product->name ?? 'Product';
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'status' => 200,
+                'message' => "Stock updated successfully for {$productName}! New Stock: {$newStock} Cases.",
+                'new_stock' => $newStock,
+                'diff' => $diff
+            ], 200);
+        }
+
+        return redirect()->route('manufacture-stock')->with('success', "Stock updated successfully for {$productName}! Current Stock: {$newStock} Cases.");
     }
 
     /**
@@ -407,13 +527,28 @@ class StockController extends Controller
                 } elseif ($model->type == 'dispatch') {
                     return '<span class="badge bg-info text-dark"><i class="fa fa-arrow-up me-1"></i> Stock Out (Dispatched)</span>';
                 } else {
-                    return '<span class="badge bg-secondary"><i class="fa fa-sync me-1"></i> Adjustment</span>';
+                    return '<span class="badge bg-warning text-dark"><i class="fa fa-sliders me-1"></i> Stock Adjustment</span>';
                 }
             })
             ->addColumn('quantity', function ($model) {
-                $prefix = ($model->type == 'production') ? '+' : (($model->type == 'dispatch') ? '-' : '');
-                $color = ($model->type == 'production') ? 'text-success' : (($model->type == 'dispatch') ? 'text-danger' : 'text-info');
-                return '<strong class="' . $color . '" style="font-size:14px;">' . $prefix . $model->quantity . ' Cases</strong>';
+                if ($model->type == 'production') {
+                    return '<strong class="text-success" style="font-size:14px;">+' . $model->quantity . ' Cases</strong>';
+                } elseif ($model->type == 'dispatch') {
+                    return '<strong class="text-danger" style="font-size:14px;">-' . $model->quantity . ' Cases</strong>';
+                } elseif ($model->type == 'adjustment') {
+                    $sign = '';
+                    $color = 'text-warning';
+                    if (str_contains($model->note, 'increased') || str_contains($model->note, '(+')) {
+                        $sign = '+';
+                        $color = 'text-success';
+                    } elseif (str_contains($model->note, 'reduced') || str_contains($model->note, '(-')) {
+                        $sign = '-';
+                        $color = 'text-danger';
+                    }
+                    return '<strong class="' . $color . '" style="font-size:14px;">' . $sign . $model->quantity . ' Cases</strong>';
+                } else {
+                    return '<strong class="text-info" style="font-size:14px;">' . $model->quantity . ' Cases</strong>';
+                }
             })
             ->addColumn('destination', function ($model) {
                 if (!empty($model->warehouse_name)) {

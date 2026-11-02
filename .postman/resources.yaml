@@ -1,5 +1,9 @@
 workspace:
   id: 6599920c-1853-4c4d-8dfa-901133eb2c54
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
 cloudResources:
   collections:
     ../postman/collections/Delfast: 24980439-42e91894-daf5-492a-be3e-e721fa53fd1f
+    ../postman/collections/Delfast Delivery Platform APIs: f45a9832-5fb4-4965-bacc-821fcda25e31

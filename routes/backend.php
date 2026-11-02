@@ -205,6 +205,8 @@
                 Route::get('stock-create', ['uses' => 'Manufacture\StockController@create', 'as' => 'manufacture-stock-create']);
                 Route::post('stock-store', ['uses' => 'Manufacture\StockController@store', 'as' => 'manufacture-stock-store']);
                 Route::post('stock-quick-add', ['uses' => 'Manufacture\StockController@quickAddStock', 'as' => 'manufacture-stock-quick-add']);
+                Route::get('stock-edit/{id}', ['uses' => 'Manufacture\StockController@edit', 'as' => 'manufacture-stock-edit']);
+                Route::post('stock-update', ['uses' => 'Manufacture\StockController@update', 'as' => 'manufacture-stock-update']);
                 
                 Route::get('warehouse-stock', ['uses' => 'Manufacture\StockController@warehouseStock', 'as' => 'manufacture-warehouse-stock']);
                 Route::get('get-warehouse-stock-datatable', ['uses' => 'Manufacture\StockController@getWarehouseStockDatatable', 'as' => 'manufacture-warehouse-stock-datatable']);
