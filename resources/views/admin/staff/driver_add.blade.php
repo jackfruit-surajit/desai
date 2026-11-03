@@ -82,9 +82,9 @@
                         <div class="col-md-6" id="vehicle_details">
                             <label for="" class="form-label">Transport Vehicle<span class="required">*</span></label>
                             <select class="form-control select2" name="vehicle_id" id= "vehicle_id">
-                                <option class="option selected focus" selected disabled>Select</option>
+                                <option value="" class="option selected focus" selected disabled>Select Vehicle</option>
                                 @forelse($vehicles as $vehicle)
-                                    <option value="{{ $vehicle->id }}">{{$vehicle->vehicle_name}} - {{$vehicle->vehicle_no}}</option>
+                                    <option value="{{ $vehicle->id }}" {{ old('vehicle_id') == $vehicle->id ? 'selected' : '' }}>{{$vehicle->vehicle_name}} - {{$vehicle->vehicle_no}}</option>
                                 @empty
                                 @endforelse
                             </select>
@@ -95,9 +95,9 @@
                         <div class="col-md-6" id="area_details">
                             <label for="" class="form-label">Assign Area<span class="required">*</span></label>
                             <select class="form-control select2" name="area_id" id= "area_id">
-                                <option class="option selected focus" selected disabled>Select Area</option>
+                                <option value="" class="option selected focus" selected disabled>Select Area</option>
                                 @forelse($areas as $area)
-                                    <option value="{{ $area->id }}">{{$area->area_name}}</option>
+                                    <option value="{{ $area->id }}" {{ old('area_id') == $area->id ? 'selected' : '' }}>{{$area->area_name}}</option>
                                 @empty
                                 @endforelse
                             </select>
@@ -109,9 +109,9 @@
                         <div class="col-md-6" id="warehouse_details">
                             <label for="" class="form-label">Assign Warehouse<span class="required">*</span></label>
                             <select class="form-control select2" name="warehouse_id" id= "warehouse_id">
-                                <option class="option selected focus" selected disabled>Select Warehouse</option>
+                                <option value="" class="option selected focus" selected disabled>Select Warehouse</option>
                                 @forelse($warehouses as $warehouse)
-                                    <option value="{{ $warehouse->id }}">{{$warehouse->name}}</option>
+                                    <option value="{{ $warehouse->id }}" {{ old('warehouse_id') == $warehouse->id ? 'selected' : '' }}>{{$warehouse->name}}</option>
                                 @empty
                                 @endforelse
                             </select>
@@ -121,14 +121,14 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label for="licence_no" class="form-label">Licence No.</label>
+                            <label for="licence_no" class="form-label">Licence No.<span class="required">*</span></label>
                             <input type="text" class="form-control" placeholder="Licence No." name="licence_no" id="licence_no" value="{{ old('licence_no') }}" >
                             @if ($errors->has('licence_no'))
                                 <span class="help-block text-danger"> {{ $errors->first('licence_no') }} </span>
                             @endif
                         </div>
                         <div class="col-md-6">
-                            <label for="licence_expiry" class="form-label">Expiry of Licence</label>
+                            <label for="licence_expiry" class="form-label">Expiry of Licence<span class="required">*</span></label>
                             <input type="date" class="form-control" placeholder="Expiry of Licence" name="licence_expiry" id="licence_expiry" value="{{ old('licence_expiry') }}" >
                             @if ($errors->has('licence_expiry'))
                                 <span class="help-block text-danger"> {{ $errors->first('licence_expiry') }} </span>
@@ -166,14 +166,14 @@
                             <br>
                         
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="status" id="statusActive" value="1" checked>
+                                <input class="form-check-input" type="radio" name="status" id="statusActive" value="1" {{ old('status', '1') == '1' ? 'checked' : '' }}>
                                 <label class="form-check-label text-white" for="statusActive">
                                     Active
                                 </label>
                             </div>
                         
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="status" id="statusInactive" value="0">
+                                <input class="form-check-input" type="radio" name="status" id="statusInactive" value="0" {{ old('status') == '0' ? 'checked' : '' }}>
                                 <label class="form-check-label text-white" for="statusInactive">
                                     Inactive
                                 </label>
@@ -235,6 +235,10 @@
         }
     
         $(document).ready(function () {
+            if ($('#area_id').val()) {
+                $('#area_id').trigger('change');
+            }
+
             $('#area_id').on('change', function() {
                 var area_id = $(this).val();
                 if(area_id) {

@@ -21,7 +21,7 @@ class DashboardController extends Controller
         $hour = date('H');
         $dayTerm = ($hour > 17) ? "Evening" : (($hour > 12) ? "Afternoon" : "Morning");
         $data['message'] = "Good " . $dayTerm;
-        $data['warehouse'] = DB::table('admins')->where('role_id',4)->count();
+        $data['warehouse'] = DB::table('admins')->where('role_id',4)->where('is_hidden', 0)->count();
         $data['totalFactoryStock'] = DB::table('manufacture_stock')->where('manufacture_id', $user->id)->sum('stock') ?? 0;
         $data['totalProducts'] = DB::table('products')->where('status', '1')->count();
         $data['totalDispatched'] = DB::table('manufacture_stock_logs')->where('manufacture_id', $user->id)->where('type', 'dispatch')->sum('quantity') ?? 0;

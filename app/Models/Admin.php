@@ -35,6 +35,8 @@ class Admin extends Authenticatable
         'licence_expiry',
         'remember_token',
         'activation_token',
+        'status',
+        'is_hidden',
         'last_login',
     ];
 

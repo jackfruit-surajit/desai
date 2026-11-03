@@ -21,7 +21,7 @@ class DriverManagementController extends Controller
 {
     
     public function productAdd(Request $request){
-        $drivers = DB::table('admins')->where('role_id','3')->get();
+        $drivers = DB::table('admins')->where('role_id','3')->where('is_hidden', 0)->get();
         $products = Product::where('status','1')->get();
         return view('warehouse.driver_management.product_add',compact(['drivers','products']));
     }
@@ -69,7 +69,8 @@ class DriverManagementController extends Controller
     public function driverManagementReport(Request $request){
         $warehouse_id = Auth::guard('backend')->user()->id;
         $drivers = DriverWarehouse::join('admins','driver_warehouse.driver_id','admins.id')
-                    ->where('driver_warehouse.warehouse_id',$warehouse_id)->get(['admins.id','admins.name']);
+                    ->where('driver_warehouse.warehouse_id',$warehouse_id)
+                    ->where('admins.is_hidden', 0)->get(['admins.id','admins.name']);
                     
         return view('warehouse.driver_management.daily_management_list',compact(['drivers']));
     }

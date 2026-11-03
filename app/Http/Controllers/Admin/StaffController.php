@@ -29,7 +29,7 @@ class StaffController extends Controller {
         $data = [];
         $data['vehicles'] = DB::table('vehicle')->where('status','1')->get();
         $data['areas'] = Area::where('status','1')->get();
-        $data['warehouses'] = DB::table('admins as t1')->where('t1.role_id', '=',4)->orderby('t1.id','desc')->get();
+        $data['warehouses'] = DB::table('admins as t1')->where('t1.role_id', '=',4)->where('t1.is_hidden', 0)->orderby('t1.id','desc')->get();
         return view('admin.staff.driver_add', $data);
     }
     
@@ -53,26 +53,50 @@ class StaffController extends Controller {
 
     public function store(Request $request) {
 
-        $validator = Validator::make($request->all(), [
+        $isDriver = ($request->role == 3);
+        $isSalesExecutive = ($request->role == 2);
+
+        $rules = [
             'name' => 'required|regex:/^[a-zA-Z\s]+$/',
             'email' => 'required|email',
             'password' => 'required',
             'role' => 'required',
             'phone' => 'required|numeric|digits:10',
-            'image' => 'nullable|mimes:png,jpeg,jpg,JPEG',
             'status' => 'required',
-            'vehicle_id' =>'nullable|integer',
-            'area_id' => $request->role == 2 ? 'required|array|max:5' : 'required_if:role,3',
-            'warehouse_id' => 'required_if:role,3',
-            'licence_no' => 'nullable|string|max:100',
-            'licence_expiry' => 'nullable|date',
-        ], [
-            'area_id.required_if' => 'The assign area field is required.',
+            'image' => 'nullable|mimes:png,jpeg,jpg,JPEG|max:5120',
+            'vehicle_id' => $isDriver ? 'required|integer' : 'nullable|integer',
+            'area_id' => $isSalesExecutive ? 'required|array|max:5' : ($isDriver ? 'required|integer' : 'nullable'),
+            'warehouse_id' => $isDriver ? 'required|integer' : 'required_if:role,3',
+            'licence_no' => $isDriver ? 'required|string|max:100' : 'nullable|string|max:100',
+            'licence_expiry' => $isDriver ? 'required|date' : 'nullable|date',
+        ];
+
+        $messages = [
+            'name.required' => $isDriver ? 'The driver name field is required.' : 'The name field is required.',
+            'name.regex' => $isDriver ? 'The driver name must only contain letters and spaces.' : 'The name must only contain letters and spaces.',
+            'email.required' => 'The email field is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'phone.required' => 'The contact number field is required.',
+            'phone.numeric' => 'The contact number must be numeric.',
+            'phone.digits' => 'The contact number must be 10 digits.',
+            'password.required' => 'The password field is required.',
+            'vehicle_id.required' => 'The transport vehicle field is required.',
             'area_id.required' => 'The assign area field is required.',
+            'area_id.required_if' => 'The assign area field is required.',
             'area_id.array' => 'The assign area must be a list.',
             'area_id.max' => 'You can assign maximum 5 areas.',
+            'warehouse_id.required' => 'The assign warehouse field is required.',
             'warehouse_id.required_if' => 'The assign warehouse field is required.',
-        ]);
+            'licence_no.required' => 'The licence number field is required.',
+            'licence_expiry.required' => 'The expiry of licence field is required.',
+            'licence_expiry.date' => 'The expiry of licence must be a valid date.',
+            'image.required' => $isDriver ? 'The driver photo field is required.' : 'The photo field is required.',
+            'image.mimes' => 'The photo must be a file of type: png, jpeg, jpg.',
+            'image.max' => 'The photo size may not be greater than 5MB.',
+            'status.required' => 'The status field is required.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         $validator->after(function ($validator) use ($request) {
 
@@ -293,7 +317,8 @@ class StaffController extends Controller {
         $query = DB::table('driver_attendance_route_logs as t1')
                 ->leftJoin('admins as t2', 't1.driver_id', '=', 't2.id')
                 ->leftJoin('road as t3', 't1.route_id', '=', 't3.id')
-                ->select('t1.*', 't2.name as driver_name', 't3.road_name as route_name');
+                ->select('t1.*', 't2.name as driver_name', 't3.road_name as route_name')
+                ->where('t2.is_hidden', 0);
 
         if ($request->has('filter_date') && !empty($request->filter_date)) {
             $query->whereDate('t1.created_at', $request->filter_date);
@@ -318,7 +343,7 @@ class StaffController extends Controller {
         $query = DB::table('driver_punch_in as t1')
                 ->leftJoin('admins as t2', 't1.user_id', '=', 't2.id')
                 ->select('t1.*', 't2.name as driver_name')
-                ->where('t2.role_id','3');
+                ->where('t2.role_id','3')->where('t2.is_hidden', 0);
                 
         if ($request->has('filter_date') && !empty($request->filter_date)) {
             $query->whereDate('t1.punch_in_time', $request->filter_date);
@@ -381,7 +406,7 @@ class StaffController extends Controller {
                 ->leftjoin('roles as t2','t1.role_id','t2.id')
                 ->leftjoin('vehicle as t3','t1.vehicle_id','t3.id')
                 ->select('t1.*','t2.name as role_name', 't3.vehicle_name', 't3.vehicle_no')
-                ->where('t1.status', '<>','2')->where('t2.id', '=',3)
+                ->where('t1.status', '<>','2')->where('t2.id', '=',3)->where('t1.is_hidden', 0)
                 ->orderby('t1.id','desc')->get();
 
         return Datatables::of($data)
@@ -456,10 +481,9 @@ class StaffController extends Controller {
                 return $status;
             })
             ->addColumn('action', function ($model) {
-                $edit = ''; $delete = $assign_route = $ware_house = $attendance_log = $route_log = '';
+                $edit = ''; $assign_route = $ware_house = $attendance_log = $route_log = '';
                 
                 $edit = '<a href="' . Route("driver-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
-                $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
                 // $assign_route = '<a href="' . Route("driver-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Routes</span></a>';
                 // $ware_house = '<a href="' . Route("driver-warehouse", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-secondary"><i class="fa fa-house"></i> Warehouse</span></a>';
                 $attendance_log = '<a href="' . Route("driver-monthly-attendance", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-info"><i class="fa fa-clock"></i> Attendance Log</span></a>';
@@ -468,7 +492,7 @@ class StaffController extends Controller {
                 return
                     '<div class="action-btns">'.
                         $assign_route.$edit .
-                        $delete. $ware_house. $attendance_log . $route_log .
+                        $ware_house. $attendance_log . $route_log .
                     '</div>';
             })
             ->rawColumns(['image','created_at','status', 'action'])
@@ -547,7 +571,7 @@ class StaffController extends Controller {
         $data['model'] = $model;
         $data['vehicles'] = DB::table('vehicle')->where('status','1')->get();
         $data['areas'] = Area::where('status','1')->get();
-        $data['warehouses'] = DB::table('admins as t1')->where('t1.role_id', '=',4)->orderby('t1.id','desc')->get();
+        $data['warehouses'] = DB::table('admins as t1')->where('t1.role_id', '=',4)->where('t1.is_hidden', 0)->orderby('t1.id','desc')->get();
         $data['selected_warehouse'] = DB::table('driver_warehouse')->where('driver_id', $id)->value('warehouse_id');
         
         $data['driver_routes'] = DriverRoute::where('driver_id', $id)
@@ -598,27 +622,52 @@ class StaffController extends Controller {
 
     public function update(Request $request) {
 
-        $validator = Validator::make($request->all(), [
+        $isDriver = ($request->role == 3);
+        $isSalesExecutive = ($request->role == 2);
+
+        $rules = [
             'name' => 'required|regex:/^[a-zA-Z\s]+$/',
             'email' => 'required|email',
             'role' => 'required',
             'password' => 'nullable|string',
             'phone' => 'required|numeric|digits:10',
-            'image' => 'nullable|mimes:png,jpeg,jpg,JPEG',
             'status' => 'required',
             'id' => 'required|integer',
-            'vehicle_id' => 'nullable|integer',
-            'area_id' => $request->role == 2 ? 'required|array|max:5' : 'required_if:role,3',
-            'warehouse_id' => 'required_if:role,3',
-            'licence_no' => 'nullable|string|max:100',
-            'licence_expiry' => 'nullable|date',
-        ], [
-            'area_id.required_if' => 'The assign area field is required.',
+            'image' => 'nullable|mimes:png,jpeg,jpg,JPEG|max:5120',
+            'vehicle_id' => $isDriver ? 'required|integer' : 'nullable|integer',
+            'area_id' => $isSalesExecutive ? 'required|array|max:5' : ($isDriver ? 'required|integer' : 'nullable'),
+            'warehouse_id' => $isDriver ? 'required|integer' : 'required_if:role,3',
+            'licence_no' => $isDriver ? 'required|string|max:100' : 'nullable|string|max:100',
+            'licence_expiry' => $isDriver ? 'required|date' : 'nullable|date',
+        ];
+
+
+
+        $messages = [
+            'name.required' => $isDriver ? 'The driver name field is required.' : 'The name field is required.',
+            'name.regex' => $isDriver ? 'The driver name must only contain letters and spaces.' : 'The name must only contain letters and spaces.',
+            'email.required' => 'The email field is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'phone.required' => 'The contact number field is required.',
+            'phone.numeric' => 'The contact number must be numeric.',
+            'phone.digits' => 'The contact number must be 10 digits.',
+            'vehicle_id.required' => 'The transport vehicle field is required.',
             'area_id.required' => 'The assign area field is required.',
+            'area_id.required_if' => 'The assign area field is required.',
             'area_id.array' => 'The assign area must be a list.',
             'area_id.max' => 'You can assign maximum 5 areas.',
+            'warehouse_id.required' => 'The assign warehouse field is required.',
             'warehouse_id.required_if' => 'The assign warehouse field is required.',
-        ]);
+            'licence_no.required' => 'The licence number field is required.',
+            'licence_expiry.required' => 'The expiry of licence field is required.',
+            'licence_expiry.date' => 'The expiry of licence must be a valid date.',
+            'image.required' => $isDriver ? 'The driver photo field is required.' : 'The photo field is required.',
+            'image.mimes' => 'The photo must be a file of type: png, jpeg, jpg.',
+            'image.max' => 'The photo size may not be greater than 5MB.',
+            'status.required' => 'The status field is required.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         $validator->after(function ($validator) use ($request) {
 
@@ -790,7 +839,7 @@ class StaffController extends Controller {
     public function driverWarehouse(Request $request,$id) {
         $id = base64_decode($id);
         $model = DB::table('admins')->where('id', $id)->first();
-        $warehouses = DB::table('admins as t1')->where('t1.role_id', '=',4)->orderby('t1.id','desc')->get();
+        $warehouses = DB::table('admins as t1')->where('t1.role_id', '=',4)->where('t1.is_hidden', 0)->orderby('t1.id','desc')->get();
         $select_warehouse = DriverWarehouse::where('driver_id',$model->id)->first();
         return view('admin.staff.driver_warehouse', compact(['warehouses','model','select_warehouse']));
     }

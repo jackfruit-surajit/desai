@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $dayTerm = ($hour > 17) ? "Evening" : (($hour > 12) ? "Afternoon" : "Morning");
         $data['message'] = "Good " . $dayTerm;
         $data['customer'] = DB::table('customers')->where('status', '!=', '2')->count();
-        $data['sales_executive'] = DB::table('admins')->where('role_id', '2')->where('status', '!=', '2')->count();
+        $data['sales_executive'] = DB::table('admins')->where('role_id', '2')->where('status', '!=', '2')->where('is_hidden', 0)->count();
         $data['product'] = DB::table('products')->where('status', '!=', '2')->count();
         $data['area'] = DB::table('area')->where('status', '!=', '2')->count();
         $data['route'] = DB::table('road')->where('status', '!=', '2')->count();

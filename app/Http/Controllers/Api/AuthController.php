@@ -66,18 +66,23 @@ class AuthController extends Controller
     public function login(Request $request){
         
         $validator = Validator::make($request->all(), [
-            'mobile'   => 'required|string',
+            'mobile'   => 'sometimes|required_without:email|string',
+            'email'    => 'sometimes|required_without:mobile|string',
             'password' => 'required|string',
         ]);
     
         if ($validator->fails()) {
             return response()->json(['status'  => 422, 'message' => $validator->errors(),'data'    => []], 422);
         }
+
+        $identifier = $request->input('mobile') ?? $request->input('email');
     
-        $user = Admin::where('phone', $request->mobile)->first();
+        $user = Admin::where(function($q) use ($identifier) {
+            $q->where('phone', $identifier)->orWhere('email', $identifier);
+        })->first();
     
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['status'  => 401, 'message' => 'Invalid mobile number or password.', 'data'    => []], 401);
+            return response()->json(['status'  => 401, 'message' => 'Invalid mobile number/email or password.', 'data'    => []], 401);
         }
     
         // Create Sanctum token
