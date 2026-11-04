@@ -7,35 +7,85 @@
 
 @section('css')
 <style>
-    /* High contrast text for form controls and labels */
-    .form-label {
-        color: #0f172a !important;
+    /* All text white for warehouse/product-details */
+    .card-header h4,
+    .card-header h4.text-dark,
+    .card-header h4.text-white {
+        color: #ffffff !important;
+    }
+
+    /* Form labels in white */
+    .form-label,
+    .col-form-label,
+    label {
+        color: #ffffff !important;
         font-weight: 600 !important;
     }
+
+    /* Form controls (inputs, selects, textareas) */
     .form-control {
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1;
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
-    /* Disabled and readonly inputs styling for maximum legibility */
+
+    .form-control:focus {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        -webkit-text-fill-color: #ffffff !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.15) !important;
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    /* Disabled and readonly inputs styling with white text */
     .form-control:disabled, 
     .form-control[readonly], 
     select.form-control:disabled {
-        background-color: #f1f5f9 !important;
-        color: #0f172a !important;
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: #ffffff !important;
         opacity: 1 !important;
         font-weight: 600 !important;
-        border: 1px solid #94a3b8 !important;
-        -webkit-text-fill-color: #0f172a !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        -webkit-text-fill-color: #ffffff !important;
     }
+
+    /* Select options */
+    select.form-control option,
+    select.product-select option {
+        background-color: #101C4C !important;
+        color: #ffffff !important;
+    }
+
+    /* Select2 dropdown and selections in white */
+    .select2-container--default .select2-selection--single,
     .select2-container--default.select2-container--disabled .select2-selection--single {
-        background-color: #f1f5f9 !important;
-        border: 1px solid #94a3b8 !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
         opacity: 1 !important;
     }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered,
     .select2-container--default.select2-container--disabled .select2-selection--single .select2-selection__rendered {
-        color: #0f172a !important;
+        color: #ffffff !important;
         font-weight: 600 !important;
-        -webkit-text-fill-color: #0f172a !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+
+    /* Buttons */
+    .btn-outline-secondary {
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border-color: #ffffff !important;
     }
 </style>
 @endsection
@@ -48,9 +98,9 @@
             if ($model->status == '0') {
                 $status = '<span class="badge bg-warning text-dark fw-bold float-end px-3 py-2" style="font-size:13px;">Pending</span>';
             } else if ($model->status == '1') {
-                $status = '<span class="badge bg-success fw-bold float-end px-3 py-2" style="font-size:13px;">Verified</span>';
+                $status = '<span class="badge bg-success fw-bold text-white float-end px-3 py-2" style="font-size:13px;">Verified</span>';
             } else if ($model->status == '2') {
-                $status = '<span class="badge bg-danger fw-bold float-end px-3 py-2" style="font-size:13px;">Rejected</span>';
+                $status = '<span class="badge bg-danger fw-bold text-white float-end px-3 py-2" style="font-size:13px;">Rejected</span>';
             }
         @endphp
 
@@ -60,7 +110,7 @@
                 <div class="card-header">
                     <div class="row align-items-center">
                         <div class="col-md-6">
-                            <h4 class="mb-0 text-dark fw-bold">View Assigning Product Details</h4>
+                            <h4 class="mb-0 text-white fw-bold"><i class="fa fa-boxes-stacked me-2"></i>View Assigning Product Details</h4>
                         </div>
                         <div class="col-md-6">
                             @php echo $status; @endphp

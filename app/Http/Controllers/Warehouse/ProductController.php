@@ -53,20 +53,28 @@ class ProductController extends Controller
         return Datatables::of($data)
             ->addIndexColumn()
 
+            ->editColumn('product_name', function ($model) {
+                return '<strong class="text-white">' . e($model->product_name) . '</strong>';
+            })
+
+            ->editColumn('per_case_quantity', function ($model) {
+                return '<span class="text-white fw-bold">' . e($model->per_case_quantity) . ' Cases</span>';
+            })
+
             ->editColumn('status', function ($model) {                
                 if ($model->status == '0') {
                     $status = '<span class="badge bg-warning text-dark fw-bold">Pending</span>';
                 } else if ($model->status == '1') {
-                    $status = '<span class="badge bg-success fw-bold">Verified</span>';
+                    $status = '<span class="badge bg-success fw-bold text-white">Verified</span>';
                 } else if ($model->status == '2') {
-                    $status = '<span class="badge bg-danger fw-bold">Rejected</span>';
+                    $status = '<span class="badge bg-danger fw-bold text-white">Rejected</span>';
                 }
                     
                 return $status;
             })
             
             ->editColumn('assign_date', function ($model) {                
-                return date('d M, Y',strtotime($model->created_at));
+                return '<span class="text-white">' . date('d M, Y',strtotime($model->created_at)) . '</span>';
             })
 
             ->addColumn('action', function ($model) {
@@ -81,7 +89,7 @@ class ProductController extends Controller
                         $edit . $delete.
                     '</div>';
             })
-            ->rawColumns(['status', 'action','assign_date'])
+            ->rawColumns(['product_name', 'per_case_quantity', 'status', 'action', 'assign_date'])
             ->make(true);
     }
 

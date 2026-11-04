@@ -20,10 +20,94 @@
             height: 2em !important;
             border: 1px solid #aaa !important;
         }
-        .table thead th {
-            color: #0f172a !important;
+        .table thead th,
+        #staff-management thead th {
+            color: #ffffff !important;
             font-weight: 700 !important;
-            background-color: #f1f5f9 !important;
+            background: linear-gradient(180deg, var(--desai-navy-deep, #101C4C), var(--desai-navy-light, #35429E)) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            vertical-align: middle !important;
+        }
+
+        /* Table body cells & all text in white */
+        #staff-management tbody td,
+        .table tbody td {
+            background-color: rgba(16, 28, 76, 0.45) !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            vertical-align: middle !important;
+        }
+
+        #staff-management.table-striped > tbody > tr:nth-of-type(odd) > *,
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #ffffff !important;
+        }
+
+        #staff-management tbody tr:hover > *,
+        .table tbody tr:hover > * {
+            background-color: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+        }
+
+        #staff-management tbody td strong,
+        #staff-management tbody td span:not(.badge),
+        #staff-management tbody td div:not(.badge),
+        #staff-management tbody td small,
+        .table tbody td strong,
+        .table tbody td span:not(.badge),
+        .table tbody td div:not(.badge),
+        .table tbody td small {
+            color: #ffffff !important;
+        }
+
+        /* Card header & titles */
+        .card-header h4,
+        .card-header h4.text-dark,
+        .card-header h4.text-white {
+            color: #ffffff !important;
+        }
+
+        /* DataTables controls (length, filter, search, info, paginate) */
+        #staff-management_wrapper,
+        #staff-management_wrapper label,
+        #staff-management_length,
+        #staff-management_length label,
+        #staff-management_filter,
+        #staff-management_filter label,
+        #staff-management_info,
+        #staff-management_paginate,
+        #staff-management_paginate .paginate_button,
+        .dataTables_empty,
+        .dataTables_processing {
+            color: #ffffff !important;
+        }
+
+        #staff-management_filter input,
+        #staff-management_length select {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.12) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        #staff-management_filter input::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        #staff-management_length select option {
+            background-color: #101C4C !important;
+            color: #ffffff !important;
+        }
+
+        #staff-management_paginate .paginate_button {
+            color: #ffffff !important;
+        }
+
+        #staff-management_paginate .paginate_button.current,
+        #staff-management_paginate .paginate_button.current:hover {
+            color: #ffffff !important;
+            background: linear-gradient(180deg, var(--desai-amber-light, #EE1A28), var(--desai-amber-deep, #EE1A28)) !important;
+            border-color: #EE1A28 !important;
         }
     </style>
     <!-- [Page specific CSS] end -->
@@ -37,7 +121,7 @@
                 <div class="row align-items-center">
 
                     <div class="col-lg-6">
-                        <h4 class="mb-0 text-dark fw-bold">Product Stock</h4>
+                        <h4 class="mb-0 text-white fw-bold"><i class="fa fa-boxes-stacked me-2"></i>Product Stock</h4>
                     </div>
                     <div class="col-lg-6">
                     </div>

@@ -36,7 +36,7 @@ class SalesExecutiveController extends Controller {
         
         $data = DB::table('admins as t1')->leftjoin('roles as t2','t1.role_id','t2.id')
                 ->select('t1.*','t2.name as role_name')
-                ->where('t1.status', '<>','2')->where('t2.id', '=',2)->where('t1.is_hidden', 0)
+                ->where('t1.status', '<>','2')->where('t1.role_id', '=','2')->where('t1.is_hidden', '0')
                 ->orderby('t1.id','desc')->get();
 
         return Datatables::of($data)

@@ -406,7 +406,7 @@ class StaffController extends Controller {
                 ->leftjoin('roles as t2','t1.role_id','t2.id')
                 ->leftjoin('vehicle as t3','t1.vehicle_id','t3.id')
                 ->select('t1.*','t2.name as role_name', 't3.vehicle_name', 't3.vehicle_no')
-                ->where('t1.status', '<>','2')->where('t2.id', '=',3)->where('t1.is_hidden', 0)
+                ->where('t1.status', '<>','2')->where('t1.role_id', '=','3')->where('t1.is_hidden', '0')
                 ->orderby('t1.id','desc')->get();
 
         return Datatables::of($data)
@@ -808,8 +808,8 @@ class StaffController extends Controller {
             $input['status'] = '2';
             $input['updated_at'] = date('Y-m-d H:i:s');
 
-            DB::table('admins')->where('id',$id)->update($input);
-            // DB::table('admins')->where('id',$id)->delete();
+            // DB::table('admins')->where('id',$id)->update($input);
+            DB::table('admins')->where('id',$id)->delete();
 
             $data['status'] = 200;
             $data['msg'] = 'Staff deleted successfully.';

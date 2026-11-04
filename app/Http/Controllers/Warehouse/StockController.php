@@ -31,7 +31,7 @@ class StockController extends Controller
             ->addIndexColumn()
 
             ->editColumn('product_name', function ($model) {
-                return '<strong class="text-dark">' . e($model->product_name) . '</strong>';
+                return '<strong class="text-white">' . e($model->product_name) . '</strong>';
             })
 
             ->editColumn('stock_quantity', function ($model) { 
