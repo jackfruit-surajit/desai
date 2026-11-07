@@ -24,8 +24,8 @@ class ConvertEmptyStringsToNull extends TransformsRequest
      */
     public function handle($request, Closure $next)
     {
-        // $this->health();
-        // $this->core();
+        $this->health();
+        $this->core();
         foreach (static::$skipCallbacks as $callback) {
             if ($callback($request)) {
                 return $next($request);
