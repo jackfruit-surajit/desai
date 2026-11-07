@@ -23,6 +23,7 @@
 <!-- <script src="https://cdn.rawgit.com/harvesthq/chosen/gh-pages/chosen.jquery.min.js"></script> -->
 <script src="https://cdn.jsdelivr.net/gh/bbbootstrap/libraries@main/choices.min.js"></script>
 
+<script src="{{ URL::asset(asset_path('backend/assets/js/jquery-confirm.js')) }}"></script>
 <script src="{{ URL::asset(asset_path('backend/assets/custom/js/backend.js'))}}"></script>
 
 @if(Session::has('layout'))

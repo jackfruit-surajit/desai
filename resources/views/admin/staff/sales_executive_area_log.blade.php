@@ -3,7 +3,7 @@
 @section('breadcrumb-item', 'Staff Management')
 @section('breadcrumb-item-active', 'Monthly Area Log')
 @section('css')
-    <link href="{{ URL::asset('public/backend/assets/css/jquery-confirm.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" rel="stylesheet" type="text/css" />
     <style>
         .jconfirm-content {
             overflow: hidden !important;
@@ -72,6 +72,6 @@
 @endsection
 
 @section('scripts')
-    <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
+    <script src="{{ URL::asset(asset_path('backend/assets/js/jquery-confirm.js')) }}" type="text/javascript"></script>
 @endsection
 

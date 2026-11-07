@@ -481,18 +481,22 @@ class StaffController extends Controller {
                 return $status;
             })
             ->addColumn('action', function ($model) {
-                $edit = ''; $assign_route = $ware_house = $attendance_log = $route_log = '';
+                $user_role = Auth::guard('backend')->user()->role_id;
+                $edit = $delete = ''; $assign_route = $ware_house = $attendance_log = $route_log = '';
                 
                 $edit = '<a href="' . Route("driver-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary"><i class="fa fa-edit"></i> Edit</span></a>';
                 // $assign_route = '<a href="' . Route("driver-assign-location", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-success"><i class="fa fa-route"></i> Routes</span></a>';
                 // $ware_house = '<a href="' . Route("driver-warehouse", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-secondary"><i class="fa fa-house"></i> Warehouse</span></a>';
                 $attendance_log = '<a href="' . Route("driver-monthly-attendance", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-info"><i class="fa fa-clock"></i> Attendance Log</span></a>';
                 $route_log = '<a href="' . Route("driver-monthly-route-log", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-warning"><i class="fa fa-map-marker-alt"></i> Route Log</span></a>';
+                if($user_role == 1){
+                    $delete = '<a href="javascript:;" onclick="deleteStaff(this);" data-href="' . Route("staff-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash"></i> Delete</span></a>';
+                }
 
                 return
                     '<div class="action-btns">'.
                         $assign_route.$edit .
-                        $ware_house. $attendance_log . $route_log .
+                        $ware_house. $attendance_log . $route_log . $delete .
                     '</div>';
             })
             ->rawColumns(['image','created_at','status', 'action'])
@@ -795,7 +799,7 @@ class StaffController extends Controller {
         }
     }
 
-    public function delete($id) {
+    public function delete(Request $request, $id) {
         $data = [];
         $input = [];
         $id = base64_decode($id);
@@ -812,11 +816,24 @@ class StaffController extends Controller {
             DB::table('admins')->where('id',$id)->delete();
 
             $data['status'] = 200;
-            $data['msg'] = 'Staff deleted successfully.';
+            $data['msg'] = 'User deleted successfully.';
+            session()->flash('success_msg', $data['msg']);
+            session()->flash('success', $data['msg']);
         } else {
-            $data['msg'] = 'Sorry ! No Staff details found.';
+            $data['status'] = 400;
+            $data['msg'] = 'Sorry ! No User details found.';
+            session()->flash('error_msg', $data['msg']);
         }
-        return response()->json($data);
+
+        if ($request->ajax()) {
+            return response()->json($data);
+        }
+
+        if ($data['status'] == 200) {
+            return redirect()->back()->with('success_msg', $data['msg'])->with('success', $data['msg'])->withSuccess($data['msg']);
+        } else {
+            return redirect()->back()->with('error_msg', $data['msg'])->withErrors($data['msg']);
+        }
         //--- Redirect Section Ends     
     }
     

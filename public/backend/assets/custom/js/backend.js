@@ -200,82 +200,102 @@ $(document).ready(function () {
 function deleteUser(obj) {
     var url = $(obj).data('href');
     var csrf_token = $('meta[name="csrf-token"]').attr('content');
-    $.confirm({
-        title: 'Delete User',
-        content: 'Are you sure to delete this User?',
-        type: 'red',
-        typeAnimated: true,
-        buttons: {
-            confirm: {
-                text: '<i class="fa fa-check" aria-hidden="true"></i> Confirm',
-                btnClass: 'btn-red',
-                action: function () {
-                    $.ajax({
-                        url: url,
-                        headers: {'X-CSRF-TOKEN': csrf_token},
-                        type: 'get',
-                        dataType: 'json',
-                        success: function (resp) {
-                            if (resp.status && resp.status === 200) {
-                                // $('.page-content').prepend('<div class="alert alert-success mt-2"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>'
-                                //         + '<span>' + resp.msg + '</span></div>');
-                                success_msg(resp.msg);
+    var doDelete = function () {
+        $.ajax({
+            url: url,
+            headers: {'X-CSRF-TOKEN': csrf_token},
+            type: 'get',
+            dataType: 'json',
+            success: function (resp) {
+                if (resp.status && resp.status === 200) {
+                    success_msg(resp.msg);
 
-                                $('#user-management').DataTable().ajax.reload();
+                    if ($('#user-management').length && $.fn.DataTable.isDataTable('#user-management')) {
+                        $('#user-management').DataTable().ajax.reload();
+                    }
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 600);
 
-                            } else {
-                                // $('.page-content').prepend('<div class="alert alert-danger mt-2"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>'
-                                //         + '<span>' + resp.msg + '</span></div>');
-                                error_msg(resp.msg);
-                            }
-                        }
-                    });
+                } else {
+                    error_msg(resp.msg);
                 }
-            },
-            cancel: function () {}
-        }
-    });
+            }
+        });
+    };
 
+    if (typeof $.confirm === 'function') {
+        $.confirm({
+            title: 'Delete User',
+            content: 'Are you sure to delete this User?',
+            type: 'red',
+            typeAnimated: true,
+            buttons: {
+                confirm: {
+                    text: '<i class="fa fa-check" aria-hidden="true"></i> Confirm',
+                    btnClass: 'btn-red',
+                    action: function () {
+                        doDelete();
+                    }
+                },
+                cancel: function () {}
+            }
+        });
+    } else {
+        if (confirm('Are you sure to delete this User?')) {
+            doDelete();
+        }
+    }
 }
 function deleteUserAll(obj) {
     var url = $(obj).data('href');
     var csrf_token = $('meta[name="csrf-token"]').attr('content');
-    $.confirm({
-        title: 'Delete Users',
-        content: 'Are you sure to delete All User?',
-        type: 'red',
-        typeAnimated: true,
-        buttons: {
-            confirm: {
-                text: '<i class="fa fa-check" aria-hidden="true"></i> Confirm',
-                btnClass: 'btn-red',
-                action: function () {
-                    $.ajax({
-                        url: url,
-                        headers: {'X-CSRF-TOKEN': csrf_token},
-                        type: 'get',
-                        dataType: 'json',
-                        success: function (resp) {
-                            if (resp.status && resp.status === 200) {
-                                // $('.page-content').prepend('<div class="alert alert-success mt-2"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>'
-                                //         + '<span>' + resp.msg + '</span></div>');
-                                success_msg(resp.msg);
+    var doDelete = function () {
+        $.ajax({
+            url: url,
+            headers: {'X-CSRF-TOKEN': csrf_token},
+            type: 'get',
+            dataType: 'json',
+            success: function (resp) {
+                if (resp.status && resp.status === 200) {
+                    success_msg(resp.msg);
 
-                                $('#user-management').DataTable().ajax.reload();
+                    if ($('#user-management').length && $.fn.DataTable.isDataTable('#user-management')) {
+                        $('#user-management').DataTable().ajax.reload();
+                    }
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 600);
 
-                            } else {
-                                // $('.page-content').prepend('<div class="alert alert-danger mt-2"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>'
-                                //         + '<span>' + resp.msg + '</span></div>');
-                                error_msg(resp.msg);
-                            }
-                        }
-                    });
+                } else {
+                    error_msg(resp.msg);
                 }
-            },
-            cancel: function () {}
-        }
-    });
+            }
+        });
+    };
 
+    if (typeof $.confirm === 'function') {
+        $.confirm({
+            title: 'Delete Users',
+            content: 'Are you sure to delete All User?',
+            type: 'red',
+            typeAnimated: true,
+            buttons: {
+                confirm: {
+                    text: '<i class="fa fa-check" aria-hidden="true"></i> Confirm',
+                    btnClass: 'btn-red',
+                    action: function () {
+                        doDelete();
+                    }
+                },
+                cancel: function () {}
+            }
+        });
+    } else {
+        if (confirm('Are you sure to delete All User?')) {
+            doDelete();
+        }
+    }
 }
 function deleteOrderAll(obj) {
     var url = $(obj).data('href');
@@ -1125,42 +1145,52 @@ function deleteSlider(obj) {
 function deleteStaff(obj) {
     var url = $(obj).data('href');
     var csrf_token = $('meta[name="csrf-token"]').attr('content');
-    $.confirm({
-        title: 'Delete Staff',
-        content: 'Are you sure to delete this Staff?',
-        type: 'red',
-        typeAnimated: true,
-        buttons: {
-            confirm: {
-                text: '<i class="fa fa-check" aria-hidden="true"></i> Confirm',
-                btnClass: 'btn-red',
-                action: function () {
-                    $.ajax({
-                        url: url,
-                        headers: {'X-CSRF-TOKEN': csrf_token},
-                        type: 'get',
-                        dataType: 'json',
-                        success: function (resp) {
-                            if (resp.status && resp.status === 200) {
-                                // $('.page-content').prepend('<div class="alert alert-success mt-2"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>'
-                                //         + '<span>' + resp.msg + '</span></div>');
-                                success_msg(resp.msg);
+    var doDelete = function () {
+        $.ajax({
+            url: url,
+            headers: {'X-CSRF-TOKEN': csrf_token},
+            type: 'get',
+            dataType: 'json',
+            success: function (resp) {
+                if (resp.status && resp.status === 200) {
+                    success_msg(resp.msg);
 
-                                $('#staff-management').DataTable().ajax.reload();
+                    if ($('#staff-management').length && $.fn.DataTable.isDataTable('#staff-management')) {
+                        $('#staff-management').DataTable().ajax.reload();
+                    }
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 600);
 
-                            } else {
-                                // $('.page-content').prepend('<div class="alert alert-danger mt-2"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>'
-                                //         + '<span>' + resp.msg + '</span></div>');
-                                error_msg(resp.msg);
-                            }
-                        }
-                    });
+                } else {
+                    error_msg(resp.msg);
                 }
-            },
-            cancel: function () {}
-        }
-    });
+            }
+        });
+    };
 
+    if (typeof $.confirm === 'function') {
+        $.confirm({
+            title: 'Delete Staff',
+            content: 'Are you sure to delete this Staff?',
+            type: 'red',
+            typeAnimated: true,
+            buttons: {
+                confirm: {
+                    text: '<i class="fa fa-check" aria-hidden="true"></i> Confirm',
+                    btnClass: 'btn-red',
+                    action: function () {
+                        doDelete();
+                    }
+                },
+                cancel: function () {}
+            }
+        });
+    } else {
+        if (confirm('Are you sure to delete this Staff?')) {
+            doDelete();
+        }
+    }
 }
 function changeStatus(obj) {
     

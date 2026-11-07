@@ -81,7 +81,7 @@ class CustomerController extends Controller
                 $edit = $delete ='';
 
                 $edit = '<a href="' . Route("customer-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="Edit"><i class="fa fa-edit"></i> Edit</span></a>';    
-                $delete = '<a href="' . Route("customer-delete", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i> Delete</span></a>';
+                $delete = '<a href="' . Route("customer-delete", ['id' => base64_encode($model->id)]) . '" onclick="return confirm(\'Are you sure you want to delete this customer?\');"><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i> Delete</span></a>';
 
                 return
                     '<div class="action-btns">'.
@@ -200,20 +200,35 @@ class CustomerController extends Controller
         return response()->json($datareturn);
     }
 
-    public function delete($id) {
+    public function delete(Request $request, $id) {
         $id = base64_decode($id);
         $model = DB::table('customers')->where('id', $id)->first();
         
         if (!empty($model)) {
-
             if(DB::table('customers')->where('id',$id)->delete()){
-                return redirect()->route('customer-list')->withSuccess('Customer deleted successfully.');
+                $msg = 'Customer deleted successfully.';
+                session()->flash('success_msg', $msg);
+                session()->flash('success', $msg);
+                if ($request->ajax()) {
+                    return response()->json(['status' => 200, 'msg' => $msg]);
+                }
+                return redirect()->back()->with('success', $msg)->with('success_msg', $msg)->withSuccess($msg);
             }
             else{
-                return redirect()->back()->withErrors('Error!! while deleting customer!!!'); 
+                $msg = 'Error!! while deleting customer!!!';
+                session()->flash('error_msg', $msg);
+                if ($request->ajax()) {
+                    return response()->json(['status' => 400, 'msg' => $msg]);
+                }
+                return redirect()->back()->withErrors($msg)->with('error_msg', $msg); 
             }
         } else {
-            return redirect()->back()->withErrors('Sorry ! No customer details found.'); 
+            $msg = 'Sorry ! No customer details found.';
+            session()->flash('error_msg', $msg);
+            if ($request->ajax()) {
+                return response()->json(['status' => 404, 'msg' => $msg]);
+            }
+            return redirect()->back()->withErrors($msg)->with('error_msg', $msg); 
         }
     }
       

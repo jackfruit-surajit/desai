@@ -395,7 +395,7 @@
 
 @section('scripts')
     <!-- [Page Specific JS] start -->
-    <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
+    <script src="{{ URL::asset(asset_path('backend/assets/js/jquery-confirm.js')) }}" type="text/javascript"></script>
 
     <script>
     $(document).ready(function () {

@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ URL::asset(asset_path('backend/assets/css/style-preset.css')) }}" >
 
     <link rel="stylesheet" href="{{ URL::asset(asset_path('backend/assets/css/toastr.min.css')) }}" >
+    <link rel="stylesheet" href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" >
 
     <link rel="stylesheet" href="{{ URL::asset(asset_path('backend/assets/css/plugins/dataTables.bootstrap5.min.css')) }}">
 

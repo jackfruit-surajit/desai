@@ -4,7 +4,7 @@
 @section('breadcrumb-item-active', 'Monthly Attendance')
 @section('css')
     <!-- [Page specific CSS] start -->
-    <link href="{{ URL::asset('public/backend/assets/css/jquery-confirm.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" rel="stylesheet" type="text/css" />
     <style>
         .absent-text {
             color: #dc3545;
@@ -110,6 +110,6 @@
 
 @section('scripts')
     <!-- [Page Specific JS] start -->
-    <script src="{{ URL::asset('public/backend/assets/js/jquery-confirm.js') }}" type="text/javascript"></script>
+    <script src="{{ URL::asset(asset_path('backend/assets/js/jquery-confirm.js')) }}" type="text/javascript"></script>
     <!-- [Page Specific JS] end -->
 @endsection
