@@ -12,6 +12,7 @@ use App\Models\WarehouseProduct;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DB;
 use URL;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -47,8 +48,10 @@ class ProductController extends Controller
     }
     
     public function getProductDatatable(Request $request) {
-        
+        $warehouse_id = Auth::guard('backend')->user()->id;
+
         $data = DB::table('warehouse_products')->join('products','warehouse_products.product_id','products.id')
+                ->where('warehouse_products.warehouse_id', $warehouse_id)
                 ->orderBy('warehouse_products.id','desc')->get(['warehouse_products.*','products.name as product_name']);
         return Datatables::of($data)
             ->addIndexColumn()
@@ -95,12 +98,15 @@ class ProductController extends Controller
 
     public function edit($id) {
         $id = base64_decode($id);
-        $model = WarehouseProduct::where('id', $id)->first();
+        $warehouse_id = Auth::guard('backend')->user()->id;
+        $model = WarehouseProduct::where('id', $id)
+            ->where('warehouse_id', $warehouse_id)
+            ->first();
         $warehouses = Admin::where('role_id','4')->where('status','1')->get();
         $products = Product::where('status','1')->get();
         
         if (!$model) {
-            return redirect()->back()->with('error_msg', 'Invalid Link!');
+            return redirect()->back()->with('error_msg', 'Invalid Link or Unauthorized access!');
         }
         return view('warehouse.product.edit',compact(['model','warehouses','products','id']));
     }
@@ -111,16 +117,24 @@ class ProductController extends Controller
             'status' => 'required|string',
             'comment' => 'required|string',
         ]);
-    
 
-            WarehouseProduct::where('id',$request->warehouse_products_id)->update([
-                'status'   => $request->status,
-                'comment'  => $request->comment,
-            ]);
+        $warehouse_id = Auth::guard('backend')->user()->id;
+        $record = WarehouseProduct::where('id', $request->warehouse_products_id)
+            ->where('warehouse_id', $warehouse_id)
+            ->first();
+
+        if (!$record) {
+            return redirect()->route('warehouse-products')->with('error_msg', 'Unauthorized or invalid product record.');
+        }
+
+        $record->update([
+            'status'   => $request->status,
+            'comment'  => $request->comment,
+        ]);
             
-            if($request->status == '1'){
-                $this->WarehouseStock($request->warehouse_products_id);
-            }
+        if($request->status == '1'){
+            $this->WarehouseStock($request->warehouse_products_id);
+        }
             
         return redirect()->route('warehouse-products')->withSuccess('Stock update successfully.');
     }
