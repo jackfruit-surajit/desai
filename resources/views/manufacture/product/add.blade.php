@@ -201,11 +201,19 @@
                                             required>
                                         <option value="">-- Select Product --</option>
                                         @foreach($products as $product)
+                                            @php
+                                                $fc = (int)$product->factory_stock;
+                                                $fb = (int)($product->factory_bottles ?? 0);
+                                                $availLabel = ($fc > 0 && $fb > 0) ? "{$fc} Cases + {$fb} Bottles" : ($fc > 0 ? "{$fc} Cases" : ($fb > 0 ? "{$fb} Bottles" : "0 Cases"));
+                                                $isOut = ($fc <= 0 && $fb <= 0);
+                                            @endphp
                                             <option value="{{ $product->id }}"
-                                                    data-stock="{{ (int)$product->factory_stock }}"
+                                                    data-stock="{{ $fc }}"
+                                                    data-bottles="{{ $fb }}"
+                                                    data-packaging="{{ (int)($product->per_case_quantity ?? 0) }}"
                                                     data-name="{{ $product->name }}"
-                                                    {{ (old('products.0.product_id', request('product_id')) == $product->id) ? 'selected' : '' }} {{ (int)$product->factory_stock <= 0 ? 'class=text-danger' : '' }}>
-                                                {{ $product->name }} — [Available: {{ (int)$product->factory_stock }} Cases{{ (int)$product->factory_stock <= 0 ? ' - Out of Stock' : '' }}]
+                                                    {{ (old('products.0.product_id', request('product_id')) == $product->id) ? 'selected' : '' }} {{ $isOut ? 'class=text-danger' : '' }}>
+                                                {{ $product->name }} — [Available: {{ $availLabel }}{{ $isOut ? ' - Out of Stock' : '' }}]
                                             </option>
                                         @endforeach
                                     </select>
@@ -213,30 +221,47 @@
                                 </div>
 
 
-                                {{-- Per Case Quantity --}}
-                                <div class="col-md-4">
+                                {{-- Cases Quantity --}}
+                                <div class="col-md-3">
                                     <label class="form-label text-dark fw-bold">
-                                        Quantity (Case) <span class="required">*</span>
+                                        Cases
                                     </label>
 
                                     <input type="number"
                                            name="products[0][per_case_quantity]"
-                                           class="form-control qty-input"
-                                           placeholder="Quantity in Cases"
-                                           min="1"
-                                           required>
-                                    <div class="qty-feedback mt-1"></div>
+                                           class="form-control qty-cases-input"
+                                           placeholder="Cases"
+                                           min="0"
+                                           value="{{ old('products.0.per_case_quantity', 0) }}">
+                                </div>
+
+                                {{-- Bottles Quantity --}}
+                                <div class="col-md-2">
+                                    <label class="form-label text-dark fw-bold">
+                                        Bottles
+                                    </label>
+
+                                    <input type="number"
+                                           name="products[0][bottles]"
+                                           class="form-control qty-bottles-input"
+                                           placeholder="Bottles"
+                                           min="0"
+                                           value="{{ old('products.0.bottles', 0) }}">
                                 </div>
 
 
                                 {{-- Remove Button --}}
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label class="form-label d-block">&nbsp;</label>
                                     <button type="button"
                                             class="btn btn-danger remove-product"
                                             style="display:none;">
                                         <i class="ti ti-trash me-1"></i> Remove
                                     </button>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="qty-feedback mt-1"></div>
                                 </div>
 
                             </div>
@@ -295,15 +320,32 @@ $(document).ready(function () {
     // Initial Select2
     initializeSelect2();
 
+    function formatCasesBottles(cases, bottles) {
+        cases = parseInt(cases) || 0;
+        bottles = parseInt(bottles) || 0;
+        if (cases > 0 && bottles > 0) return cases + ' Cases + ' + bottles + ' Bottles';
+        if (cases > 0) return cases + ' Cases';
+        if (bottles > 0) return bottles + ' Bottles';
+        return '0 Cases';
+    }
+
     // Template options HTML generated by blade
     const productOptionsHtml = `
         <option value="">-- Select Product --</option>
         @foreach($products as $product)
+            @php
+                $fc = (int)$product->factory_stock;
+                $fb = (int)($product->factory_bottles ?? 0);
+                $availLabel = ($fc > 0 && $fb > 0) ? "{$fc} Cases + {$fb} Bottles" : ($fc > 0 ? "{$fc} Cases" : ($fb > 0 ? "{$fb} Bottles" : "0 Cases"));
+                $isOut = ($fc <= 0 && $fb <= 0);
+            @endphp
             <option value="{{ $product->id }}"
-                    data-stock="{{ (int)$product->factory_stock }}"
+                    data-stock="{{ $fc }}"
+                    data-bottles="{{ $fb }}"
+                    data-packaging="{{ (int)($product->per_case_quantity ?? 0) }}"
                     data-name="{{ $product->name }}"
-                    {{ (old('products.0.product_id', request('product_id')) == $product->id) ? 'selected' : '' }} {{ (int)$product->factory_stock <= 0 ? 'class=text-danger' : '' }}>
-                {{ $product->name }} — [Available: {{ (int)$product->factory_stock }} Cases{{ (int)$product->factory_stock <= 0 ? ' - Out of Stock' : '' }}]
+                    {{ $isOut ? 'class=text-danger' : '' }}>
+                {{ $product->name }} — [Available: {{ $availLabel }}{{ $isOut ? ' - Out of Stock' : '' }}]
             </option>
         @endforeach
     `;
@@ -325,25 +367,40 @@ $(document).ready(function () {
                     <div class="stock-badge mt-2"></div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label text-dark fw-bold">
-                        Quantity (Case) <span class="required">*</span>
+                        Cases
                     </label>
                     <input type="number"
                            name="products[${productIndex}][per_case_quantity]"
-                           class="form-control qty-input"
-                           placeholder="Quantity in Cases"
-                           min="1"
-                           required>
-                    <div class="qty-feedback mt-1"></div>
+                           class="form-control qty-cases-input"
+                           placeholder="Cases"
+                           min="0"
+                           value="0">
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-2">
+                    <label class="form-label text-dark fw-bold">
+                        Bottles
+                    </label>
+                    <input type="number"
+                           name="products[${productIndex}][bottles]"
+                           class="form-control qty-bottles-input"
+                           placeholder="Bottles"
+                           min="0"
+                           value="0">
+                </div>
+
+                <div class="col-md-2">
                     <label class="form-label d-block">&nbsp;</label>
                     <button type="button"
                             class="btn btn-danger remove-product">
                         <i class="ti ti-trash me-1"></i> Remove
                     </button>
+                </div>
+
+                <div class="col-12">
+                    <div class="qty-feedback mt-1"></div>
                 </div>
             </div>
         </div>
@@ -381,13 +438,14 @@ $(document).ready(function () {
         // Pass 1: Sum quantities per product across all rows
         $('.product-row').each(function () {
             let row = $(this);
-            let select = row.find('.product-select');
-            let productId = select.val();
-            let qtyInput = row.find('.qty-input');
-            let qty = parseInt(qtyInput.val()) || 0;
+            let productId = row.find('.product-select').val();
+            let cases = parseInt(row.find('.qty-cases-input').val()) || 0;
+            let bottles = parseInt(row.find('.qty-bottles-input').val()) || 0;
 
             if (productId) {
-                productTotals[productId] = (productTotals[productId] || 0) + qty;
+                if (!productTotals[productId]) productTotals[productId] = {cases: 0, bottles: 0};
+                productTotals[productId].cases += cases;
+                productTotals[productId].bottles += bottles;
             }
         });
 
@@ -398,74 +456,105 @@ $(document).ready(function () {
             let selectedOption = select.find('option:selected');
             let productId = select.val();
             let stockBadge = row.find('.stock-badge');
-            let qtyInput = row.find('.qty-input');
+            let casesInput = row.find('.qty-cases-input');
+            let bottlesInput = row.find('.qty-bottles-input');
             let qtyFeedback = row.find('.qty-feedback');
-            let rawQty = qtyInput.val();
-            let enteredQty = parseInt(rawQty);
+
+            let enteredCases = parseInt(casesInput.val() === '' ? 0 : casesInput.val());
+            let enteredBottles = parseInt(bottlesInput.val() === '' ? 0 : bottlesInput.val());
 
             if (!productId) {
                 stockBadge.html('');
                 qtyFeedback.html('');
-                qtyInput.removeClass('is-invalid is-valid');
-                qtyInput.removeAttr('max');
+                casesInput.removeClass('is-invalid is-valid');
+                bottlesInput.removeClass('is-invalid is-valid');
                 return;
             }
 
-            let availableStock = parseInt(selectedOption.attr('data-stock'));
-            if (isNaN(availableStock)) {
-                availableStock = 0;
-            }
+            let availCases = parseInt(selectedOption.attr('data-stock')) || 0;
+            let availBottles = parseInt(selectedOption.attr('data-bottles')) || 0;
+            let packaging = parseInt(selectedOption.attr('data-packaging')) || 0;
             let productName = selectedOption.attr('data-name') || 'Selected Product';
+            let availText = formatCasesBottles(availCases, availBottles);
+            let packNote = packaging > 0 ? ` (${packaging} Bottles/Case)` : '';
 
             // Render stock badge
-            if (availableStock <= 0) {
-                stockBadge.html('<span class="badge bg-danger-subtle text-danger border border-danger p-2"><i class="fa fa-triangle-exclamation me-1"></i> Factory Stock: <strong>0 Cases</strong> (Out of Stock)</span>');
-                qtyInput.attr('max', 0);
-            } else if (availableStock <= 50) {
-                stockBadge.html(`<span class="badge bg-warning-subtle text-dark border border-warning p-2"><i class="fa fa-boxes-stacked me-1"></i> Factory Stock: <strong>${availableStock} Cases</strong> (Low Stock)</span>`);
-                qtyInput.attr('max', availableStock);
+            if (availCases <= 0 && availBottles <= 0) {
+                stockBadge.html(`<span class="badge bg-danger-subtle text-danger border border-danger p-2"><i class="fa fa-triangle-exclamation me-1"></i> Factory Stock: <strong>0 Cases</strong> (Out of Stock)</span>`);
+            } else if (availCases <= 50) {
+                stockBadge.html(`<span class="badge bg-warning-subtle text-dark border border-warning p-2"><i class="fa fa-boxes-stacked me-1"></i> Factory Stock: <strong>${availText}</strong>${packNote} (Low Stock)</span>`);
             } else {
-                stockBadge.html(`<span class="badge bg-success-subtle text-success border border-success p-2"><i class="fa fa-boxes-stacked me-1"></i> Factory Stock: <strong>${availableStock} Cases</strong> available</span>`);
-                qtyInput.attr('max', availableStock);
+                stockBadge.html(`<span class="badge bg-success-subtle text-success border border-success p-2"><i class="fa fa-boxes-stacked me-1"></i> Factory Stock: <strong>${availText}</strong>${packNote}</span>`);
             }
 
-            // Case 1: Product has 0 stock in factory
-            if (availableStock <= 0) {
-                qtyInput.addClass('is-invalid').removeClass('is-valid');
-                qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> <strong>${productName}</strong> is out of stock in factory. You cannot assign this product until new production stock is added.</div>`);
+            // Out of stock
+            if (availCases <= 0 && availBottles <= 0) {
+                casesInput.addClass('is-invalid').removeClass('is-valid');
+                bottlesInput.addClass('is-invalid').removeClass('is-valid');
+                qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> <strong>${productName}</strong> is out of stock in factory.</div>`);
                 allValid = false;
                 return;
             }
 
-            // Case 2: Quantity empty or not typed yet
-            if (rawQty === '' || isNaN(enteredQty) || enteredQty <= 0) {
-                qtyInput.removeClass('is-valid is-invalid');
-                qtyFeedback.html(`<div class="text-muted small mt-1">Available to assign: <strong>${availableStock} Cases</strong></div>`);
+            if (isNaN(enteredCases) || enteredCases < 0 || isNaN(enteredBottles) || enteredBottles < 0) {
+                casesInput.addClass('is-invalid').removeClass('is-valid');
+                bottlesInput.addClass('is-invalid').removeClass('is-valid');
+                qtyFeedback.html(`<div class="text-danger small fw-bold mt-1">Quantities cannot be negative.</div>`);
                 allValid = false;
                 return;
             }
 
-            // Case 3: Quantity in this row exceeds available stock
-            if (enteredQty > availableStock) {
-                qtyInput.addClass('is-invalid').removeClass('is-valid');
-                qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Entered quantity (${enteredQty} Cases) exceeds available factory stock (${availableStock} Cases)! Max allowed is ${availableStock}.</div>`);
+            if (enteredCases === 0 && enteredBottles === 0) {
+                casesInput.removeClass('is-valid is-invalid');
+                bottlesInput.removeClass('is-valid is-invalid');
+                qtyFeedback.html(`<div class="text-muted small mt-1">Available to assign: <strong>${availText}</strong></div>`);
                 allValid = false;
                 return;
             }
 
-            // Case 4: Total quantity across multiple rows exceeds available stock
-            let totalRequested = productTotals[productId] || 0;
-            if (totalRequested > availableStock) {
-                qtyInput.addClass('is-invalid').removeClass('is-valid');
-                qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Total requested across multiple rows (${totalRequested} Cases) exceeds available factory stock (${availableStock} Cases)!</div>`);
-                allValid = false;
-                return;
-            }
+            let totReq = productTotals[productId] || {cases: 0, bottles: 0};
+            let reqText = formatCasesBottles(enteredCases, enteredBottles);
+            let totReqText = formatCasesBottles(totReq.cases, totReq.bottles);
 
-            // Case 5: Valid quantity
-            qtyInput.removeClass('is-invalid').addClass('is-valid');
-            let remaining = availableStock - totalRequested;
-            qtyFeedback.html(`<div class="text-success small mt-1"><i class="fa fa-circle-check me-1"></i> Valid. Remaining factory stock after this assignment: <strong>${remaining} Cases</strong>.</div>`);
+            if (packaging > 0) {
+                let availTotalBottles = (availCases * packaging) + availBottles;
+                let rowTotalBottles = (enteredCases * packaging) + enteredBottles;
+                let combinedTotalBottles = (totReq.cases * packaging) + totReq.bottles;
+
+                if (rowTotalBottles > availTotalBottles) {
+                    casesInput.addClass('is-invalid').removeClass('is-valid');
+                    bottlesInput.addClass('is-invalid').removeClass('is-valid');
+                    qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Entered quantity (${reqText}) exceeds available factory stock (${availText})!</div>`);
+                    allValid = false;
+                    return;
+                }
+
+                if (combinedTotalBottles > availTotalBottles) {
+                    casesInput.addClass('is-invalid').removeClass('is-valid');
+                    bottlesInput.addClass('is-invalid').removeClass('is-valid');
+                    qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Total requested across rows (${totReqText}) exceeds available factory stock (${availText})!</div>`);
+                    allValid = false;
+                    return;
+                }
+
+                let remTotal = availTotalBottles - combinedTotalBottles;
+                let remCases = Math.floor(remTotal / packaging);
+                let remBottles = remTotal % packaging;
+                casesInput.removeClass('is-invalid').addClass('is-valid');
+                bottlesInput.removeClass('is-invalid').addClass('is-valid');
+                qtyFeedback.html(`<div class="text-success small mt-1"><i class="fa fa-circle-check me-1"></i> Assigning <strong>${reqText}</strong>. Remaining factory stock: <strong>${formatCasesBottles(remCases, remBottles)}</strong>.</div>`);
+            } else {
+                if (totReq.cases > availCases || totReq.bottles > availBottles) {
+                    casesInput.addClass('is-invalid').removeClass('is-valid');
+                    bottlesInput.addClass('is-invalid').removeClass('is-valid');
+                    qtyFeedback.html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Requested (${totReqText}) exceeds available (${availText})!</div>`);
+                    allValid = false;
+                    return;
+                }
+                casesInput.removeClass('is-invalid').addClass('is-valid');
+                bottlesInput.removeClass('is-invalid').addClass('is-valid');
+                qtyFeedback.html(`<div class="text-success small mt-1"><i class="fa fa-circle-check me-1"></i> Assigning <strong>${reqText}</strong>. Remaining: <strong>${formatCasesBottles(availCases - totReq.cases, availBottles - totReq.bottles)}</strong>.</div>`);
+            }
         });
 
         return allValid;
@@ -476,7 +565,7 @@ $(document).ready(function () {
         validateAllStock();
     });
 
-    $(document).on('input keyup change', '.qty-input', function () {
+    $(document).on('input keyup change', '.qty-cases-input, .qty-bottles-input', function () {
         validateAllStock();
     });
 
@@ -505,8 +594,10 @@ $(document).ready(function () {
             let select = row.find('.product-select');
             let selectedOption = select.find('option:selected');
             let productId = select.val();
-            let qtyInput = row.find('.qty-input');
-            let qty = parseInt(qtyInput.val()) || 0;
+            let casesInput = row.find('.qty-cases-input');
+            let bottlesInput = row.find('.qty-bottles-input');
+            let cases = parseInt(casesInput.val()) || 0;
+            let bottles = parseInt(bottlesInput.val()) || 0;
 
             if (!productId) {
                 validationError = 'Please select a product for all rows.';
@@ -514,25 +605,32 @@ $(document).ready(function () {
                 return false;
             }
 
-            let availableStock = parseInt(selectedOption.attr('data-stock'));
-            if (isNaN(availableStock)) availableStock = 0;
+            let availCases = parseInt(selectedOption.attr('data-stock')) || 0;
+            let availBottles = parseInt(selectedOption.attr('data-bottles')) || 0;
+            let packaging = parseInt(selectedOption.attr('data-packaging')) || 0;
             let productName = selectedOption.attr('data-name') || 'Selected Product';
 
-            if (availableStock <= 0) {
-                validationError = `"${productName}" is currently OUT OF STOCK in factory (0 cases available). You cannot assign it to a warehouse.`;
-                invalidInput = qtyInput;
+            if (availCases <= 0 && availBottles <= 0) {
+                validationError = `"${productName}" is currently OUT OF STOCK in factory. You cannot assign it to a warehouse.`;
+                invalidInput = casesInput;
                 return false;
             }
 
-            if (qty <= 0) {
-                validationError = `Please enter a valid quantity of at least 1 case for "${productName}".`;
-                invalidInput = qtyInput;
+            if (cases <= 0 && bottles <= 0) {
+                validationError = `Please enter at least 1 Case or 1 Bottle for "${productName}".`;
+                invalidInput = casesInput;
                 return false;
             }
 
-            if (qty > availableStock) {
-                validationError = `Requested quantity for "${productName}" (${qty} cases) exceeds available factory stock (${availableStock} cases).`;
-                invalidInput = qtyInput;
+            if (packaging > 0) {
+                if (((cases * packaging) + bottles) > ((availCases * packaging) + availBottles)) {
+                    validationError = `Requested quantity for "${productName}" (${formatCasesBottles(cases, bottles)}) exceeds available factory stock (${formatCasesBottles(availCases, availBottles)}).`;
+                    invalidInput = casesInput;
+                    return false;
+                }
+            } else if (cases > availCases || bottles > availBottles) {
+                validationError = `Requested quantity for "${productName}" exceeds available factory stock.`;
+                invalidInput = casesInput;
                 return false;
             }
         });

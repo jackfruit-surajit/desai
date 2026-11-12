@@ -97,6 +97,7 @@
                         
                         <input type="hidden" name="warehouse_products_id" value="{{$model->id}}">
                         <input type="hidden" id="original_quantity" value="{{$model->per_case_quantity}}">
+                        <input type="hidden" id="original_bottles" value="{{$model->bottles ?? 0}}">
                         <input type="hidden" id="original_product_id" value="{{$model->product_id}}">
    
                         @php
@@ -136,11 +137,19 @@
                             <select name="product_id" id="product_id" class="form-control product-select" required {{ $model->status != '0' ? 'disabled' : '' }}>
                                 <option value="">Select Product</option>
                                 @foreach($products as $product)
+                                    @php
+                                        $fc = (int)$product->factory_stock;
+                                        $fb = (int)($product->factory_bottles ?? 0);
+                                        $availLabel = ($fc > 0 && $fb > 0) ? "{$fc} Cases + {$fb} Bottles" : ($fc > 0 ? "{$fc} Cases" : ($fb > 0 ? "{$fb} Bottles" : "0 Cases"));
+                                        $isOut = ($fc <= 0 && $fb <= 0);
+                                    @endphp
                                     <option value="{{ $product->id }}" 
-                                            data-stock="{{ (int)$product->factory_stock }}"
+                                            data-stock="{{ $fc }}"
+                                            data-bottles="{{ $fb }}"
+                                            data-packaging="{{ (int)($product->per_case_quantity ?? 0) }}"
                                             data-name="{{ $product->name }}"
                                             {{ $model->product_id == $product->id ? 'selected' : '' }}>
-                                        {{ $product->name }} — [Available: {{ (int)$product->factory_stock }} Cases{{ (int)$product->factory_stock <= 0 ? ' - Out of Stock' : '' }}]
+                                        {{ $product->name }} — [Available: {{ $availLabel }}{{ $isOut ? ' - Out of Stock' : '' }}]
                                     </option>
                                 @endforeach
                             </select>
@@ -151,21 +160,38 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Quantity (Case)<span class="required text-danger">*</span></label>
+                        <div class="col-md-3">
+                            <label class="form-label">Cases</label>
                             <input type="number" 
                                    name="per_case_quantity" 
                                    id="per_case_quantity" 
                                    class="form-control" 
-                                   placeholder="Quantity in Case" 
-                                   min="1" 
+                                   placeholder="Cases" 
+                                   min="0" 
                                    value="{{ old('per_case_quantity', $model->per_case_quantity) }}" 
-                                   required 
                                    {{ $model->status != '0' ? 'disabled' : '' }}>
-                            <div id="qtyFeedback" class="mt-1"></div>
                             @error('per_case_quantity')
                                 <span class="help-block text-danger">{{ $message }}</span>
                             @enderror
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Bottles</label>
+                            <input type="number" 
+                                   name="bottles" 
+                                   id="bottles" 
+                                   class="form-control" 
+                                   placeholder="Bottles" 
+                                   min="0" 
+                                   value="{{ old('bottles', $model->bottles ?? 0) }}" 
+                                   {{ $model->status != '0' ? 'disabled' : '' }}>
+                            @error('bottles')
+                                <span class="help-block text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="col-12">
+                            <div id="qtyFeedback" class="mt-1"></div>
                         </div>
 
                         @if($model->status == '1')
@@ -202,15 +228,28 @@
     
     <script>
     $(document).ready(function() {
-        let originalQty = parseInt($('#original_quantity').val()) || 0;
+        let originalCases = parseInt($('#original_quantity').val()) || 0;
+        let originalBottles = parseInt($('#original_bottles').val()) || 0;
         let originalPid = $('#original_product_id').val();
+
+        function formatCasesBottles(c, b) {
+            c = parseInt(c) || 0;
+            b = parseInt(b) || 0;
+            if (c > 0 && b > 0) return c + ' Cases + ' + b + ' Bottles';
+            if (c > 0) return c + ' Cases';
+            if (b > 0) return b + ' Bottles';
+            return '0 Cases';
+        }
 
         function checkEditStock() {
             let select = $('#product_id');
             let selectedOpt = select.find('option:selected');
             let pid = select.val();
-            let stock = parseInt(selectedOpt.attr('data-stock')) || 0;
-            let qty = parseInt($('#per_case_quantity').val()) || 0;
+            let availCases = parseInt(selectedOpt.attr('data-stock')) || 0;
+            let availBottles = parseInt(selectedOpt.attr('data-bottles')) || 0;
+            let packaging = parseInt(selectedOpt.attr('data-packaging')) || 0;
+            let cases = parseInt($('#per_case_quantity').val()) || 0;
+            let bottles = parseInt($('#bottles').val()) || 0;
 
             if (!pid) {
                 $('#stockBadge').html('');
@@ -218,28 +257,52 @@
                 return true;
             }
 
-            // If same product, effective available is current available + original already assigned
-            let maxAllowed = (pid == originalPid) ? (stock + originalQty) : stock;
-
-            if (stock <= 0 && pid != originalPid) {
+            let availText = formatCasesBottles(availCases, availBottles);
+            if (availCases <= 0 && availBottles <= 0 && pid != originalPid) {
                 $('#stockBadge').html('<span class="badge bg-danger-subtle text-danger border border-danger p-2"><i class="fa fa-triangle-exclamation me-1"></i> Factory Stock: 0 Cases (Out of Stock)</span>');
             } else {
-                $('#stockBadge').html(`<span class="badge bg-success-subtle text-success border border-success p-2"><i class="fa fa-boxes-stacked me-1"></i> Available Factory Stock: <strong>${stock} Cases</strong></span>`);
+                $('#stockBadge').html(`<span class="badge bg-success-subtle text-success border border-success p-2"><i class="fa fa-boxes-stacked me-1"></i> Available Factory Stock: <strong>${availText}</strong></span>`);
             }
 
-            if (qty > maxAllowed) {
-                $('#per_case_quantity').addClass('is-invalid');
-                $('#qtyFeedback').html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Cannot exceed available factory stock (${maxAllowed} Cases max allowed)!</div>`);
-                return false;
-            } else {
-                $('#per_case_quantity').removeClass('is-invalid');
+            if ($('#per_case_quantity').prop('disabled')) {
                 $('#qtyFeedback').html('');
                 return true;
             }
+
+            if (cases <= 0 && bottles <= 0) {
+                $('#per_case_quantity, #bottles').addClass('is-invalid');
+                $('#qtyFeedback').html('<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Please enter at least 1 Case or 1 Bottle.</div>');
+                return false;
+            }
+
+            if (packaging > 0) {
+                let availTotal = (availCases * packaging) + availBottles;
+                if (pid == originalPid) {
+                    availTotal += (originalCases * packaging) + originalBottles;
+                }
+                let reqTotal = (cases * packaging) + bottles;
+                if (reqTotal > availTotal) {
+                    $('#per_case_quantity, #bottles').addClass('is-invalid');
+                    $('#qtyFeedback').html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Requested (${formatCasesBottles(cases, bottles)}) exceeds available factory stock!</div>`);
+                    return false;
+                }
+            } else {
+                let maxCases = (pid == originalPid) ? (availCases + originalCases) : availCases;
+                let maxBottles = (pid == originalPid) ? (availBottles + originalBottles) : availBottles;
+                if (cases > maxCases || bottles > maxBottles) {
+                    $('#per_case_quantity, #bottles').addClass('is-invalid');
+                    $('#qtyFeedback').html(`<div class="text-danger small fw-bold mt-1"><i class="fa fa-circle-xmark me-1"></i> Cannot exceed available factory stock (${formatCasesBottles(maxCases, maxBottles)})!</div>`);
+                    return false;
+                }
+            }
+
+            $('#per_case_quantity, #bottles').removeClass('is-invalid');
+            $('#qtyFeedback').html('');
+            return true;
         }
 
         $('#product_id').on('change', checkEditStock);
-        $('#per_case_quantity').on('input keyup change', checkEditStock);
+        $('#per_case_quantity, #bottles').on('input keyup change', checkEditStock);
         checkEditStock();
 
         $('#editAssignForm').on('submit', function(e) {

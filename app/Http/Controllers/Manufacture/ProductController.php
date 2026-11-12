@@ -25,18 +25,56 @@ class ProductController extends Controller
         return view('manufacture.product.list');
     }
     
+    private function formatQtyText(int $cases, int $bottles): string
+    {
+        if ($cases > 0 && $bottles > 0) {
+            return "{$cases} Cases + {$bottles} Bottles";
+        } elseif ($cases > 0) {
+            return "{$cases} Cases";
+        } elseif ($bottles > 0) {
+            return "{$bottles} Bottles";
+        }
+        return "0 Cases";
+    }
+
+    private function adjustManufactureStock(int $mfgId, int $productId, int $deltaCases, int $deltaBottles): void
+    {
+        $product = Product::find($productId);
+        $perCaseQty = $product ? (int)$product->per_case_quantity : 0;
+
+        $mStock = ManufactureStock::firstOrCreate(
+            ['manufacture_id' => $mfgId, 'product_id' => $productId],
+            ['stock' => 0, 'bottles' => 0]
+        );
+
+        if ($perCaseQty > 0) {
+            $currentTotal = ((int)$mStock->stock * $perCaseQty) + (int)$mStock->bottles;
+            $deltaTotal = ($deltaCases * $perCaseQty) + $deltaBottles;
+            $newTotal = max(0, $currentTotal + $deltaTotal);
+            $mStock->stock = intdiv($newTotal, $perCaseQty);
+            $mStock->bottles = $newTotal % $perCaseQty;
+        } else {
+            $mStock->stock = max(0, (int)$mStock->stock + $deltaCases);
+            $mStock->bottles = max(0, (int)$mStock->bottles + $deltaBottles);
+        }
+
+        $mStock->save();
+    }
+
     public function create(Request $request){
         $mfg_id = Auth::guard('backend')->user()->id;
         $warehouses = Admin::where('role_id','4')->where('status','1')->get();
         $products = Product::where('status','1')->orderBy('name', 'asc')->get();
 
-        // Attach current factory stock for this manufacturer
-        $stocks = ManufactureStock::where('manufacture_id', $mfg_id)
-            ->pluck('stock', 'product_id')
-            ->toArray();
+        // Attach current factory stock (cases + bottles) for this manufacturer
+        $stockRows = ManufactureStock::where('manufacture_id', $mfg_id)
+            ->get()
+            ->keyBy('product_id');
 
         foreach ($products as $product) {
-            $product->factory_stock = isset($stocks[$product->id]) ? (int)$stocks[$product->id] : 0;
+            $row = $stockRows->get($product->id);
+            $product->factory_stock = $row ? (int)$row->stock : 0;
+            $product->factory_bottles = $row ? (int)$row->bottles : 0;
         }
 
         return view('manufacture.product.add', compact(['warehouses','products']));
@@ -48,14 +86,26 @@ class ProductController extends Controller
             'assign_date' => 'nullable|date',
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.per_case_quantity' => 'required|integer|min:1',
+            'products.*.per_case_quantity' => 'nullable|integer|min:0',
+            'products.*.bottles' => 'nullable|integer|min:0',
         ], [
             'warehouse_id.required' => 'Please select a warehouse.',
             'products.required' => 'Please add at least one product.',
             'products.*.product_id.required' => 'Please select a product.',
-            'products.*.per_case_quantity.required' => 'Please enter quantity in case.',
-            'products.*.per_case_quantity.min' => 'Quantity must be at least 1 case.',
+            'products.*.per_case_quantity.min' => 'Cases cannot be negative.',
+            'products.*.bottles.min' => 'Bottles cannot be negative.',
         ]);
+
+        foreach ($request->products as $index => $p) {
+            $cases = (int)($p['per_case_quantity'] ?? 0);
+            $bottles = (int)($p['bottles'] ?? 0);
+            if ($cases <= 0 && $bottles <= 0) {
+                return redirect()->back()
+                    ->withErrors(['products.' . $index . '.per_case_quantity' => 'Please enter at least 1 Case or 1 Bottle for each product.'])
+                    ->withInput()
+                    ->with('error_msg', 'Please enter at least 1 Case or 1 Bottle for each product.');
+            }
+        }
 
         $mfg_id = Auth::guard('backend')->user()->id;
         $warehouse = Admin::find($request->warehouse_id);
@@ -64,24 +114,40 @@ class ProductController extends Controller
         $requestedTotals = [];
         foreach ($request->products as $p) {
             $pId = (int)$p['product_id'];
-            $qty = (int)$p['per_case_quantity'];
-            $requestedTotals[$pId] = ($requestedTotals[$pId] ?? 0) + $qty;
+            $cases = (int)($p['per_case_quantity'] ?? 0);
+            $bottles = (int)($p['bottles'] ?? 0);
+            if (!isset($requestedTotals[$pId])) {
+                $requestedTotals[$pId] = ['cases' => 0, 'bottles' => 0];
+            }
+            $requestedTotals[$pId]['cases'] += $cases;
+            $requestedTotals[$pId]['bottles'] += $bottles;
         }
 
         // Validate available factory stock for each product
         $stockErrors = [];
-        foreach ($requestedTotals as $pId => $totalRequestedQty) {
+        foreach ($requestedTotals as $pId => $reqQty) {
             $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
                 ->where('product_id', $pId)
                 ->first();
-            $availableStock = $mStock ? (int)$mStock->stock : 0;
+            $availCases = $mStock ? (int)$mStock->stock : 0;
+            $availBottles = $mStock ? (int)$mStock->bottles : 0;
             $productObj = Product::find($pId);
             $productName = $productObj ? $productObj->name : "Product #{$pId}";
+            $perCaseQty = $productObj ? (int)$productObj->per_case_quantity : 0;
 
-            if ($availableStock <= 0) {
-                $stockErrors[] = "{$productName}: Factory stock is out of stock (Available: 0 Cases, Requested: {$totalRequestedQty} Cases).";
-            } elseif ($totalRequestedQty > $availableStock) {
-                $stockErrors[] = "{$productName}: Requested quantity ({$totalRequestedQty} Cases) exceeds available factory stock ({$availableStock} Cases).";
+            $availText = $this->formatQtyText($availCases, $availBottles);
+            $reqText = $this->formatQtyText($reqQty['cases'], $reqQty['bottles']);
+
+            if ($availCases <= 0 && $availBottles <= 0) {
+                $stockErrors[] = "{$productName}: Factory stock is out of stock (Available: 0 Cases, Requested: {$reqText}).";
+            } elseif ($perCaseQty > 0) {
+                $totalAvailBottles = ($availCases * $perCaseQty) + $availBottles;
+                $totalReqBottles = ($reqQty['cases'] * $perCaseQty) + $reqQty['bottles'];
+                if ($totalReqBottles > $totalAvailBottles) {
+                    $stockErrors[] = "{$productName}: Requested quantity ({$reqText}) exceeds available factory stock ({$availText}).";
+                }
+            } elseif ($reqQty['cases'] > $availCases || $reqQty['bottles'] > $availBottles) {
+                $stockErrors[] = "{$productName}: Requested quantity ({$reqText}) exceeds available factory stock ({$availText}).";
             }
         }
 
@@ -99,38 +165,39 @@ class ProductController extends Controller
         DB::beginTransaction();
         try {
             foreach ($request->products as $product) {
+                $cases = (int)($product['per_case_quantity'] ?? 0);
+                $bottles = (int)($product['bottles'] ?? 0);
+
                 WarehouseProduct::create([
                     'warehouse_id' => $request->warehouse_id,
                     'product_id' => $product['product_id'],
-                    'per_case_quantity' => $product['per_case_quantity'],
+                    'per_case_quantity' => $cases,
+                    'bottles' => $bottles,
                     'assign_date' => $assignDate,
                     'created_at' => $assignTimestamp,
                 ]);
 
-                // Deduct from Manufacture Stock
-                $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
-                    ->where('product_id', $product['product_id'])
-                    ->first();
-                if ($mStock) {
-                    $mStock->stock = max(0, $mStock->stock - $product['per_case_quantity']);
-                    $mStock->save();
-                }
+                // Deduct from Manufacture Stock (cases + bottles)
+                $this->adjustManufactureStock($mfg_id, (int)$product['product_id'], -$cases, -$bottles);
 
                 // Log deduction in ManufactureStockLog
                 ManufactureStockLog::create([
                     'manufacture_id' => $mfg_id,
                     'product_id' => $product['product_id'],
                     'type' => 'dispatch',
-                    'quantity' => $product['per_case_quantity'],
+                    'quantity' => $cases,
+                    'bottles' => $bottles,
                     'warehouse_id' => $request->warehouse_id,
-                    'note' => 'Dispatched to Warehouse: ' . ($warehouse ? $warehouse->name : '#' . $request->warehouse_id),
+                    'note' => 'Dispatched to Warehouse: ' . ($warehouse ? $warehouse->name : '#' . $request->warehouse_id) . ' (' . $this->formatQtyText($cases, $bottles) . ')',
                     'created_at' => $assignTimestamp,
                 ]);
 
                 $productDetail = Product::find($product['product_id']);
                 $assignedProducts[] = [
                     'name' => $productDetail ? $productDetail->name : 'N/A',
-                    'per_case_quantity' => $product['per_case_quantity'],
+                    'per_case_quantity' => $cases,
+                    'bottles' => $bottles,
+                    'qty_text' => $this->formatQtyText($cases, $bottles),
                 ];
             }
 
@@ -182,7 +249,7 @@ class ProductController extends Controller
             })
 
             ->editColumn('per_case_quantity', function ($model) {
-                return '<span class="text-white">' . $model->per_case_quantity . ' Cases</span>';
+                return '<span class="text-white">' . $this->formatQtyText((int)$model->per_case_quantity, (int)($model->bottles ?? 0)) . '</span>';
             })
 
             ->editColumn('status', function ($model) {                
@@ -231,22 +298,22 @@ class ProductController extends Controller
         $model = DB::table('warehouse_products')->where('id', $id)->first();
         
         if (!empty($model)) {
-            // Restore manufacturer stock
+            // Restore manufacturer stock (cases + bottles)
             $mfg_id = Auth::guard('backend')->user()->id;
-            $mStock = ManufactureStock::where('manufacture_id', $mfg_id)->where('product_id', $model->product_id)->first();
-            if ($mStock) {
-                $mStock->stock += $model->per_case_quantity;
-                $mStock->save();
+            $oldCases = (int)$model->per_case_quantity;
+            $oldBottles = (int)($model->bottles ?? 0);
 
-                ManufactureStockLog::create([
-                    'manufacture_id' => $mfg_id,
-                    'product_id' => $model->product_id,
-                    'type' => 'adjustment',
-                    'quantity' => $model->per_case_quantity,
-                    'warehouse_id' => $model->warehouse_id,
-                    'note' => 'Restored stock from deleted warehouse assignment #' . $model->id,
-                ]);
-            }
+            $this->adjustManufactureStock($mfg_id, (int)$model->product_id, $oldCases, $oldBottles);
+
+            ManufactureStockLog::create([
+                'manufacture_id' => $mfg_id,
+                'product_id' => $model->product_id,
+                'type' => 'adjustment',
+                'quantity' => $oldCases,
+                'bottles' => $oldBottles,
+                'warehouse_id' => $model->warehouse_id,
+                'note' => 'Restored stock from deleted warehouse assignment #' . $model->id . ' (' . $this->formatQtyText($oldCases, $oldBottles) . ')',
+            ]);
 
             if(DB::table('warehouse_products')->where('id',$id)->delete()){
                 return redirect()->route('manufacture-products')->withSuccess('Product assignment deleted and stock restored successfully.');
@@ -270,12 +337,14 @@ class ProductController extends Controller
         }
 
         $mfg_id = Auth::guard('backend')->user()->id;
-        $stocks = ManufactureStock::where('manufacture_id', $mfg_id)
-            ->pluck('stock', 'product_id')
-            ->toArray();
+        $stockRows = ManufactureStock::where('manufacture_id', $mfg_id)
+            ->get()
+            ->keyBy('product_id');
 
         foreach ($products as $product) {
-            $product->factory_stock = isset($stocks[$product->id]) ? (int)$stocks[$product->id] : 0;
+            $row = $stockRows->get($product->id);
+            $product->factory_stock = $row ? (int)$row->stock : 0;
+            $product->factory_bottles = $row ? (int)$row->bottles : 0;
         }
 
         return view('manufacture.product.edit', compact(['model','warehouses','products','id']));
@@ -308,55 +377,78 @@ class ProductController extends Controller
             'warehouse_products_id' => 'required|integer',
             'warehouse_id' => 'required|exists:admins,id',
             'product_id' => 'required|exists:products,id',
-            'per_case_quantity' => 'required|integer|min:1',
+            'per_case_quantity' => 'nullable|integer|min:0',
+            'bottles' => 'nullable|integer|min:0',
             'assign_date' => 'nullable|date',
         ]);
 
+        $newCases = (int)($request->per_case_quantity ?? 0);
+        $newBottles = (int)($request->bottles ?? 0);
+        if ($newCases <= 0 && $newBottles <= 0) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error_msg', 'Please enter at least 1 Case or 1 Bottle.');
+        }
+
         $mfg_id = Auth::guard('backend')->user()->id;
+        $productObj = Product::find($request->product_id);
+        $perCaseQty = $productObj ? (int)$productObj->per_case_quantity : 0;
 
         $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
             ->where('product_id', $request->product_id)
             ->first();
-        $availableStock = $mStock ? (int)$mStock->stock : 0;
+        $availCases = $mStock ? (int)$mStock->stock : 0;
+        $availBottles = $mStock ? (int)$mStock->bottles : 0;
+
+        $oldCases = (int)$oldRecord->per_case_quantity;
+        $oldBottles = (int)($oldRecord->bottles ?? 0);
+        $reqText = $this->formatQtyText($newCases, $newBottles);
+        $availText = $this->formatQtyText($availCases, $availBottles);
 
         // If editing same product
         if ($oldRecord->product_id == $request->product_id) {
-            $diff = $request->per_case_quantity - $oldRecord->per_case_quantity;
-            if ($diff > 0 && $diff > $availableStock) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error_msg', "Insufficient factory stock. Additional needed: {$diff} Cases, but only {$availableStock} Cases available.");
+            if ($perCaseQty > 0) {
+                $availTotal = ($availCases * $perCaseQty) + $availBottles + ($oldCases * $perCaseQty) + $oldBottles;
+                $reqTotal = ($newCases * $perCaseQty) + $newBottles;
+                if ($reqTotal > $availTotal) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error_msg', "Insufficient factory stock. Requested ({$reqText}) exceeds available factory stock.");
+                }
+            } else {
+                if (($newCases - $oldCases) > $availCases || ($newBottles - $oldBottles) > $availBottles) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error_msg', "Insufficient factory stock. Available: {$availText}.");
+                }
             }
-            if ($mStock) {
-                $mStock->stock = max(0, $mStock->stock - $diff);
-                $mStock->save();
-            }
+            $this->adjustManufactureStock($mfg_id, (int)$request->product_id, $oldCases - $newCases, $oldBottles - $newBottles);
         } else {
             // Changed product
-            if ($request->per_case_quantity > $availableStock) {
+            if ($perCaseQty > 0) {
+                $availTotal = ($availCases * $perCaseQty) + $availBottles;
+                $reqTotal = ($newCases * $perCaseQty) + $newBottles;
+                if ($reqTotal > $availTotal) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error_msg', "Insufficient factory stock for selected product. Requested: {$reqText}, Available: {$availText}.");
+                }
+            } elseif ($newCases > $availCases || $newBottles > $availBottles) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error_msg', "Insufficient factory stock for selected product. Requested: {$request->per_case_quantity} Cases, Available: {$availableStock} Cases.");
+                    ->with('error_msg', "Insufficient factory stock for selected product. Requested: {$reqText}, Available: {$availText}.");
             }
-            // Refund old product stock
-            $oldStock = ManufactureStock::where('manufacture_id', $mfg_id)
-                ->where('product_id', $oldRecord->product_id)
-                ->first();
-            if ($oldStock) {
-                $oldStock->stock += $oldRecord->per_case_quantity;
-                $oldStock->save();
-            }
-            // Deduct new product stock
-            if ($mStock) {
-                $mStock->stock = max(0, $mStock->stock - $request->per_case_quantity);
-                $mStock->save();
-            }
+
+            // Refund old product stock & deduct new product stock
+            $this->adjustManufactureStock($mfg_id, (int)$oldRecord->product_id, $oldCases, $oldBottles);
+            $this->adjustManufactureStock($mfg_id, (int)$request->product_id, -$newCases, -$newBottles);
         }
 
         $updateData = [
             'warehouse_id'      => $request->warehouse_id,
             'product_id'        => $request->product_id,
-            'per_case_quantity' => $request->per_case_quantity,
+            'per_case_quantity' => $newCases,
+            'bottles'           => $newBottles,
         ];
         if ($request->filled('assign_date')) {
             $assignDate = date('Y-m-d', strtotime($request->assign_date));
