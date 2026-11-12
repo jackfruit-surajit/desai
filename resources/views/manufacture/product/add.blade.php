@@ -149,7 +149,7 @@
                 <form method="POST" action="{{ route('manufacture-product-store') }}" id="assignProductForm" enctype="multipart/form-data">
                     @csrf
 
-                    {{-- Warehouse Selection --}}
+                    {{-- Warehouse Selection & Assign Date --}}
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label class="form-label text-white fw-bold">
@@ -167,6 +167,16 @@
                             </select>
 
                             @error('warehouse_id')
+                                <span class="help-block text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-bold">
+                                Assign Date <span class="required">*</span>
+                            </label>
+                            <input type="date" name="assign_date" class="form-control" value="{{ old('assign_date', date('Y-m-d')) }}" required>
+                            @error('assign_date')
                                 <span class="help-block text-danger">{{ $message }}</span>
                             @enderror
                         </div>

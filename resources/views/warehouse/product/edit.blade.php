@@ -41,6 +41,9 @@
     .form-control::placeholder {
         color: rgba(255, 255, 255, 0.65) !important;
     }
+    input[type="date"].form-control {
+        color-scheme: dark;
+    }
 
     /* Disabled and readonly inputs styling with white text */
     .form-control:disabled, 
@@ -148,23 +151,59 @@
                             @enderror
                         </div>
                         
+                        @php
+                            $assignDateDisplay = !empty($model->assign_date)
+                                ? date('d M, Y', strtotime($model->assign_date))
+                                : date('d M, Y', strtotime($model->created_at));
+                            $acceptDateVal = old(
+                                'accept_date',
+                                !empty($model->accept_date)
+                                    ? date('Y-m-d', strtotime($model->accept_date))
+                                    : ($model->status == '1' ? date('Y-m-d', strtotime($model->updated_at)) : date('Y-m-d'))
+                            );
+                        @endphp
+
+                        <div class="col-md-6">
+                            <label class="form-label">Assign Date</label>
+                            <input type="text" class="form-control" value="{{ $assignDateDisplay }}" readonly>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label">Status <span class="required text-danger">*</span></label>
-                            <select name="status" class="form-control product-select" required>
-                                <option value="1" @if($model->status == '1') {{'selected'}} @endif>Confirmed</option>
-                                <option value="2" @if($model->status == '2') {{'selected'}} @endif>Reject</option>
-                                <option value="0" @if($model->status == '0') {{'selected'}} @endif>Pending</option>
-                            </select>
+                            @if($model->status == '1')
+                                <input type="hidden" name="status" value="1">
+                                <select id="status_select" class="form-control product-select" disabled>
+                                    <option value="1" selected>Confirmed</option>
+                                </select>
+                            @else
+                                <select name="status" id="status_select" class="form-control product-select" required>
+                                    <option value="1" @if($model->status == '1') {{'selected'}} @endif>Confirmed</option>
+                                    <option value="2" @if($model->status == '2') {{'selected'}} @endif>Reject</option>
+                                    <option value="0" @if($model->status == '0') {{'selected'}} @endif>Pending</option>
+                                </select>
+                            @endif
                             
                             @error('status')
                                 <span class="help-block text-danger">{{ $message }}</span>
                             @enderror
+                        </div>
 
+                        <div class="col-md-6" id="accept_date_group" style="{{ $model->status == '2' ? 'display:none;' : '' }}">
+                            <label class="form-label">Assignment Accept Date <span class="required text-danger">*</span></label>
+                            <input type="date"
+                                   name="accept_date"
+                                   id="accept_date"
+                                   class="form-control"
+                                   value="{{ $acceptDateVal }}"
+                                   {{ $model->status == '2' ? 'disabled' : '' }}>
+                            @error('accept_date')
+                                <span class="help-block text-danger">{{ $message }}</span>
+                            @enderror
                         </div>
                         
                         <div class="col-md-12">
                             <label class="form-label">Comment</label>
-                            <textarea name="comment" class="form-control" rows="4">{{$model->comment}}</textarea>
+                            <textarea name="comment" class="form-control" rows="4">{{ old('comment', $model->comment) }}</textarea>
                             @error('comment')
                                 <span class="help-block text-danger">{{ $message }}</span>
                             @enderror
@@ -174,6 +213,11 @@
                         <div class="col-md-12 text-end btn-page">
                             <a href="{{route('warehouse-products')}}" class="btn btn-outline-secondary me-2">Cancel</a>
                             <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                        @elseif($model->status == '1')
+                        <div class="col-md-12 text-end btn-page">
+                            <a href="{{route('warehouse-products')}}" class="btn btn-outline-secondary me-2">Back</a>
+                            <button type="submit" class="btn btn-primary">Update Accept Date</button>
                         </div>
                         @else
                         <div class="col-md-12 text-end btn-page">
@@ -194,6 +238,18 @@
 @section('scripts')
     <!-- [Page Specific JS] start -->
     <script>
+        function toggleAcceptDate() {
+            var statusVal = $('#status_select').val();
+            if (statusVal == '2') {
+                $('#accept_date_group').hide();
+                $('#accept_date').prop('disabled', true);
+            } else {
+                $('#accept_date_group').show();
+                $('#accept_date').prop('disabled', false);
+            }
+        }
+        $('#status_select').on('change', toggleAcceptDate);
+
         $('#per_case_price').keyup(function(){
             var case_price = $(this).val();
             var per_case_quantity = $("#per_case_quantity").val();

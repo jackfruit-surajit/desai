@@ -76,8 +76,17 @@ class ProductController extends Controller
                 return $status;
             })
             
-            ->editColumn('assign_date', function ($model) {                
-                return '<span class="text-white">' . date('d M, Y',strtotime($model->created_at)) . '</span>';
+            ->editColumn('assign_date', function ($model) {
+                $dateVal = !empty($model->assign_date) ? $model->assign_date : $model->created_at;
+                return '<span class="text-white">' . date('d M, Y', strtotime($dateVal)) . '</span>';
+            })
+
+            ->addColumn('accept_date', function ($model) {
+                if ($model->status == '1') {
+                    $acceptVal = !empty($model->accept_date) ? $model->accept_date : $model->updated_at;
+                    return !empty($acceptVal) ? '<span class="text-success fw-bold">' . date('d M, Y', strtotime($acceptVal)) . '</span>' : '<span class="text-white-50">-</span>';
+                }
+                return '<span class="text-white-50">-</span>';
             })
 
             ->addColumn('action', function ($model) {
@@ -92,7 +101,7 @@ class ProductController extends Controller
                         $edit . $delete.
                     '</div>';
             })
-            ->rawColumns(['product_name', 'per_case_quantity', 'status', 'action', 'assign_date'])
+            ->rawColumns(['product_name', 'per_case_quantity', 'status', 'action', 'assign_date', 'accept_date'])
             ->make(true);
     }
 
@@ -115,7 +124,8 @@ class ProductController extends Controller
         $request->validate([
             'warehouse_products_id' => 'required|integer',
             'status' => 'required|string',
-            'comment' => 'required|string',
+            'accept_date' => 'nullable|date',
+            'comment' => 'nullable|string',
         ]);
 
         $warehouse_id = Auth::guard('backend')->user()->id;
@@ -127,9 +137,30 @@ class ProductController extends Controller
             return redirect()->route('warehouse-products')->with('error_msg', 'Unauthorized or invalid product record.');
         }
 
+        $oldStatus = $record->status;
+
+        // If already accepted/verified, allow updating accept_date & comment without adding stock again
+        if ($oldStatus == '1') {
+            $acceptDate = $request->filled('accept_date')
+                ? date('Y-m-d', strtotime($request->accept_date))
+                : ($record->accept_date ?? date('Y-m-d'));
+
+            $record->update([
+                'accept_date' => $acceptDate,
+                'comment'     => $request->comment ?? $record->comment,
+            ]);
+
+            return redirect()->route('warehouse-products')->withSuccess('Assignment accept date updated successfully.');
+        }
+
+        $acceptDate = ($request->status == '1')
+            ? ($request->filled('accept_date') ? date('Y-m-d', strtotime($request->accept_date)) : date('Y-m-d'))
+            : null;
+
         $record->update([
-            'status'   => $request->status,
-            'comment'  => $request->comment,
+            'status'      => $request->status,
+            'accept_date' => $acceptDate,
+            'comment'     => $request->comment ?? '',
         ]);
             
         if($request->status == '1'){

@@ -99,7 +99,11 @@
                         <input type="hidden" id="original_quantity" value="{{$model->per_case_quantity}}">
                         <input type="hidden" id="original_product_id" value="{{$model->product_id}}">
    
-                        <div class="col-md-12">
+                        @php
+                            $assignDateVal = old('assign_date', !empty($model->assign_date) ? date('Y-m-d', strtotime($model->assign_date)) : date('Y-m-d', strtotime($model->created_at)));
+                        @endphp
+
+                        <div class="col-md-6">
                             <label class="form-label">Warehouse <span class="required text-danger">*</span></label>
                             <select name="warehouse_id" class="form-control" required {{ $model->status != '0' ? 'disabled' : '' }}>
                                 <option value="">Select Warehouse</option>
@@ -110,6 +114,19 @@
                                 @endforeach
                             </select>
                             @error('warehouse_id')
+                                <span class="help-block text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Assign Date <span class="required text-danger">*</span></label>
+                            <input type="date"
+                                   name="assign_date"
+                                   id="assign_date"
+                                   class="form-control"
+                                   value="{{ $assignDateVal }}"
+                                   required>
+                            @error('assign_date')
                                 <span class="help-block text-danger">{{ $message }}</span>
                             @enderror
                         </div>
@@ -151,6 +168,13 @@
                             @enderror
                         </div>
 
+                        @if($model->status == '1')
+                        <div class="col-md-6">
+                            <label class="form-label">Warehouse Accept Date</label>
+                            <input type="text" class="form-control" value="{{ !empty($model->accept_date) ? date('d M, Y', strtotime($model->accept_date)) : date('d M, Y', strtotime($model->updated_at)) }}" readonly>
+                        </div>
+                        @endif
+
                         @if($model->status == '0')
                         <div class="col-md-12 text-end btn-page mt-4">
                             <a href="{{route('manufacture-products')}}" class="btn btn-outline-secondary me-2">Cancel</a>
@@ -158,7 +182,8 @@
                         </div>
                         @else
                         <div class="col-md-12 text-end btn-page mt-4">
-                            <a href="{{route('manufacture-products')}}" class="btn btn-outline-secondary">Back</a>
+                            <a href="{{route('manufacture-products')}}" class="btn btn-outline-secondary me-2">Back</a>
+                            <button type="submit" class="btn btn-primary">Update Assign Date</button>
                         </div>
                         @endif
                         
@@ -218,6 +243,9 @@
         checkEditStock();
 
         $('#editAssignForm').on('submit', function(e) {
+            if ($('#per_case_quantity').prop('disabled')) {
+                return true;
+            }
             if (!checkEditStock()) {
                 e.preventDefault();
                 if (typeof $.alert === 'function') {

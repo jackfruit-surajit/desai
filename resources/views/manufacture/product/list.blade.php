@@ -109,7 +109,8 @@
                             <th scope="col">Product Name</th>
                             <th scope="col">Quantity (Case)</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Date</th>
+                            <th scope="col">Assign Date</th>
+                            <th scope="col">Accept Date</th>
                             <th scope="col" style="width: 10%;">Actions</th>
                         </tr>
                     </thead>
@@ -154,6 +155,7 @@
                 {data: 'per_case_quantity', name: 'per_case_quantity'},
                 {data: 'status', name: 'status'},
                 {data: 'assign_date', name: 'assign_date'},
+                {data: 'accept_date', name: 'accept_date'},
                 {data: 'action', name: 'action', orderable: false, searchable: false}
             ]
         });

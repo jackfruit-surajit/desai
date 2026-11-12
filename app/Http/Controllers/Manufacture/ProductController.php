@@ -45,6 +45,7 @@ class ProductController extends Controller
     public function store(Request $request){
         $request->validate([
             'warehouse_id' => 'required|exists:admins,id',
+            'assign_date' => 'nullable|date',
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
             'products.*.per_case_quantity' => 'required|integer|min:1',
@@ -92,6 +93,8 @@ class ProductController extends Controller
         }
 
         $assignedProducts = [];
+        $assignDate = $request->filled('assign_date') ? date('Y-m-d', strtotime($request->assign_date)) : date('Y-m-d');
+        $assignTimestamp = $assignDate . ' ' . date('H:i:s');
 
         DB::beginTransaction();
         try {
@@ -100,6 +103,8 @@ class ProductController extends Controller
                     'warehouse_id' => $request->warehouse_id,
                     'product_id' => $product['product_id'],
                     'per_case_quantity' => $product['per_case_quantity'],
+                    'assign_date' => $assignDate,
+                    'created_at' => $assignTimestamp,
                 ]);
 
                 // Deduct from Manufacture Stock
@@ -119,6 +124,7 @@ class ProductController extends Controller
                     'quantity' => $product['per_case_quantity'],
                     'warehouse_id' => $request->warehouse_id,
                     'note' => 'Dispatched to Warehouse: ' . ($warehouse ? $warehouse->name : '#' . $request->warehouse_id),
+                    'created_at' => $assignTimestamp,
                 ]);
 
                 $productDetail = Product::find($product['product_id']);
@@ -146,7 +152,7 @@ class ProductController extends Controller
                     'warehouse_email'   => $warehouse->email,
                     'manufacturer_name' => $manufacturer ? $manufacturer->name : 'Manufacturer',
                     'products'          => $assignedProducts,
-                    'date'              => date('d M, Y h:i A'),
+                    'date'              => date('d M, Y', strtotime($assignDate)) . ' ' . date('h:i A'),
                     'login_url'         => route('warehouse-login'),
                 ];
 
@@ -191,15 +197,24 @@ class ProductController extends Controller
                 return $status;
             })
             
-            ->editColumn('assign_date', function ($model) {                
-                return '<span class="text-white">' . date('d M, Y',strtotime($model->created_at)) . '</span>';
+            ->editColumn('assign_date', function ($model) {
+                $dateVal = !empty($model->assign_date) ? $model->assign_date : $model->created_at;
+                return '<span class="text-white">' . date('d M, Y', strtotime($dateVal)) . '</span>';
+            })
+
+            ->addColumn('accept_date', function ($model) {
+                if ($model->status == '1') {
+                    $acceptVal = !empty($model->accept_date) ? $model->accept_date : $model->updated_at;
+                    return !empty($acceptVal) ? '<span class="text-success fw-bold">' . date('d M, Y', strtotime($acceptVal)) . '</span>' : '<span class="text-white-50">-</span>';
+                }
+                return '<span class="text-white-50">-</span>';
             })
 
             ->addColumn('action', function ($model) {
 
                 $edit = $delete = '';
 
-                $edit = '<a href="' . Route("manufacture-product-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="View Details"><i class="fa fa-eye"></i> View</span></a>';   
+                $edit = '<a href="' . Route("manufacture-product-edit", ['id' => base64_encode($model->id)]) . '"><span class="badge rounded-pill text-bg-primary" title="View / Edit Details"><i class="fa fa-eye"></i> View</span></a>';   
                 $delete = '<a href="' . Route("manufacture-product-delete", ['id' => base64_encode($model->id)]) . '" ><span class="badge rounded-pill text-bg-danger"><i class="fa fa-trash" title="Delete"></i> Delete</span></a>';
              
                 return
@@ -207,7 +222,7 @@ class ProductController extends Controller
                         $edit . $delete.
                     '</div>';
             })
-            ->rawColumns(['warehouse_name', 'product_name', 'per_case_quantity', 'status', 'action', 'assign_date'])
+            ->rawColumns(['warehouse_name', 'product_name', 'per_case_quantity', 'status', 'action', 'assign_date', 'accept_date'])
             ->make(true);
     }
     
@@ -267,22 +282,37 @@ class ProductController extends Controller
     }
     
     public function update(Request $request){
-        $request->validate([
-            'warehouse_products_id' => 'required|integer',
-            'warehouse_id' => 'required|exists:admins,id',
-            'product_id' => 'required|exists:products,id',
-            'per_case_quantity' => 'required|integer|min:1',
-        ]);
-
-        $mfg_id = Auth::guard('backend')->user()->id;
         $oldRecord = WarehouseProduct::find($request->warehouse_products_id);
         if (!$oldRecord) {
             return redirect()->back()->with('error_msg', 'Assigned product record not found.');
         }
 
+        // Allow updating assign_date even after warehouse verification/rejection without altering stock
         if ($oldRecord->status != '0') {
-            return redirect()->back()->with('error_msg', 'Only pending product assignments can be edited.');
+            $request->validate([
+                'warehouse_products_id' => 'required|integer',
+                'assign_date' => 'required|date',
+            ]);
+            $assignDate = date('Y-m-d', strtotime($request->assign_date));
+            $oldTime = $oldRecord->created_at ? date('H:i:s', strtotime($oldRecord->created_at)) : date('H:i:s');
+
+            WarehouseProduct::where('id', $request->warehouse_products_id)->update([
+                'assign_date' => $assignDate,
+                'created_at'  => $assignDate . ' ' . $oldTime,
+            ]);
+
+            return redirect()->route('manufacture-products')->withSuccess('Assign date updated successfully.');
         }
+
+        $request->validate([
+            'warehouse_products_id' => 'required|integer',
+            'warehouse_id' => 'required|exists:admins,id',
+            'product_id' => 'required|exists:products,id',
+            'per_case_quantity' => 'required|integer|min:1',
+            'assign_date' => 'nullable|date',
+        ]);
+
+        $mfg_id = Auth::guard('backend')->user()->id;
 
         $mStock = ManufactureStock::where('manufacture_id', $mfg_id)
             ->where('product_id', $request->product_id)
@@ -323,11 +353,19 @@ class ProductController extends Controller
             }
         }
 
-        WarehouseProduct::where('id', $request->warehouse_products_id)->update([
+        $updateData = [
             'warehouse_id'      => $request->warehouse_id,
             'product_id'        => $request->product_id,
             'per_case_quantity' => $request->per_case_quantity,
-        ]);
+        ];
+        if ($request->filled('assign_date')) {
+            $assignDate = date('Y-m-d', strtotime($request->assign_date));
+            $oldTime = $oldRecord->created_at ? date('H:i:s', strtotime($oldRecord->created_at)) : date('H:i:s');
+            $updateData['assign_date'] = $assignDate;
+            $updateData['created_at'] = $assignDate . ' ' . $oldTime;
+        }
+
+        WarehouseProduct::where('id', $request->warehouse_products_id)->update($updateData);
 
         return redirect()->route('manufacture-products')->withSuccess('Assigned product updated successfully.');
     }
