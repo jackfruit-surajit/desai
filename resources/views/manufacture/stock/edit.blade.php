@@ -123,14 +123,20 @@
                         <span class="text-muted">Total Dispatched</span>
                         <span class="badge bg-info text-dark" style="font-size:13px;">{{ $totalDispatched ?? 0 }} Cases</span>
                     </div>
+                    @php
+                        $curBottles = $currentBottles ?? 0;
+                        $stockLabel = ($currentStock > 0 && $curBottles > 0)
+                            ? "{$currentStock} Cases + {$curBottles} Bottles"
+                            : ($currentStock > 0 ? "{$currentStock} Cases" : ($curBottles > 0 ? "{$curBottles} Bottles" : "0 Cases"));
+                    @endphp
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span class="text-muted">Current Factory Stock</span>
-                        @if($currentStock <= 0)
+                        @if($currentStock <= 0 && $curBottles <= 0)
                             <span class="badge bg-danger" style="font-size:13px;">0 Cases (Out of Stock)</span>
                         @elseif($currentStock <= 50)
-                            <span class="badge bg-warning text-dark" style="font-size:13px;">{{ $currentStock }} Cases (Low Stock)</span>
+                            <span class="badge bg-warning text-dark" style="font-size:13px;">{{ $stockLabel }} (Low Stock)</span>
                         @else
-                            <span class="badge bg-success" style="font-size:13px;">{{ $currentStock }} Cases</span>
+                            <span class="badge bg-success" style="font-size:13px;">{{ $stockLabel }}</span>
                         @endif
                     </div>
                 </div>
@@ -196,7 +202,7 @@
                         <small class="text-muted">Set the accurate in-hand physical stock quantity for this product</small>
                     </div>
                     <span class="badge bg-light text-dark border">
-                        Current: <strong>{{ $currentStock }} Cases</strong>
+                        Current: <strong>{{ $stockLabel }}</strong>
                     </span>
                 </div>
             </div>
@@ -206,6 +212,8 @@
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
                     <input type="hidden" id="current_stock_val" value="{{ $currentStock }}">
+                    <input type="hidden" id="current_bottles_val" value="{{ $curBottles }}">
+                    <input type="hidden" id="packaging_val" value="{{ $product->per_case_quantity ?? 0 }}">
 
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -214,12 +222,12 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Current Stock in Hand (Cases)</label>
-                            <input type="text" class="form-control" value="{{ $currentStock }} Cases" readonly>
+                            <label class="form-label">Current Stock in Hand</label>
+                            <input type="text" class="form-control" value="{{ $stockLabel }}" readonly>
                         </div>
 
-                        <div class="col-md-12">
-                            <label class="form-label fs-6">Updated / Correct Stock Quantity (Cases) <span class="text-danger">*</span></label>
+                        <div class="col-md-6">
+                            <label class="form-label fs-6">Updated Cases <span class="text-danger">*</span></label>
                             <input type="number" 
                                    name="stock" 
                                    id="stock_input" 
@@ -227,16 +235,29 @@
                                    min="0" 
                                    step="1" 
                                    value="{{ old('stock', $currentStock) }}" 
-                                   placeholder="Enter updated stock in cases" 
+                                   placeholder="Enter cases" 
                                    required>
-                            <small class="text-muted">Enter the actual count of cases physically present in factory warehouse.</small>
+                            <small class="text-muted">Enter full cases physically present.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fs-6">Updated Bottles (Loose)</label>
+                            <input type="number" 
+                                   name="bottles" 
+                                   id="bottles_input" 
+                                   class="form-control form-control-lg fw-bold text-info" 
+                                   min="0" 
+                                   step="1" 
+                                   value="{{ old('bottles', $curBottles) }}" 
+                                   placeholder="Enter loose bottles">
+                            <small class="text-muted">Enter loose bottles (if any).</small>
                         </div>
 
                         <!-- Dynamic Stock Difference Calculator -->
                         <div class="col-12">
                             <div class="diff-box neutral text-center" id="diffBox">
                                 <span class="fw-bold" id="diffText">
-                                    <i class="fa fa-equals me-1"></i> No change (Stock will remain {{ $currentStock }} Cases)
+                                    <i class="fa fa-equals me-1"></i> No change (Stock will remain {{ $stockLabel }})
                                 </span>
                             </div>
                         </div>
@@ -283,41 +304,64 @@
 @section('scripts')
 <script>
 $(document).ready(function() {
-    var currentStock = parseInt($('#current_stock_val').val()) || 0;
+    var currentCases = parseInt($('#current_stock_val').val()) || 0;
+    var currentBottles = parseInt($('#current_bottles_val').val()) || 0;
+    var packaging = parseInt($('#packaging_val').val()) || 0;
     var $stockInput = $('#stock_input');
+    var $bottlesInput = $('#bottles_input');
     var $diffBox = $('#diffBox');
     var $diffText = $('#diffText');
 
+    function formatStockStr(c, b) {
+        if (c > 0 && b > 0) return c + ' Cases + ' + b + ' Bottles';
+        if (c > 0) return c + ' Cases';
+        if (b > 0) return b + ' Bottles';
+        return '0 Cases';
+    }
+
     function calculateDiff() {
-        var rawVal = $stockInput.val();
-        if (rawVal === '') {
+        var rawCases = $stockInput.val();
+        var rawBottles = $bottlesInput.val();
+        if (rawCases === '') {
             $diffBox.attr('class', 'diff-box neutral text-center');
-            $diffText.html('<i class="fa fa-question-circle me-1"></i> Please enter a valid stock quantity');
+            $diffText.html('<i class="fa fa-question-circle me-1"></i> Please enter a valid cases quantity');
             return;
         }
 
-        var newStock = parseInt(rawVal);
-        if (isNaN(newStock) || newStock < 0) {
+        var newCases = parseInt(rawCases);
+        var newBottles = parseInt(rawBottles === '' ? 0 : rawBottles);
+        if (isNaN(newCases) || newCases < 0 || isNaN(newBottles) || newBottles < 0) {
             $diffBox.attr('class', 'diff-box decrease text-center');
-            $diffText.html('<i class="fa fa-triangle-exclamation me-1"></i> Stock quantity cannot be negative');
+            $diffText.html('<i class="fa fa-triangle-exclamation me-1"></i> Stock quantities cannot be negative');
             return;
         }
 
-        var diff = newStock - currentStock;
+        if (packaging > 0 && newBottles >= packaging) {
+            newCases += Math.floor(newBottles / packaging);
+            newBottles = newBottles % packaging;
+        }
 
-        if (diff > 0) {
+        var oldTotal = packaging > 0 ? (currentCases * packaging) + currentBottles : currentCases;
+        var newTotal = packaging > 0 ? (newCases * packaging) + newBottles : newCases;
+        var diff = newTotal - oldTotal;
+
+        var oldStr = formatStockStr(currentCases, currentBottles);
+        var newStr = formatStockStr(newCases, newBottles);
+
+        if (diff > 0 || (packaging === 0 && (newCases > currentCases || newBottles > currentBottles))) {
             $diffBox.attr('class', 'diff-box increase text-center');
-            $diffText.html('<i class="fa fa-arrow-up me-1"></i> <strong>Stock will INCREASE by +' + diff + ' Cases</strong> (from ' + currentStock + ' to ' + newStock + ' Cases)');
-        } else if (diff < 0) {
+            $diffText.html('<i class="fa fa-arrow-up me-1"></i> <strong>Stock will INCREASE</strong> (from ' + oldStr + ' to ' + newStr + ')');
+        } else if (diff < 0 || (packaging === 0 && (newCases < currentCases || newBottles < currentBottles))) {
             $diffBox.attr('class', 'diff-box decrease text-center');
-            $diffText.html('<i class="fa fa-arrow-down me-1"></i> <strong>Stock will DECREASE by ' + diff + ' Cases</strong> (from ' + currentStock + ' to ' + newStock + ' Cases)');
+            $diffText.html('<i class="fa fa-arrow-down me-1"></i> <strong>Stock will DECREASE</strong> (from ' + oldStr + ' to ' + newStr + ')');
         } else {
             $diffBox.attr('class', 'diff-box neutral text-center');
-            $diffText.html('<i class="fa fa-equals me-1"></i> <strong>No Change in Stock</strong> (remains ' + currentStock + ' Cases)');
+            $diffText.html('<i class="fa fa-equals me-1"></i> <strong>No Change in Stock</strong> (remains ' + oldStr + ')');
         }
     }
 
     $stockInput.on('input keyup change', calculateDiff);
+    $bottlesInput.on('input keyup change', calculateDiff);
     calculateDiff();
 
     // Preset reason selector

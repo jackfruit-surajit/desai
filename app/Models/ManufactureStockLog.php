@@ -13,6 +13,7 @@ class ManufactureStockLog extends Model
         'product_id',
         'type', // production, dispatch, adjustment
         'quantity',
+        'bottles',
         'warehouse_id',
         'batch_no',
         'note',

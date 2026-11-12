@@ -91,7 +91,7 @@
                         <div class="product-row">
                             <div class="row">
                                 {{-- Product Select --}}
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label text-dark fw-bold">
                                         Product <span class="required">*</span>
                                     </label>
@@ -105,12 +105,20 @@
                                     </select>
                                 </div>
 
-                                {{-- Quantity --}}
-                                <div class="col-md-4">
+                                {{-- Cases Quantity --}}
+                                <div class="col-md-3">
                                     <label class="form-label text-dark fw-bold">
-                                        Quantity (Cases) <span class="required">*</span>
+                                        Cases
                                     </label>
-                                    <input type="number" name="products[0][quantity]" class="form-control" placeholder="Enter cases produced" min="1" required>
+                                    <input type="number" name="products[0][quantity]" class="form-control" placeholder="e.g. 45" min="0" value="0">
+                                </div>
+
+                                {{-- Bottles Quantity --}}
+                                <div class="col-md-2">
+                                    <label class="form-label text-dark fw-bold">
+                                        Bottles
+                                    </label>
+                                    <input type="number" name="products[0][bottles]" class="form-control" placeholder="e.g. 12" min="0" value="0">
                                 </div>
 
                                 {{-- Remove Button --}}
@@ -165,7 +173,7 @@ $(document).ready(function () {
         let newRow = `
             <div class="product-row">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <label class="form-label text-dark fw-bold">
                             Product <span class="required">*</span>
                         </label>
@@ -178,11 +186,17 @@ $(document).ready(function () {
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label text-dark fw-bold">
-                            Quantity (Cases) <span class="required">*</span>
+                            Cases
                         </label>
-                        <input type="number" name="products[${productIndex}][quantity]" class="form-control" placeholder="Enter cases produced" min="1" required>
+                        <input type="number" name="products[${productIndex}][quantity]" class="form-control" placeholder="e.g. 45" min="0" value="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-dark fw-bold">
+                            Bottles
+                        </label>
+                        <input type="number" name="products[${productIndex}][bottles]" class="form-control" placeholder="e.g. 12" min="0" value="0">
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-danger remove-product">

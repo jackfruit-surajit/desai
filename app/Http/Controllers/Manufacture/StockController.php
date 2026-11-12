@@ -20,12 +20,40 @@ class StockController extends Controller
     /**
      * Display Factory Stock Overview
      */
+    /**
+     * Format cases and bottles into a readable string
+     */
+    private function formatStockText(int $cases, int $bottles): string
+    {
+        if ($cases > 0 && $bottles > 0) {
+            return "{$cases} Cases + {$bottles} Bottles";
+        } elseif ($cases > 0) {
+            return "{$cases} Cases";
+        } elseif ($bottles > 0) {
+            return "{$bottles} Bottles";
+        }
+        return "0 Cases";
+    }
+
+    /**
+     * Normalize loose bottles into full cases when bottles >= perCaseQty
+     */
+    private function normalizeStock(int $cases, int $bottles, int $perCaseQty): array
+    {
+        if ($perCaseQty > 0 && $bottles >= $perCaseQty) {
+            $cases += intdiv($bottles, $perCaseQty);
+            $bottles = $bottles % $perCaseQty;
+        }
+        return ['cases' => $cases, 'bottles' => $bottles];
+    }
+
     public function index(Request $request)
     {
         $mfg_id = Auth::guard('backend')->user()->id;
 
         $totalProducts = Product::where('status', '1')->count();
         $totalFactoryStock = ManufactureStock::where('manufacture_id', $mfg_id)->sum('stock');
+        $totalFactoryBottles = ManufactureStock::where('manufacture_id', $mfg_id)->sum('bottles');
         $totalDispatched = ManufactureStockLog::where('manufacture_id', $mfg_id)->where('type', 'dispatch')->sum('quantity');
         $totalWarehouseStock = WarehouseStock::sum('stock');
 
@@ -35,6 +63,7 @@ class StockController extends Controller
         return view('manufacture.stock.list', compact([
             'totalProducts',
             'totalFactoryStock',
+            'totalFactoryBottles',
             'totalDispatched',
             'totalWarehouseStock',
             'products',
@@ -67,13 +96,15 @@ class StockController extends Controller
                     ->where('product_id', $model->id)
                     ->first();
                 $stock = $stockItem ? (int)$stockItem->stock : 0;
+                $bottles = $stockItem ? (int)$stockItem->bottles : 0;
+                $label = $this->formatStockText($stock, $bottles);
 
-                if ($stock <= 0) {
+                if ($stock <= 0 && $bottles <= 0) {
                     return '<span class="badge bg-danger font-weight-bold" style="font-size:13px;">0 Cases (Out of Stock)</span>';
                 } elseif ($stock <= 50) {
-                    return '<span class="badge bg-warning text-dark font-weight-bold" style="font-size:13px;">' . $stock . ' Cases (Low Stock)</span>';
+                    return '<span class="badge bg-warning text-dark font-weight-bold" style="font-size:13px;">' . $label . ' (Low Stock)</span>';
                 } else {
-                    return '<span class="badge bg-success font-weight-bold" style="font-size:13px;">' . $stock . ' Cases</span>';
+                    return '<span class="badge bg-success font-weight-bold" style="font-size:13px;">' . $label . '</span>';
                 }
             })
             ->addColumn('total_dispatched', function ($model) use ($mfg_id) {
@@ -89,11 +120,14 @@ class StockController extends Controller
                     ->where('product_id', $model->id)
                     ->first();
                 $currentStock = $stockItem ? (int)$stockItem->stock : 0;
+                $currentBottles = $stockItem ? (int)$stockItem->bottles : 0;
 
                 $quickBtn = '<button type="button" class="btn btn-sm btn-primary quick-add-stock-btn" 
                                 data-id="' . $model->id . '" 
                                 data-name="' . e($model->name) . '" 
                                 data-stock="' . $currentStock . '"
+                                data-bottles="' . $currentBottles . '"
+                                data-packaging="' . ($model->per_case_quantity ?? 0) . '"
                                 title="Add Stock (Production)">
                                 <i class="fa fa-plus-circle me-1"></i> Add Stock
                              </button>';
@@ -102,6 +136,7 @@ class StockController extends Controller
                                 data-id="' . $model->id . '" 
                                 data-name="' . e($model->name) . '" 
                                 data-stock="' . $currentStock . '"
+                                data-bottles="' . $currentBottles . '"
                                 data-packaging="' . ($model->per_case_quantity ?? 0) . '"
                                 data-price="' . number_format((float)($model->per_case_price ?? 0), 2) . '"
                                 data-url="' . route('manufacture-stock-edit', ['id' => base64_encode($model->id)]) . '"
@@ -136,35 +171,58 @@ class StockController extends Controller
         $request->validate([
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
+            'products.*.quantity' => 'nullable|integer|min:0',
+            'products.*.bottles' => 'nullable|integer|min:0',
             'batch_no' => 'nullable|string|max:100',
             'note' => 'nullable|string|max:500',
             'date' => 'nullable|date',
         ]);
+
+        foreach ($request->products as $index => $item) {
+            $cases = (int)($item['quantity'] ?? 0);
+            $bottles = (int)($item['bottles'] ?? 0);
+            if ($cases <= 0 && $bottles <= 0) {
+                return redirect()->back()
+                    ->withErrors(['products.' . $index . '.quantity' => 'Please enter at least 1 Case or 1 Bottle for each product.'])
+                    ->withInput();
+            }
+        }
 
         $mfg_id = Auth::guard('backend')->user()->id;
         $batch_no = $request->batch_no ?? ('BATCH-' . strtoupper(uniqid()));
 
         foreach ($request->products as $item) {
             $product_id = $item['product_id'];
-            $quantity = (int)$item['quantity'];
+            $cases = (int)($item['quantity'] ?? 0);
+            $bottles = (int)($item['bottles'] ?? 0);
+            $product = Product::find($product_id);
+            $perCaseQty = $product ? (int)$product->per_case_quantity : 0;
 
             // Update or create manufacture stock
             $mStock = ManufactureStock::firstOrCreate(
                 ['manufacture_id' => $mfg_id, 'product_id' => $product_id],
-                ['stock' => 0]
+                ['stock' => 0, 'bottles' => 0]
             );
-            $mStock->stock += $quantity;
+            $normalized = $this->normalizeStock(
+                (int)$mStock->stock + $cases,
+                (int)$mStock->bottles + $bottles,
+                $perCaseQty
+            );
+            $mStock->stock = $normalized['cases'];
+            $mStock->bottles = $normalized['bottles'];
             $mStock->save();
+
+            $addedText = $this->formatStockText($cases, $bottles);
 
             // Record Log
             ManufactureStockLog::create([
                 'manufacture_id' => $mfg_id,
                 'product_id' => $product_id,
                 'type' => 'production',
-                'quantity' => $quantity,
+                'quantity' => $cases,
+                'bottles' => $bottles,
                 'batch_no' => $batch_no,
-                'note' => $request->note ?? 'Production batch added',
+                'note' => $request->note ?? ("Production batch added: {$addedText}"),
                 'created_at' => $request->date ? date('Y-m-d H:i:s', strtotime($request->date . ' ' . date('H:i:s'))) : now(),
             ]);
         }
@@ -179,7 +237,8 @@ class StockController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'nullable|integer|min:0',
+            'bottles' => 'nullable|integer|min:0',
             'batch_no' => 'nullable|string|max:100',
             'note' => 'nullable|string|max:500',
         ]);
@@ -191,31 +250,53 @@ class StockController extends Controller
             ], 422);
         }
 
+        $cases = (int)($request->quantity ?? 0);
+        $bottles = (int)($request->bottles ?? 0);
+
+        if ($cases <= 0 && $bottles <= 0) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Please enter at least 1 Case or 1 Bottle.',
+            ], 422);
+        }
+
         $mfg_id = Auth::guard('backend')->user()->id;
         $product_id = $request->product_id;
-        $quantity = (int)$request->quantity;
+        $product = Product::find($product_id);
+        $perCaseQty = $product ? (int)$product->per_case_quantity : 0;
         $batch_no = $request->batch_no ?? ('BATCH-' . strtoupper(uniqid()));
 
         $mStock = ManufactureStock::firstOrCreate(
             ['manufacture_id' => $mfg_id, 'product_id' => $product_id],
-            ['stock' => 0]
+            ['stock' => 0, 'bottles' => 0]
         );
-        $mStock->stock += $quantity;
+        $normalized = $this->normalizeStock(
+            (int)$mStock->stock + $cases,
+            (int)$mStock->bottles + $bottles,
+            $perCaseQty
+        );
+        $mStock->stock = $normalized['cases'];
+        $mStock->bottles = $normalized['bottles'];
         $mStock->save();
+
+        $addedText = $this->formatStockText($cases, $bottles);
+        $newStockText = $this->formatStockText((int)$mStock->stock, (int)$mStock->bottles);
 
         ManufactureStockLog::create([
             'manufacture_id' => $mfg_id,
             'product_id' => $product_id,
             'type' => 'production',
-            'quantity' => $quantity,
+            'quantity' => $cases,
+            'bottles' => $bottles,
             'batch_no' => $batch_no,
-            'note' => $request->note ?? 'Quick production stock added',
+            'note' => $request->note ?? ("Quick production entry: {$addedText}"),
         ]);
 
         return response()->json([
             'status' => 200,
-            'message' => 'Stock updated successfully! New Stock: ' . $mStock->stock . ' Cases.',
-            'new_stock' => $mStock->stock
+            'message' => "Stock updated successfully! Added: {$addedText}. New Stock: {$newStockText}.",
+            'new_stock' => $mStock->stock,
+            'new_bottles' => $mStock->bottles
         ], 200);
     }
 
@@ -232,6 +313,7 @@ class StockController extends Controller
             ->where('product_id', $decoded_id)
             ->first();
         $currentStock = $stockItem ? (int)$stockItem->stock : 0;
+        $currentBottles = $stockItem ? (int)$stockItem->bottles : 0;
 
         $totalDispatched = ManufactureStockLog::where('manufacture_id', $mfg_id)
             ->where('product_id', $decoded_id)
@@ -247,6 +329,7 @@ class StockController extends Controller
         return view('manufacture.stock.edit', compact([
             'product',
             'currentStock',
+            'currentBottles',
             'totalDispatched',
             'recentLogs',
             'id'
@@ -261,6 +344,7 @@ class StockController extends Controller
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
             'stock' => 'required|integer|min:0',
+            'bottles' => 'nullable|integer|min:0',
             'batch_no' => 'nullable|string|max:100',
             'note' => 'nullable|string|max:500',
             'date' => 'nullable|date',
@@ -278,28 +362,50 @@ class StockController extends Controller
 
         $mfg_id = Auth::guard('backend')->user()->id;
         $product_id = (int)$request->product_id;
-        $newStock = (int)$request->stock;
+        $product = Product::find($product_id);
+        $perCaseQty = $product ? (int)$product->per_case_quantity : 0;
+
+        $normalized = $this->normalizeStock(
+            (int)$request->stock,
+            (int)($request->bottles ?? 0),
+            $perCaseQty
+        );
+        $newStock = $normalized['cases'];
+        $newBottles = $normalized['bottles'];
 
         $mStock = ManufactureStock::firstOrCreate(
             ['manufacture_id' => $mfg_id, 'product_id' => $product_id],
-            ['stock' => 0]
+            ['stock' => 0, 'bottles' => 0]
         );
 
         $oldStock = (int)$mStock->stock;
-        $diff = $newStock - $oldStock;
+        $oldBottles = (int)$mStock->bottles;
+        $diffCases = $newStock - $oldStock;
+        $diffBottles = $newBottles - $oldBottles;
 
         $mStock->stock = $newStock;
+        $mStock->bottles = $newBottles;
         $mStock->save();
+
+        $oldText = $this->formatStockText($oldStock, $oldBottles);
+        $newText = $this->formatStockText($newStock, $newBottles);
 
         // Compose meaningful adjustment log note
         $noteText = trim((string)$request->note);
-        if ($diff > 0) {
-            $changeDesc = "Stock increased from {$oldStock} to {$newStock} Cases (+{$diff} Cases)";
-        } elseif ($diff < 0) {
-            $absDiff = abs($diff);
-            $changeDesc = "Stock reduced from {$oldStock} to {$newStock} Cases (-{$absDiff} Cases)";
+        if ($perCaseQty > 0) {
+            $oldTotal = ($oldStock * $perCaseQty) + $oldBottles;
+            $newTotal = ($newStock * $perCaseQty) + $newBottles;
+            $totalDiff = $newTotal - $oldTotal;
         } else {
-            $changeDesc = "Stock confirmed / updated at {$newStock} Cases (No change)";
+            $totalDiff = $diffCases !== 0 ? $diffCases : $diffBottles;
+        }
+
+        if ($totalDiff > 0) {
+            $changeDesc = "Stock increased from {$oldText} to {$newText}";
+        } elseif ($totalDiff < 0) {
+            $changeDesc = "Stock reduced from {$oldText} to {$newText}";
+        } else {
+            $changeDesc = "Stock confirmed / updated at {$newText} (No change)";
         }
 
         $fullNote = $noteText !== '' ? "{$changeDesc} | Note: {$noteText}" : $changeDesc;
@@ -308,7 +414,8 @@ class StockController extends Controller
             'manufacture_id' => $mfg_id,
             'product_id' => $product_id,
             'type' => 'adjustment',
-            'quantity' => abs($diff),
+            'quantity' => abs($diffCases),
+            'bottles' => abs($diffBottles),
             'batch_no' => $request->batch_no ?? null,
             'note' => $fullNote,
             'created_at' => $request->date ? date('Y-m-d H:i:s', strtotime($request->date . ' ' . date('H:i:s'))) : now(),
@@ -319,13 +426,14 @@ class StockController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'status' => 200,
-                'message' => "Stock updated successfully for {$productName}! New Stock: {$newStock} Cases.",
+                'message' => "Stock updated successfully for {$productName}! New Stock: {$newText}.",
                 'new_stock' => $newStock,
-                'diff' => $diff
+                'new_bottles' => $newBottles,
+                'diff' => $diffCases
             ], 200);
         }
 
-        return redirect()->route('manufacture-stock')->with('success', "Stock updated successfully for {$productName}! Current Stock: {$newStock} Cases.");
+        return redirect()->route('manufacture-stock')->with('success', "Stock updated successfully for {$productName}! Current Stock: {$newText}.");
     }
 
     /**
@@ -531,10 +639,14 @@ class StockController extends Controller
                 }
             })
             ->addColumn('quantity', function ($model) {
+                $cases = (int)($model->quantity ?? 0);
+                $bottles = (int)($model->bottles ?? 0);
+                $label = $this->formatStockText($cases, $bottles);
+
                 if ($model->type == 'production') {
-                    return '<strong class="text-success" style="font-size:14px;">+' . $model->quantity . ' Cases</strong>';
+                    return '<strong class="text-success" style="font-size:14px;">+' . $label . '</strong>';
                 } elseif ($model->type == 'dispatch') {
-                    return '<strong class="text-danger" style="font-size:14px;">-' . $model->quantity . ' Cases</strong>';
+                    return '<strong class="text-danger" style="font-size:14px;">-' . $label . '</strong>';
                 } elseif ($model->type == 'adjustment') {
                     $sign = '';
                     $color = 'text-warning';
@@ -545,9 +657,9 @@ class StockController extends Controller
                         $sign = '-';
                         $color = 'text-danger';
                     }
-                    return '<strong class="' . $color . '" style="font-size:14px;">' . $sign . $model->quantity . ' Cases</strong>';
+                    return '<strong class="' . $color . '" style="font-size:14px;">' . $sign . $label . '</strong>';
                 } else {
-                    return '<strong class="text-info" style="font-size:14px;">' . $model->quantity . ' Cases</strong>';
+                    return '<strong class="text-info" style="font-size:14px;">' . $label . '</strong>';
                 }
             })
             ->addColumn('destination', function ($model) {

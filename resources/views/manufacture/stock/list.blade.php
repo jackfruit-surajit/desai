@@ -127,7 +127,12 @@
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
                             <p class="text-uppercase mb-1 fw-bold text-muted" style="font-size: 11px;">Factory Stock (In-Hand)</p>
-                            <h3 class="mb-0 fw-bold text-success">{{ number_format($totalFactoryStock ?? 0) }} <span style="font-size: 14px;">Cases</span></h3>
+                            <h3 class="mb-0 fw-bold text-success">
+                                {{ number_format($totalFactoryStock ?? 0) }} <span style="font-size: 14px;">Cases</span>
+                                @if(($totalFactoryBottles ?? 0) > 0)
+                                    <span style="font-size: 14px;">+ {{ number_format($totalFactoryBottles) }} Bottles</span>
+                                @endif
+                            </h3>
                         </div>
                         <div class="avatar bg-light-success text-success rounded-circle p-3">
                             <i class="fa fa-industry fa-2x"></i>
@@ -239,6 +244,7 @@
                 <form id="quickAddStockForm">
                     @csrf
                     <input type="hidden" name="product_id" id="modal_product_id">
+                    <input type="hidden" id="modal_packaging_val" value="0">
                     
                     <div class="modal-header bg-primary text-white py-2 px-3">
                         <h6 class="modal-title text-white fw-bold mb-0" id="quickAddStockModalLabel">
@@ -255,6 +261,7 @@
                             <div class="col-sm-7 col-12">
                                 <span class="text-muted d-block" style="font-size:11px;">Product:</span>
                                 <strong class="text-dark fs-6" id="modal_product_name_text"></strong>
+                                <span class="badge bg-secondary ms-1" id="modal_packaging_badge" style="font-size: 11px;"></span>
                                 <input type="hidden" id="modal_product_name">
                             </div>
                             <div class="col-sm-5 col-12 text-sm-end">
@@ -265,16 +272,29 @@
                         </div>
 
                         <div class="row g-2">
-                            <div class="col-md-6">
+                            <div class="col-md-4 col-6">
                                 <label class="form-label fw-bold text-dark small mb-1">
-                                    Add Quantity (Cases) <span class="text-danger">*</span>
+                                    Add Cases
                                 </label>
-                                <input type="number" class="form-control fw-bold text-primary" name="quantity" id="modal_quantity" min="1" placeholder="Enter number of cases" required>
+                                <input type="number" class="form-control fw-bold text-primary" name="quantity" id="modal_quantity" min="0" step="1" placeholder="e.g. 45" value="0">
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4 col-6">
+                                <label class="form-label fw-bold text-dark small mb-1">
+                                    Add Bottles (Loose)
+                                </label>
+                                <input type="number" class="form-control fw-bold text-info" name="bottles" id="modal_bottles" min="0" step="1" placeholder="e.g. 12" value="0">
+                            </div>
+
+                            <div class="col-md-4 col-12">
                                 <label class="form-label fw-bold text-dark small mb-1">Batch Number (Optional)</label>
                                 <input type="text" class="form-control" name="batch_no" id="modal_batch_no" placeholder="e.g. BATCH-{{ date('Ymd') }}-01">
+                            </div>
+
+                            <div class="col-12">
+                                <div class="px-2 py-1 rounded border text-center small fw-bold" id="modal_add_preview" style="background-color: #f1f5f9;">
+                                    <span class="text-muted"><i class="fa fa-calculator me-1"></i> Enter Cases and/or Bottles to add</span>
+                                </div>
                             </div>
 
                             <div class="col-12">
@@ -303,6 +323,8 @@
                     @csrf
                     <input type="hidden" name="product_id" id="edit_modal_product_id">
                     <input type="hidden" id="edit_modal_current_stock_val">
+                    <input type="hidden" id="edit_modal_current_bottles_val">
+                    <input type="hidden" id="edit_modal_packaging_val" value="0">
                     
                     <div class="modal-header bg-warning text-dark py-2 px-3">
                         <h6 class="modal-title text-dark fw-bold mb-0" id="editStockModalLabel">
@@ -321,12 +343,12 @@
                                 <strong class="text-dark fs-6" id="edit_modal_product_name_text"></strong>
                                 <input type="hidden" id="edit_modal_product_name">
                             </div>
-                            <div class="col-md-4 col-6 text-md-center">
+                            <div class="col-md-3 col-6 text-md-center">
                                 <span class="text-muted d-block" style="font-size:11px;">Packaging & Price:</span>
                                 <span id="edit_modal_packaging" class="badge bg-secondary me-1"></span>
                                 <span id="edit_modal_price" class="badge bg-info text-dark"></span>
                             </div>
-                            <div class="col-md-3 col-6 text-end">
+                            <div class="col-md-4 col-6 text-end">
                                 <span class="text-muted d-block" style="font-size:11px;">Current Available:</span>
                                 <span class="badge bg-dark fs-6" id="edit_modal_current_stock_badge"></span>
                                 <input type="hidden" id="edit_modal_current_stock">
@@ -334,14 +356,21 @@
                         </div>
 
                         <div class="row g-2">
-                            <div class="col-md-6">
+                            <div class="col-md-3 col-6">
                                 <label class="form-label fw-bold text-dark small mb-1">
-                                    Updated Stock Quantity (Cases) <span class="text-danger">*</span>
+                                    Updated Cases <span class="text-danger">*</span>
                                 </label>
-                                <input type="number" class="form-control fw-bold text-primary" name="stock" id="edit_modal_stock" min="0" step="1" placeholder="Enter cases" required>
+                                <input type="number" class="form-control fw-bold text-primary" name="stock" id="edit_modal_stock" min="0" step="1" placeholder="Cases" required>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-3 col-6">
+                                <label class="form-label fw-bold text-dark small mb-1">
+                                    Updated Bottles
+                                </label>
+                                <input type="number" class="form-control fw-bold text-info" name="bottles" id="edit_modal_bottles" min="0" step="1" placeholder="Bottles" value="0">
+                            </div>
+
+                            <div class="col-md-6 col-12">
                                 <label class="form-label fw-bold text-dark small mb-1">
                                     Stock Adjustment Impact:
                                 </label>
@@ -417,21 +446,73 @@
             ]
         });
 
+        function formatCasesBottles(cases, bottles) {
+            cases = parseInt(cases) || 0;
+            bottles = parseInt(bottles) || 0;
+            if (cases > 0 && bottles > 0) return cases + ' Cases + ' + bottles + ' Bottles';
+            if (cases > 0) return cases + ' Cases';
+            if (bottles > 0) return bottles + ' Bottles';
+            return '0 Cases';
+        }
+
+        function updateAddPreview() {
+            var cases = parseInt($('#modal_quantity').val()) || 0;
+            var bottles = parseInt($('#modal_bottles').val()) || 0;
+            var packaging = parseInt($('#modal_packaging_val').val()) || 0;
+            var $preview = $('#modal_add_preview');
+
+            if (cases < 0 || bottles < 0) {
+                $preview.css({'background-color': '#fee2e2', 'border-color': '#fca5a5'});
+                $preview.html('<span class="text-danger"><i class="fa fa-triangle-exclamation me-1"></i> Quantities cannot be negative</span>');
+                return;
+            }
+            if (cases === 0 && bottles === 0) {
+                $preview.css({'background-color': '#f1f5f9', 'border-color': '#cbd5e1'});
+                $preview.html('<span class="text-muted"><i class="fa fa-calculator me-1"></i> Enter Cases and/or Bottles to add</span>');
+                return;
+            }
+
+            var addedStr = formatCasesBottles(cases, bottles);
+            var extraInfo = '';
+            if (packaging > 0) {
+                var totalBottles = (cases * packaging) + bottles;
+                extraInfo = ' (Total: ' + totalBottles.toLocaleString() + ' Bottles';
+                if (bottles >= packaging) {
+                    var normCases = cases + Math.floor(bottles / packaging);
+                    var normBottles = bottles % packaging;
+                    extraInfo += ' = ' + formatCasesBottles(normCases, normBottles);
+                }
+                extraInfo += ')';
+            }
+            $preview.css({'background-color': '#dcfce7', 'border-color': '#86efac'});
+            $preview.html('<span class="text-success"><i class="fa fa-plus-circle me-1"></i> Adding: ' + addedStr + extraInfo + '</span>');
+        }
+
+        $('#modal_quantity, #modal_bottles').on('input keyup change', updateAddPreview);
+
         // Open Quick Add Stock Modal
         $(document).on('click', '.quick-add-stock-btn', function () {
             var productId = $(this).data('id');
             var productName = $(this).data('name');
-            var currentStock = $(this).data('stock');
+            var currentStock = parseInt($(this).data('stock')) || 0;
+            var currentBottles = parseInt($(this).data('bottles')) || 0;
+            var packaging = parseInt($(this).data('packaging')) || 0;
+
+            var currentText = formatCasesBottles(currentStock, currentBottles);
 
             $('#modal_product_id').val(productId);
             $('#modal_product_name').val(productName);
             $('#modal_product_name_text').text(productName);
-            $('#modal_current_stock').val(currentStock + ' Cases');
-            $('#modal_current_stock_badge').text(currentStock + ' Cases');
-            $('#modal_quantity').val('');
+            $('#modal_packaging_val').val(packaging);
+            $('#modal_packaging_badge').text(packaging + ' Bottles/Case');
+            $('#modal_current_stock').val(currentText);
+            $('#modal_current_stock_badge').text(currentText);
+            $('#modal_quantity').val(0);
+            $('#modal_bottles').val(0);
             $('#modal_batch_no').val('');
             $('#modal_note').val('');
             $('#modalAlert').addClass('d-none').text('');
+            updateAddPreview();
 
             $('#quickAddStockModal').modal('show');
         });
@@ -439,6 +520,14 @@
         // Submit Quick Add Stock Form via AJAX
         $('#quickAddStockForm').on('submit', function (e) {
             e.preventDefault();
+            var cases = parseInt($('#modal_quantity').val()) || 0;
+            var bottles = parseInt($('#modal_bottles').val()) || 0;
+
+            if (cases <= 0 && bottles <= 0) {
+                $('#modalAlert').removeClass('d-none').text('Please enter at least 1 Case or 1 Bottle.');
+                return;
+            }
+
             var submitBtn = $('#saveQuickStockBtn');
             submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Saving...');
 
@@ -476,17 +565,23 @@
             var productId = $(this).data('id');
             var productName = $(this).data('name');
             var currentStock = parseInt($(this).data('stock')) || 0;
-            var packaging = $(this).data('packaging') || 0;
+            var currentBottles = parseInt($(this).data('bottles')) || 0;
+            var packaging = parseInt($(this).data('packaging')) || 0;
             var price = $(this).data('price') || 0;
             var editUrl = $(this).data('url') || '#';
+
+            var currentText = formatCasesBottles(currentStock, currentBottles);
 
             $('#edit_modal_product_id').val(productId);
             $('#edit_modal_product_name').val(productName);
             $('#edit_modal_product_name_text').text(productName);
             $('#edit_modal_current_stock_val').val(currentStock);
-            $('#edit_modal_current_stock').val(currentStock + ' Cases');
-            $('#edit_modal_current_stock_badge').text(currentStock + ' Cases');
+            $('#edit_modal_current_bottles_val').val(currentBottles);
+            $('#edit_modal_packaging_val').val(packaging);
+            $('#edit_modal_current_stock').val(currentText);
+            $('#edit_modal_current_stock_badge').text(currentText);
             $('#edit_modal_stock').val(currentStock);
+            $('#edit_modal_bottles').val(currentBottles);
             $('#edit_modal_packaging').text(packaging + ' Bottles/Case');
             $('#edit_modal_price').text('₹' + price);
             $('#edit_modal_full_page_btn').attr('href', editUrl);
@@ -500,38 +595,53 @@
         });
 
         function updateEditModalDiff() {
-            var currentStock = parseInt($('#edit_modal_current_stock_val').val()) || 0;
-            var rawVal = $('#edit_modal_stock').val();
+            var currentCases = parseInt($('#edit_modal_current_stock_val').val()) || 0;
+            var currentBottles = parseInt($('#edit_modal_current_bottles_val').val()) || 0;
+            var packaging = parseInt($('#edit_modal_packaging_val').val()) || 0;
+            var rawCases = $('#edit_modal_stock').val();
+            var rawBottles = $('#edit_modal_bottles').val();
             var $indicator = $('#edit_modal_diff_indicator');
             var $text = $('#edit_modal_diff_text');
 
-            if (rawVal === '') {
+            if (rawCases === '') {
                 $indicator.css({'background-color': '#f1f5f9', 'border-color': '#cbd5e1'});
-                $text.html('<span class="text-muted"><i class="fa fa-question-circle me-1"></i> Enter a stock quantity</span>');
+                $text.html('<span class="text-muted"><i class="fa fa-question-circle me-1"></i> Enter stock quantities</span>');
                 return;
             }
 
-            var newStock = parseInt(rawVal);
-            if (isNaN(newStock) || newStock < 0) {
+            var newCases = parseInt(rawCases);
+            var newBottles = parseInt(rawBottles === '' ? 0 : rawBottles);
+            if (isNaN(newCases) || newCases < 0 || isNaN(newBottles) || newBottles < 0) {
                 $indicator.css({'background-color': '#fee2e2', 'border-color': '#fca5a5'});
                 $text.html('<span class="text-danger fw-bold"><i class="fa fa-triangle-exclamation me-1"></i> Stock cannot be negative</span>');
                 return;
             }
 
-            var diff = newStock - currentStock;
-            if (diff > 0) {
+            if (packaging > 0 && newBottles >= packaging) {
+                newCases += Math.floor(newBottles / packaging);
+                newBottles = newBottles % packaging;
+            }
+
+            var oldTotal = packaging > 0 ? (currentCases * packaging) + currentBottles : currentCases;
+            var newTotal = packaging > 0 ? (newCases * packaging) + newBottles : newCases;
+            var totalDiff = newTotal - oldTotal;
+
+            var oldStr = formatCasesBottles(currentCases, currentBottles);
+            var newStr = formatCasesBottles(newCases, newBottles);
+
+            if (totalDiff > 0 || (packaging === 0 && (newCases > currentCases || newBottles > currentBottles))) {
                 $indicator.css({'background-color': '#dcfce7', 'border-color': '#86efac'});
-                $text.html('<span class="text-success fw-bold"><i class="fa fa-arrow-up me-1"></i> Increase of +' + diff + ' Cases (from ' + currentStock + ' to ' + newStock + ')</span>');
-            } else if (diff < 0) {
+                $text.html('<span class="text-success fw-bold small"><i class="fa fa-arrow-up me-1"></i> Updated: ' + newStr + '</span>');
+            } else if (totalDiff < 0 || (packaging === 0 && (newCases < currentCases || newBottles < currentBottles))) {
                 $indicator.css({'background-color': '#fee2e2', 'border-color': '#fca5a5'});
-                $text.html('<span class="text-danger fw-bold"><i class="fa fa-arrow-down me-1"></i> Decrease of ' + diff + ' Cases (from ' + currentStock + ' to ' + newStock + ')</span>');
+                $text.html('<span class="text-danger fw-bold small"><i class="fa fa-arrow-down me-1"></i> Reduced: ' + newStr + '</span>');
             } else {
                 $indicator.css({'background-color': '#f1f5f9', 'border-color': '#cbd5e1'});
-                $text.html('<span class="text-muted fw-bold"><i class="fa fa-equals me-1"></i> No change (remains ' + currentStock + ' Cases)</span>');
+                $text.html('<span class="text-muted fw-bold small"><i class="fa fa-equals me-1"></i> No change (' + oldStr + ')</span>');
             }
         }
 
-        $('#edit_modal_stock').on('input keyup change', updateEditModalDiff);
+        $('#edit_modal_stock, #edit_modal_bottles').on('input keyup change', updateEditModalDiff);
 
         $('#edit_modal_reason_preset').on('change', function () {
             var val = $(this).val();

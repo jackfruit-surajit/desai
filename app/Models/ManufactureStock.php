@@ -12,6 +12,7 @@ class ManufactureStock extends Model
         'manufacture_id',
         'product_id',
         'stock',
+        'bottles',
         'created_at',
         'updated_at'
     ];
