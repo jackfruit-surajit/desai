@@ -14,6 +14,13 @@ use App\Models\ShopDeliveryHistory;
 use App\Models\InvoiceHistory;
 use App\Models\DriverAttendanceRouteLog;
 use App\Models\UserBreakLog;
+use App\Models\DriverProduct;
+use App\Models\DriverProductDetails;
+use App\Models\DriverReturn;
+use App\Models\Product;
+use App\Models\Admin;
+use App\Models\Invoice;
+use App\Models\InvoiceData;
 use Illuminate\Support\Facades\Validator;
 use Hash;
 use DB;
@@ -644,10 +651,56 @@ class DriverApiController extends Controller
         else{
             return response()->json(['status' => 200,'message' => 'Record not found.', 'panch_in_status' => 'inactive', 'data'  =>[],],200);
         }
-        
-        
     }
-    
-    
-    
+
+    /**
+     * Get list of products assigned to a driver for a specific date (or latest date).
+     * Accepts POST or GET with driver_id or user_id, and optional date / assignment_id.
+     */
+    public function assignedProducts(Request $request){
+        $validator = Validator::make($request->all(), [
+            'user_id'        => 'required|integer|exists:admins,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $driverId = $request->input('user_id');
+        $today = date('Y-m-d');
+        $result = DriverProduct::join('driver_product_details','driver_products.id','driver_product_details.driver_products_id')
+                ->join('products','driver_product_details.product_id','products.id')
+                ->where('driver_products.driver_id', $driverId)
+                ->whereDate('driver_products.assign_date',$today)
+                ->get(['driver_product_details.id','driver_product_details.quantity as case','driver_product_details.bottles','products.id as product_id','products.name','products.hsn_code','driver_product_details.status','driver_product_details.comment']);
+        return response()->json([
+            'status' => 200,
+            'message' => 'Driver assigned products fetched successfully.',
+            'data' => $result,
+        ], 200);
+    }
+
+    public function acceptProducts(Request $request){
+        $validator = Validator::make($request->all(), [
+                'user_id'        => 'required|integer|exists:admins,id',
+                'product_details_id' => 'required|integer',
+                'status' => 'required|integer',
+                'comment' => 'nullable|string',
+            ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $result = DriverProductDetails::where('id',$request->input('product_details_id'))->where('driver_id',$request->input('user_id'))
+                ->update([
+                    'status' => $request->input('status'),
+                    'comment' => $request->input('comment'),
+                ]);
+
+        if($result){
+            return response()->json(['status' => 200, 'message' => 'Products verified successfully.','data' => [],], 200);
+        }
+    }
+
 }
