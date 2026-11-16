@@ -264,6 +264,14 @@
                 Route::get('driver-product-edit/{id}', ['uses' => 'Warehouse\DriverManagementController@productEdit', 'as' => 'driver-product-edit']);
                 Route::post('driver-product-update/{id}', ['uses' => 'Warehouse\DriverManagementController@productUpdate', 'as' => 'driver-product-update']);
 
+                Route::get('daily-sales-report', ['uses' => 'Warehouse\DailySalesReportController@index', 'as' => 'warehouse-daily-sales-report']);
+                Route::get('daily-sales-report-breakdown/{driver_id}/{date}', ['uses' => 'Warehouse\DailySalesReportController@driverBreakdown', 'as' => 'warehouse-daily-sales-report-breakdown']);
+                Route::post('driver-return-store', ['uses' => 'Warehouse\DailySalesReportController@storeReturn', 'as' => 'warehouse-driver-return-store']);
+
+                Route::get('product-daily-sales-report', ['uses' => 'Warehouse\ProductDailySalesReportController@index', 'as' => 'warehouse-product-daily-sales-report']);
+                Route::get('product-daily-sales-report-breakdown/{product_id}/{date}', ['uses' => 'Warehouse\ProductDailySalesReportController@productDriverBreakdown', 'as' => 'warehouse-product-daily-sales-report-breakdown']);
+                Route::get('product-daily-sales-report-export', ['uses' => 'Warehouse\ProductDailySalesReportController@exportCsv', 'as' => 'warehouse-product-daily-sales-report-export']);
+
                 
                 
             });

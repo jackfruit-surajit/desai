@@ -41,9 +41,23 @@ $role = Role::find($user->role_id);
     <ul class="pc-submenu">
       <li class="pc-item"><a class="pc-link" href="{{route('driver-product-create')}}">Product Assign</a></li>
       <li class="pc-item"><a class="pc-link" href="{{route('driver-management-report')}}">Report List</a></li>
+      {{-- <li class="pc-item"><a class="pc-link" href="{{route('warehouse-daily-sales-report')}}">Driver Daily Sales</a></li> --}}
+      {{-- <li class="pc-item"><a class="pc-link" href="{{route('warehouse-product-daily-sales-report')}}">Product Daily Sales</a></li> --}}
     </ul>
   </li>
   
+  <li class="pc-item pc-hasmenu">
+    <a href="{{route('warehouse-daily-sales-report')}}" class="pc-link"
+      ><span class="pc-micon"> <i class="fa fa-chart-line"></i></span><span class="pc-mtext">Driver Daily Sales</span
+      ></a>
+  </li>
+
+  <li class="pc-item pc-hasmenu">
+    <a href="{{route('warehouse-product-daily-sales-report')}}" class="pc-link"
+      ><span class="pc-micon"> <i class="fa fa-boxes-stacked"></i></span><span class="pc-mtext">Product Daily Sales</span
+      ></a>
+  </li>
+
   <li class="pc-item pc-hasmenu">
     <a href="{{route('warehouse-invoice')}}" class="pc-link"
       ><span class="pc-micon"> <i class="fa fa-book"></i></span><span class="pc-mtext">Invoice Management</span

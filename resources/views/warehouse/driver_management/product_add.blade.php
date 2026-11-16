@@ -166,12 +166,14 @@
                             </label>
                             <select name="driver_id" class="form-select select2" required>
                                 <option value="">Select Driver</option>
-                                @foreach($drivers as $driver)
+                                @forelse($drivers as $driver)
                                     <option value="{{ $driver->id }}"
                                         {{ old('driver_id') == $driver->id ? 'selected' : '' }}>
                                         {{ $driver->name }}
                                     </option>
-                                @endforeach
+                                @empty
+                                    <option value="" disabled>No drivers assigned to this warehouse</option>
+                                @endforelse
                             </select>
                         </div>
 

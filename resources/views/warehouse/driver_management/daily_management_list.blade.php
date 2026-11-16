@@ -137,11 +137,13 @@
                     <label for="driver_id" class="form-label fw-semibold text-white">Driver</label>
                     <select name="driver_id" id="driver_id" class="form-select">
                         <option value="">All Drivers</option>
-                        @foreach($drivers as $driver)
+                        @forelse($drivers as $driver)
                             <option value="{{ $driver->id }}">
                                 {{ $driver->name }}
                             </option>
-                        @endforeach
+                        @empty
+                            <option value="" disabled>No drivers assigned to this warehouse</option>
+                        @endforelse
                     </select>
                 </div>
             

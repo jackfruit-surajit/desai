@@ -23,14 +23,12 @@ class DriverManagementController extends Controller
     public function productAdd(Request $request){
         $warehouse_id = Auth::guard('backend')->user()->id;
 
-        // Fetch drivers assigned to this warehouse via driver_warehouse, with fallback
+        // Fetch drivers strictly assigned to this warehouse via driver_warehouse ONLY
         $drivers = DriverWarehouse::join('admins','driver_warehouse.driver_id','admins.id')
                     ->where('driver_warehouse.warehouse_id', $warehouse_id)
                     ->where('admins.is_hidden', 0)
+                    ->orderBy('admins.name', 'asc')
                     ->get(['admins.id','admins.name']);
-        if ($drivers->isEmpty()) {
-            $drivers = DB::table('admins')->where('role_id','3')->where('is_hidden', 0)->get(['id', 'name']);
-        }
 
         // Fetch products with this warehouse's stock (cases + bottles)
         $products = DB::table('products')
@@ -64,6 +62,14 @@ class DriverManagementController extends Controller
         ]);
         
         $warehouse_id = Auth::guard('backend')->user()->id;
+
+        // Verify driver belongs strictly to this warehouse
+        $isDriverAssigned = DriverWarehouse::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $request->driver_id)
+            ->exists();
+        if (!$isDriverAssigned) {
+            return redirect()->back()->withInput()->with('error_msg', 'Selected driver is not assigned to your warehouse.');
+        }
 
         // Group requested items per product and validate quantities
         $requestedTotals = [];
@@ -175,11 +181,10 @@ class DriverManagementController extends Controller
     public function driverManagementReport(Request $request){
         $warehouse_id = Auth::guard('backend')->user()->id;
         $drivers = DriverWarehouse::join('admins','driver_warehouse.driver_id','admins.id')
-                    ->where('driver_warehouse.warehouse_id',$warehouse_id)
-                    ->where('admins.is_hidden', 0)->get(['admins.id','admins.name']);
-        if ($drivers->isEmpty()) {
-            $drivers = DB::table('admins')->where('role_id','3')->where('is_hidden', 0)->get(['id', 'name']);
-        }
+                    ->where('driver_warehouse.warehouse_id', $warehouse_id)
+                    ->where('admins.is_hidden', 0)
+                    ->orderBy('admins.name', 'asc')
+                    ->get(['admins.id','admins.name']);
                     
         return view('warehouse.driver_management.daily_management_list',compact(['drivers']));
     }
@@ -319,14 +324,12 @@ class DriverManagementController extends Controller
             return redirect()->route('driver-management-report')->with('error_msg', 'Driver assignment record not found.');
         }
 
-        // Fetch drivers assigned to this warehouse via driver_warehouse, with fallback
+        // Fetch drivers strictly assigned to this warehouse via driver_warehouse ONLY
         $drivers = DriverWarehouse::join('admins','driver_warehouse.driver_id','admins.id')
                     ->where('driver_warehouse.warehouse_id', $warehouse_id)
                     ->where('admins.is_hidden', 0)
+                    ->orderBy('admins.name', 'asc')
                     ->get(['admins.id','admins.name']);
-        if ($drivers->isEmpty()) {
-            $drivers = DB::table('admins')->where('role_id','3')->where('is_hidden', 0)->get(['id', 'name']);
-        }
 
         // Fetch products with this warehouse's stock (cases + bottles)
         $products = DB::table('products')
@@ -380,6 +383,14 @@ class DriverManagementController extends Controller
             'products.*.per_case_quantity' => 'nullable|integer|min:0',
             'products.*.bottles' => 'nullable|integer|min:0',
         ]);
+
+        // Verify driver belongs strictly to this warehouse
+        $isDriverAssigned = DriverWarehouse::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $request->driver_id)
+            ->exists();
+        if (!$isDriverAssigned) {
+            return redirect()->back()->withInput()->with('error_msg', 'Selected driver is not assigned to your warehouse.');
+        }
 
         DB::beginTransaction();
         try {
