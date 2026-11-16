@@ -143,12 +143,17 @@
 
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Quantity (Case)</label>
-                            <input type="number" name="per_case_quantity" class="form-control" placeholder="Quantity in Case" min="1" value="{{$model->per_case_quantity}}" disabled>
+                        <div class="col-md-3">
+                            <label class="form-label">Quantity (Cases)</label>
+                            <input type="number" name="per_case_quantity" class="form-control" placeholder="Cases" min="0" value="{{ (int)($model->per_case_quantity ?? 0) }}" disabled>
                             @error('per_case_quantity')
                                 <span class="help-block text-danger">{{ $message }}</span>
                             @enderror
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Quantity (Bottles)</label>
+                            <input type="number" name="bottles" class="form-control" placeholder="Bottles" min="0" value="{{ (int)($model->bottles ?? 0) }}" disabled>
                         </div>
                         
                         @php

@@ -55,7 +55,7 @@
                                     <tr style="background-color: #04A9F5; color: #ffffff;">
                                         <th align="center" style="font-size: 13px; font-weight: 600; border: 1px solid #04A9F5; width: 10%;">#</th>
                                         <th align="left" style="font-size: 13px; font-weight: 600; border: 1px solid #04A9F5;">Product Name</th>
-                                        <th align="center" style="font-size: 13px; font-weight: 600; border: 1px solid #04A9F5; width: 35%;">Per Case Quantity</th>
+                                        <th align="center" style="font-size: 13px; font-weight: 600; border: 1px solid #04A9F5; width: 35%;">Quantity</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -69,7 +69,7 @@
                                                     {{ $item['name'] ?? 'N/A' }}
                                                 </td>
                                                 <td align="center" style="font-size: 13px; border: 1px solid #e2e8f0; color: #334155;">
-                                                    <strong>{{ $item['per_case_quantity'] ?? 0 }}</strong> Cases
+                                                    <strong>{{ $item['qty_text'] ?? (($item['per_case_quantity'] ?? 0) . ' Cases') }}</strong>
                                                 </td>
                                             </tr>
                                         @endforeach

@@ -37,15 +37,27 @@ class StockController extends Controller
             ->editColumn('stock_quantity', function ($model) { 
                 $user = Auth::guard('backend')->user()->id;
                 $stock_quantity = 0;
+                $stock_bottles = 0;
                 if($stock = WarehouseStock::where('product_id',$model->id)->where('warehouse_id',$user)->first()){
                     $stock_quantity = (int)$stock->stock;
+                    $stock_bottles = (int)($stock->bottles ?? 0);
                 }
-                if ($stock_quantity <= 0) {
+                if ($stock_quantity > 0 && $stock_bottles > 0) {
+                    $label = "{$stock_quantity} Cases + {$stock_bottles} Bottles";
+                } elseif ($stock_quantity > 0) {
+                    $label = "{$stock_quantity} Cases";
+                } elseif ($stock_bottles > 0) {
+                    $label = "{$stock_bottles} Bottles";
+                } else {
+                    $label = "0 Cases";
+                }
+
+                if ($stock_quantity <= 0 && $stock_bottles <= 0) {
                     return '<span class="badge bg-danger fw-bold" style="font-size:13px;">0 Cases</span>';
                 } elseif ($stock_quantity <= 50) {
-                    return '<span class="badge bg-warning text-dark fw-bold" style="font-size:13px;">' . $stock_quantity . ' Cases</span>';
+                    return '<span class="badge bg-warning text-dark fw-bold" style="font-size:13px;">' . $label . '</span>';
                 } else {
-                    return '<span class="badge bg-success fw-bold" style="font-size:13px;">' . $stock_quantity . ' Cases</span>';
+                    return '<span class="badge bg-success fw-bold" style="font-size:13px;">' . $label . '</span>';
                 }
             })
             ->rawColumns(['product_name', 'stock_quantity'])

@@ -158,7 +158,7 @@
                         <tr>
                             <th scope="col">#</th>
                             <th scope="col">Product Name</th>
-                            <th scope="col">Quantity (Case)</th>
+                            <th scope="col">Quantity (Cases / Bottles)</th>
                             <th scope="col">Status</th>
                             <th scope="col">Assign Date</th>
                             <th scope="col">Accept Date</th>

@@ -61,7 +61,18 @@ class ProductController extends Controller
             })
 
             ->editColumn('per_case_quantity', function ($model) {
-                return '<span class="text-white fw-bold">' . e($model->per_case_quantity) . ' Cases</span>';
+                $cases = (int)($model->per_case_quantity ?? 0);
+                $bottles = (int)($model->bottles ?? 0);
+                if ($cases > 0 && $bottles > 0) {
+                    $label = "{$cases} Cases + {$bottles} Bottles";
+                } elseif ($cases > 0) {
+                    $label = "{$cases} Cases";
+                } elseif ($bottles > 0) {
+                    $label = "{$bottles} Bottles";
+                } else {
+                    $label = "0 Cases";
+                }
+                return '<span class="text-white fw-bold">' . e($label) . '</span>';
             })
 
             ->editColumn('status', function ($model) {                
@@ -174,15 +185,41 @@ class ProductController extends Controller
         $stock_details = WarehouseProduct::where('id',$warehouse_products_id)->first();
         if(!$stock_details) return;
 
+        $product = Product::find($stock_details->product_id);
+        $perCaseQty = $product ? (int)$product->per_case_quantity : 0;
+        $addCases = (int)($stock_details->per_case_quantity ?? 0);
+        $addBottles = (int)($stock_details->bottles ?? 0);
+
         if($product_stock = WarehouseStock::where('warehouse_id', $stock_details->warehouse_id)->where('product_id',$stock_details->product_id)->first()){
-            $final_stock = $product_stock->stock + $stock_details->per_case_quantity;
-            WarehouseStock::where('id', $product_stock->id)->update(['stock' => $final_stock]);
+            $curCases = (int)$product_stock->stock;
+            $curBottles = (int)($product_stock->bottles ?? 0);
+            if ($perCaseQty > 0) {
+                $totalBottles = (($curCases + $addCases) * $perCaseQty) + ($curBottles + $addBottles);
+                $final_stock = intdiv($totalBottles, $perCaseQty);
+                $final_bottles = $totalBottles % $perCaseQty;
+            } else {
+                $final_stock = $curCases + $addCases;
+                $final_bottles = $curBottles + $addBottles;
+            }
+            WarehouseStock::where('id', $product_stock->id)->update([
+                'stock'   => $final_stock,
+                'bottles' => $final_bottles,
+            ]);
         }
         else{
+            if ($perCaseQty > 0) {
+                $totalBottles = ($addCases * $perCaseQty) + $addBottles;
+                $final_stock = intdiv($totalBottles, $perCaseQty);
+                $final_bottles = $totalBottles % $perCaseQty;
+            } else {
+                $final_stock = $addCases;
+                $final_bottles = $addBottles;
+            }
             WarehouseStock::create([
                 'warehouse_id' => $stock_details->warehouse_id,
                 'product_id' => $stock_details->product_id,
-                'stock' => $stock_details->per_case_quantity,
+                'stock' => $final_stock,
+                'bottles' => $final_bottles,
             ]);
         }
     }

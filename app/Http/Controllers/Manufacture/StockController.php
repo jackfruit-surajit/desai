@@ -480,7 +480,7 @@ class StockController extends Controller
                 $join->on('base.warehouse_id', '=', 'warehouse_stock.warehouse_id')
                      ->on('base.product_id', '=', 'warehouse_stock.product_id');
             })
-            ->leftJoin(DB::raw('(SELECT warehouse_id, product_id, SUM(per_case_quantity) as pending_qty FROM warehouse_products WHERE status = "0" GROUP BY warehouse_id, product_id) as pending'), function($join) {
+            ->leftJoin(DB::raw('(SELECT warehouse_id, product_id, SUM(per_case_quantity) as pending_qty, SUM(bottles) as pending_bottles FROM warehouse_products WHERE status = "0" GROUP BY warehouse_id, product_id) as pending'), function($join) {
                 $join->on('base.warehouse_id', '=', 'pending.warehouse_id')
                      ->on('base.product_id', '=', 'pending.product_id');
             })
@@ -492,7 +492,9 @@ class StockController extends Controller
                 'products.per_case_quantity as bottles_per_case',
                 'products.per_case_price',
                 DB::raw('COALESCE(warehouse_stock.stock, 0) as current_stock'),
+                DB::raw('COALESCE(warehouse_stock.bottles, 0) as current_bottles'),
                 DB::raw('COALESCE(pending.pending_qty, 0) as pending_stock'),
+                DB::raw('COALESCE(pending.pending_bottles, 0) as pending_bottles'),
                 'warehouse_stock.updated_at'
             ]);
 
@@ -546,24 +548,31 @@ class StockController extends Controller
             })
             ->addColumn('current_stock', function ($model) {
                 $stock = (int)$model->current_stock;
-                if ($stock <= 0) {
+                $bottles = (int)($model->current_bottles ?? 0);
+                $label = $this->formatStockText($stock, $bottles);
+                if ($stock <= 0 && $bottles <= 0) {
                     return '<span class="badge bg-danger p-2" style="font-size:12px;"><i class="fa fa-circle-xmark me-1"></i> 0 Cases (Out of Stock)</span>';
                 } elseif ($stock <= 50) {
-                    return '<span class="badge bg-warning text-dark p-2" style="font-size:12px;"><i class="fa fa-triangle-exclamation me-1"></i> ' . $stock . ' Cases (Low)</span>';
+                    return '<span class="badge bg-warning text-dark p-2" style="font-size:12px;"><i class="fa fa-triangle-exclamation me-1"></i> ' . $label . ' (Low)</span>';
                 } else {
-                    return '<span class="badge bg-success p-2" style="font-size:12px;"><i class="fa fa-circle-check me-1"></i> ' . $stock . ' Cases</span>';
+                    return '<span class="badge bg-success p-2" style="font-size:12px;"><i class="fa fa-circle-check me-1"></i> ' . $label . '</span>';
                 }
             })
             ->addColumn('pending_stock', function ($model) {
                 $pending = (int)$model->pending_stock;
-                if ($pending > 0) {
-                    return '<span class="badge bg-info text-dark p-2" style="font-size:12px;"><i class="fa fa-truck-fast me-1"></i> ' . $pending . ' Cases (In-Transit)</span>';
+                $pendingBottles = (int)($model->pending_bottles ?? 0);
+                if ($pending > 0 || $pendingBottles > 0) {
+                    $label = $this->formatStockText($pending, $pendingBottles);
+                    return '<span class="badge bg-info text-dark p-2" style="font-size:12px;"><i class="fa fa-truck-fast me-1"></i> ' . $label . ' (In-Transit)</span>';
                 }
                 return '<span class="text-white-50">-</span>';
             })
             ->addColumn('total_pipeline', function ($model) {
-                $total = (int)$model->current_stock + (int)$model->pending_stock;
-                return '<strong class="text-white" style="font-size:14px;">' . $total . ' Cases</strong>';
+                $totalCases = (int)$model->current_stock + (int)$model->pending_stock;
+                $totalBottles = (int)($model->current_bottles ?? 0) + (int)($model->pending_bottles ?? 0);
+                $perCase = (int)($model->bottles_per_case ?? 0);
+                $norm = $this->normalizeStock($totalCases, $totalBottles, $perCase);
+                return '<strong class="text-white" style="font-size:14px;">' . $this->formatStockText($norm['cases'], $norm['bottles']) . '</strong>';
             })
             ->addColumn('stock_value', function ($model) {
                 $value = (float)($model->current_stock * ($model->per_case_price ?? 0));
