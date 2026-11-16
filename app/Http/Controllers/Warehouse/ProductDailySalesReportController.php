@@ -475,10 +475,11 @@ class ProductDailySalesReportController extends Controller
 
         $driverIds = $warehouseDrivers->pluck('id')->toArray();
 
-        $allCatalogProducts = Product::where('status', '1')
-            ->when($selectedProductId, fn($q) => $q->where('id', $selectedProductId))
-            ->orderBy('name', 'asc')
-            ->get();
+        $catalogQuery = Product::where('status', '1');
+        if ($selectedProductId) {
+            $catalogQuery = $catalogQuery->where('id', $selectedProductId);
+        }
+        $allCatalogProducts = $catalogQuery->orderBy('name', 'asc')->get();
 
         $assignedRows = collect();
         $soldRows = collect();
@@ -629,8 +630,10 @@ class ProductDailySalesReportController extends Controller
     /**
      * Format cases and loose bottles text.
      */
-    private function formatStockText(int $cases, int $bottles): string
+    private function formatStockText($cases, $bottles)
     {
+        $cases = (int)$cases;
+        $bottles = (int)$bottles;
         if ($cases > 0 && $bottles > 0) {
             return "{$cases} Cases + {$bottles} Bottles";
         } elseif ($cases > 0) {

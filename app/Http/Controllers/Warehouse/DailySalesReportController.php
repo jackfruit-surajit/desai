@@ -32,9 +32,12 @@ class DailySalesReportController extends Controller
             ->orderBy('admins.name', 'asc')
             ->get();
 
-        $driversToProcess = $selectedDriverId 
-            ? $warehouseDrivers->filter(fn($d) => (int)$d->id === $selectedDriverId)
-            : $warehouseDrivers;
+        $driversToProcess = $warehouseDrivers;
+        if ($selectedDriverId) {
+            $driversToProcess = $warehouseDrivers->filter(function ($d) use ($selectedDriverId) {
+                return (int)$d->id === (int)$selectedDriverId;
+            });
+        }
 
         // Fetch all active products for reference & normalization
         $products = Product::where('status', '1')->get()->keyBy('id');
@@ -342,13 +345,37 @@ class DailySalesReportController extends Controller
         ]);
     }
 
+    public function getDriverReturns(Request $request, $driver_id, $date)
+    {
+        $warehouse_id = Auth::guard('backend')->user()->id;
+
+        // Security check: verify driver strictly belongs to this warehouse
+        $isDriverAssigned = DriverWarehouse::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->exists();
+        if (!$isDriverAssigned) {
+            return response()->json(['status' => 403, 'message' => 'Driver is not assigned to your warehouse.'], 403);
+        }
+
+        $returns = DriverReturn::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->whereDate('return_date', $date)
+            ->get(['product_id', 'cases', 'bottles', 'notes']);
+
+        return response()->json([
+            'status' => 200,
+            'returns' => $returns,
+            'notes' => $returns->first()->notes ?? ''
+        ]);
+    }
+
     public function storeReturn(Request $request)
     {
         $request->validate([
             'driver_id' => 'required|exists:admins,id',
             'return_date' => 'required|date',
-            'returns' => 'required|array|min:1',
-            'returns.*.product_id' => 'required|exists:products,id',
+            'returns' => 'nullable|array',
+            'returns.*.product_id' => 'nullable|exists:products,id',
             'returns.*.cases' => 'nullable|integer|min:0',
             'returns.*.bottles' => 'nullable|integer|min:0',
             'notes' => 'nullable|string',
@@ -375,25 +402,39 @@ class DailySalesReportController extends Controller
                 ->whereDate('return_date', $return_date)
                 ->delete();
 
-            foreach ($request->returns as $retItem) {
-                $pid = (int)$retItem['product_id'];
-                $c = (int)($retItem['cases'] ?? 0);
-                $b = (int)($retItem['bottles'] ?? 0);
+            if ($request->has('returns') && is_array($request->returns)) {
+                $grouped = [];
+                foreach ($request->returns as $retItem) {
+                    if (empty($retItem['product_id'])) continue;
+                    $pid = (int)$retItem['product_id'];
+                    $c = (int)($retItem['cases'] ?? 0);
+                    $b = (int)($retItem['bottles'] ?? 0);
 
-                if ($c > 0 || $b > 0) {
-                    DriverReturn::create([
-                        'warehouse_id' => $warehouse_id,
-                        'driver_id' => $driver_id,
-                        'return_date' => $return_date,
-                        'product_id' => $pid,
-                        'cases' => $c,
-                        'bottles' => $b,
-                        'notes' => $request->notes,
-                    ]);
+                    if (!isset($grouped[$pid])) {
+                        $grouped[$pid] = ['cases' => 0, 'bottles' => 0];
+                    }
+                    $grouped[$pid]['cases'] += $c;
+                    $grouped[$pid]['bottles'] += $b;
+                }
 
-                    // Optionally restock returned goods back into warehouse stock
-                    if ($restock) {
-                        $this->restockWarehouse($warehouse_id, $pid, $c, $b);
+                foreach ($grouped as $pid => $qty) {
+                    $c = $qty['cases'];
+                    $b = $qty['bottles'];
+                    if ($c > 0 || $b > 0) {
+                        DriverReturn::create([
+                            'warehouse_id' => $warehouse_id,
+                            'driver_id' => $driver_id,
+                            'return_date' => $return_date,
+                            'product_id' => $pid,
+                            'cases' => $c,
+                            'bottles' => $b,
+                            'notes' => $request->notes,
+                        ]);
+
+                        // Optionally restock returned goods back into warehouse stock
+                        if ($restock) {
+                            $this->restockWarehouse($warehouse_id, $pid, $c, $b);
+                        }
                     }
                 }
             }
@@ -440,8 +481,10 @@ class DailySalesReportController extends Controller
         }
     }
 
-    private function bottlesToCaseText(int $totalBottles, int $bpc = 24): string
+    private function bottlesToCaseText($totalBottles, $bpc = 24)
     {
+        $totalBottles = (int)$totalBottles;
+        $bpc = (int)$bpc;
         if ($totalBottles <= 0) {
             return "0 Cases";
         }
@@ -456,8 +499,10 @@ class DailySalesReportController extends Controller
         return "{$loose} Bottles";
     }
 
-    private function formatStockText(int $cases, int $bottles): string
+    private function formatStockText($cases, $bottles)
     {
+        $cases = (int)$cases;
+        $bottles = (int)$bottles;
         if ($cases > 0 && $bottles > 0) {
             return "{$cases} Cases + {$bottles} Bottles";
         } elseif ($cases > 0) {

@@ -266,6 +266,7 @@
 
                 Route::get('daily-sales-report', ['uses' => 'Warehouse\DailySalesReportController@index', 'as' => 'warehouse-daily-sales-report']);
                 Route::get('daily-sales-report-breakdown/{driver_id}/{date}', ['uses' => 'Warehouse\DailySalesReportController@driverBreakdown', 'as' => 'warehouse-daily-sales-report-breakdown']);
+                Route::get('driver-returns-data/{driver_id}/{date}', ['uses' => 'Warehouse\DailySalesReportController@getDriverReturns', 'as' => 'warehouse-driver-returns-data']);
                 Route::post('driver-return-store', ['uses' => 'Warehouse\DailySalesReportController@storeReturn', 'as' => 'warehouse-driver-return-store']);
 
                 Route::get('product-daily-sales-report', ['uses' => 'Warehouse\ProductDailySalesReportController@index', 'as' => 'warehouse-product-daily-sales-report']);

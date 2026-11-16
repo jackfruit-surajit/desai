@@ -124,6 +124,48 @@
             color: #ffffff !important;
         }
 
+        /* Select2 inside Return Modal */
+        .select2-container {
+            width: 100% !important;
+        }
+        #returnModal .select2-container--default .select2-selection--single {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            height: 38px !important;
+            border-radius: 6px !important;
+        }
+        #returnModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #ffffff !important;
+            line-height: 36px !important;
+            padding-left: 12px !important;
+            font-size: 13px !important;
+        }
+        #returnModal .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+        }
+        .select2-dropdown {
+            background-color: #101C4C !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            color: #ffffff !important;
+            z-index: 99999 !important;
+        }
+        .select2-container--default .select2-results__option {
+            color: #ffffff !important;
+            font-size: 13px !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #35429E !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            background-color: #1a2757 !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        }
+        #returnsTable td {
+            vertical-align: middle !important;
+        }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -523,14 +565,14 @@
     <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
-                <form method="POST" action="{{ route('warehouse-driver-return-store') }}">
+                <form method="POST" action="{{ route('warehouse-driver-return-store') }}" id="returnForm">
                     @csrf
                     <input type="hidden" name="driver_id" id="returnDriverId">
                     <input type="hidden" name="return_date" value="{{ $reportDate }}">
 
                     <div class="modal-header">
                         <div>
-                            <h5 class="modal-title text-white fw-bold" id="returnModalLabel">
+                            <h5 class="modal-title text-white fw-bold mb-0" id="returnModalLabel">
                                 <i class="fa fa-box-archive text-warning me-2"></i>Record Physical Return: <span id="returnModalDriverName"></span>
                             </h5>
                             <small class="text-white-50">Date: {{ date('d F, Y', strtotime($reportDate)) }} &bull; Confirm stock returned by driver to warehouse</small>
@@ -539,70 +581,76 @@
                     </div>
 
                     <div class="modal-body">
-                        <div class="alert alert-info py-2" style="font-size: 13px;">
-                            <i class="fa fa-info-circle me-1"></i> Enter the actual Cases and Loose Bottles physically returned by the driver at the end of the day.
+                        {{-- Loading spinner while fetching existing return data --}}
+                        <div id="returnModalLoading" class="text-center py-4" style="display: none;">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-white-50 mb-0">Loading return data...</p>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th style="width: 130px;">Returned Cases</th>
-                                        <th style="width: 130px;">Returned Loose Bottles</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($products as $pIndex => $p)
-                                        <tr>
-                                            <td>
-                                                <input type="hidden" name="returns[{{ $pIndex }}][product_id]" value="{{ $p->id }}">
-                                                <strong class="text-white">{{ $p->name }}</strong>
-                                                <small class="text-white-50 d-block">({{ $p->per_case_quantity ?? 24 }} btls/case)</small>
-                                            </td>
-                                            <td>
-                                                <input type="number"
-                                                       name="returns[{{ $pIndex }}][cases]"
-                                                       class="form-control form-control-sm text-center"
-                                                       min="0"
-                                                       value="0">
-                                            </td>
-                                            <td>
-                                                <input type="number"
-                                                       name="returns[{{ $pIndex }}][bottles]"
-                                                       class="form-control form-control-sm text-center"
-                                                       min="0"
-                                                       value="0">
-                                            </td>
+                        <div id="returnModalContent">
+                            <div class="alert alert-info py-2 mb-3" style="font-size: 13px;">
+                                <i class="fa fa-info-circle me-1"></i> Select only the products physically returned by the driver. You can add multiple rows using <strong>+ Add Product</strong>.
+                            </div>
+
+                            <div class="table-responsive mb-2">
+                                <table class="table table-bordered table-sm align-middle mb-0" id="returnsTable">
+                                    <thead>
+                                        <tr style="background: rgba(255, 255, 255, 0.08);">
+                                            <th style="min-width: 280px;">Product <span class="text-danger">*</span></th>
+                                            <th style="width: 140px;" class="text-center">Returned Cases</th>
+                                            <th style="width: 140px;" class="text-center">Returned Loose Bottles</th>
+                                            <th style="width: 50px;" class="text-center">Action</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody id="returnsTableBody">
+                                        {{-- Dynamic rows inserted by JavaScript --}}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label text-white">Return Notes / Reason (Optional)</label>
-                            <textarea name="notes" class="form-control" rows="2" placeholder="e.g. 1 broken bottle, returned all unsold stock"></textarea>
-                        </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+                                <button type="button" class="btn btn-outline-info btn-sm" id="btnAddReturnRow">
+                                    <i class="fa fa-plus me-1"></i> Add Product
+                                </button>
+                                <small class="text-white-50" id="returnRowCountText"></small>
+                            </div>
 
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="restock_warehouse" id="restockCheckbox" value="1" checked>
-                            <label class="form-check-label text-white" for="restockCheckbox">
-                                Automatically add returned items back into Warehouse Stock
-                            </label>
+                            <div class="mb-3">
+                                <label class="form-label text-white fw-semibold mb-1">Return Notes / Reason (Optional)</label>
+                                <textarea name="notes" id="returnNotes" class="form-control form-control-sm" rows="2" placeholder="e.g. Broken bottles, customer cancellations, returned unsold stock..."></textarea>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="restock_warehouse" id="restockCheckbox" value="1" checked>
+                                <label class="form-check-label text-white" for="restockCheckbox">
+                                    Automatically add returned items back into Warehouse Stock
+                                </label>
+                            </div>
                         </div>
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-warning btn-sm">
-                            <i class="ti ti-check me-1"></i> Save Return
+                        <button type="submit" class="btn btn-warning btn-sm fw-bold">
+                            <i class="fa fa-check me-1"></i> Save Return
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    {{-- Hidden Product Options Template for Select2 Dynamic Rows --}}
+    <template id="returnProductOptionsTemplate">
+        <option value="">Search / Select Product...</option>
+        @foreach($products as $p)
+            <option value="{{ $p->id }}" data-bpc="{{ $p->per_case_quantity ?? 24 }}">
+                {{ $p->name }} ({{ $p->per_case_quantity ?? 24 }} btls/case)
+            </option>
+        @endforeach
+    </template>
 
 @endsection
 
@@ -683,13 +731,169 @@ $(document).ready(function () {
         });
     });
 
-    // Return Modal Handler
+    // Dynamic Returns Multi-Row Management
+    let returnRowIndex = 0;
+
+    function addReturnRow(productId, cases, bottles) {
+        productId = productId || '';
+        cases = cases !== undefined ? cases : 0;
+        bottles = bottles !== undefined ? bottles : 0;
+
+        let currentIdx = returnRowIndex++;
+        let optionsHtml = $('#returnProductOptionsTemplate').html();
+
+        let trHtml = `
+            <tr class="return-row" id="returnRow_${currentIdx}" data-index="${currentIdx}">
+                <td>
+                    <select name="returns[${currentIdx}][product_id]" class="form-select form-select-sm select2-return-product" required>
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td>
+                    <input type="number"
+                           name="returns[${currentIdx}][cases]"
+                           class="form-control form-control-sm text-center return-cases"
+                           min="0"
+                           value="${cases}"
+                           placeholder="0">
+                </td>
+                <td>
+                    <input type="number"
+                           name="returns[${currentIdx}][bottles]"
+                           class="form-control form-control-sm text-center return-bottles"
+                           min="0"
+                           value="${bottles}"
+                           placeholder="0">
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-remove-return-row" title="Remove row">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        let $row = $(trHtml);
+        $('#returnsTableBody').append($row);
+
+        // Initialize Select2 with dropdownParent to support modal focus
+        $row.find('.select2-return-product').select2({
+            dropdownParent: $('#returnModal'),
+            width: '100%',
+            placeholder: 'Search / Select Product...'
+        });
+
+        if (productId) {
+            $row.find('.select2-return-product').val(productId).trigger('change');
+        }
+
+        updateReturnRowCount();
+    }
+
+    function updateReturnRowCount() {
+        let count = $('#returnsTableBody tr.return-row').length;
+        $('#returnRowCountText').text(count + ' product' + (count !== 1 ? 's' : '') + ' added');
+    }
+
+    // Add another product button
+    $('#btnAddReturnRow').click(function () {
+        addReturnRow('', 0, 0);
+    });
+
+    // Remove product row button
+    $(document).on('click', '.btn-remove-return-row', function () {
+        let rowCount = $('#returnsTableBody tr.return-row').length;
+        if (rowCount > 1) {
+            let $select = $(this).closest('tr.return-row').find('.select2-return-product');
+            if ($select.data('select2')) {
+                $select.select2('destroy');
+            }
+            $(this).closest('tr.return-row').remove();
+            updateReturnRowCount();
+        } else {
+            // If only 1 row remains, reset it instead of removing
+            let $row = $(this).closest('tr.return-row');
+            $row.find('.select2-return-product').val('').trigger('change');
+            $row.find('.return-cases').val(0);
+            $row.find('.return-bottles').val(0);
+        }
+    });
+
+    // Return Modal Open Handler
     $('.btn-return').click(function () {
         let driverId = $(this).data('driver-id');
         let driverName = $(this).data('driver-name');
+        let date = $('#report_date').val() || '{{ $reportDate }}';
+
         $('#returnDriverId').val(driverId);
         $('#returnModalDriverName').text(driverName);
+        $('#returnsTableBody').empty();
+        $('#returnNotes').val('');
+        $('#returnModalLoading').show();
+        $('#returnModalContent').hide();
         $('#returnModal').modal('show');
+
+        returnRowIndex = 0;
+
+        // Fetch existing recorded returns for this driver on this date
+        let url = '{{ route("warehouse-driver-returns-data", [":driver_id", ":date"]) }}';
+        url = url.replace(':driver_id', driverId).replace(':date', date);
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json',
+            success: function (res) {
+                $('#returnModalLoading').hide();
+                $('#returnModalContent').show();
+
+                if (res.status === 200 && res.returns && res.returns.length > 0) {
+                    res.returns.forEach(function (ret) {
+                        addReturnRow(ret.product_id, ret.cases, ret.bottles);
+                    });
+                    if (res.notes) {
+                        $('#returnNotes').val(res.notes);
+                    }
+                } else {
+                    addReturnRow('', 0, 0);
+                }
+            },
+            error: function () {
+                $('#returnModalLoading').hide();
+                $('#returnModalContent').show();
+                addReturnRow('', 0, 0);
+            }
+        });
+    });
+
+    // Prevent duplicate product selection & validation on form submit
+    $('#returnForm').on('submit', function (e) {
+        let hasSelectedProduct = false;
+        let selectedProductIds = [];
+        let hasDuplicate = false;
+
+        $('#returnsTableBody tr.return-row').each(function () {
+            let pid = $(this).find('.select2-return-product').val();
+            if (pid) {
+                hasSelectedProduct = true;
+                if (selectedProductIds.includes(pid)) {
+                    hasDuplicate = true;
+                }
+                selectedProductIds.push(pid);
+            }
+        });
+
+        if (!hasSelectedProduct) {
+            e.preventDefault();
+            alert('Please select at least one product to record return.');
+            return false;
+        }
+
+        if (hasDuplicate) {
+            e.preventDefault();
+            alert('A product has been added more than once. Please combine the quantities or remove the duplicate row.');
+            return false;
+        }
     });
 });
 </script>
