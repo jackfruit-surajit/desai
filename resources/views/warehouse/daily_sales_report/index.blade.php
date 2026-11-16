@@ -189,11 +189,6 @@
             </li>
         </ul>
 
-        {{-- <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-info btn-sm" onclick="window.print()">
-                <i class="fa fa-print me-1"></i> Print Report
-            </button>
-        </div> --}}
     </div>
 
     {{-- Filter Panel --}}
@@ -237,9 +232,7 @@
                     <a href="{{ route('warehouse-daily-sales-report') }}" class="btn btn-outline-secondary">
                         <i class="ti ti-rotate me-1"></i> Reset
                     </a>
-                    {{-- <button type="button" class="btn btn-outline-info ms-auto" onclick="window.print();">
-                        <i class="fa fa-print me-1"></i> Print
-                    </button> --}}
+
                 </div>
             </div>
         </form>

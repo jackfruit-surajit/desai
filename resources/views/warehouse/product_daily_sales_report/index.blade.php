@@ -189,14 +189,7 @@
             </li>
         </ul>
 
-        {{-- <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-info btn-sm" onclick="window.print()">
-                <i class="fa fa-print me-1"></i> Print Report
-            </button>
-            <a href="{{ route('warehouse-product-daily-sales-report-export', ['date' => $reportDate, 'product_id' => $selectedProductId]) }}" class="btn btn-outline-success btn-sm">
-                <i class="fa fa-file-excel me-1"></i> Export CSV
-            </a>
-        </div> --}}
+
     </div>
 
     {{-- Filter Panel --}}
