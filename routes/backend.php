@@ -261,6 +261,8 @@
                 Route::get('get-driver-management-report-datatable', ['uses' => 'Warehouse\DriverManagementController@getDriverManagementReportDatatable', 'as' => 'get-driver-management-report-datatable']);
                 
                 Route::get('driver-product-list/{id}', ['uses' => 'Warehouse\DriverManagementController@driverProductList', 'as' => 'driver-product-list']);
+                Route::get('driver-product-edit/{id}', ['uses' => 'Warehouse\DriverManagementController@productEdit', 'as' => 'driver-product-edit']);
+                Route::post('driver-product-update/{id}', ['uses' => 'Warehouse\DriverManagementController@productUpdate', 'as' => 'driver-product-update']);
 
                 
                 

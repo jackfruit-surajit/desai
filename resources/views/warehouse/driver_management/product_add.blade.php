@@ -1,11 +1,12 @@
 @extends('warehouse.layouts.main')
 
-@section('title', 'Product Management')
-@section('breadcrumb-item', 'Product Management')
-@section('breadcrumb-item-active', 'Assign Products')
+@section('title', 'Driver Management')
+@section('breadcrumb-item', 'Driver Management')
+@section('breadcrumb-item-active', 'Assign Products to Driver')
 
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link href="{{ URL::asset(asset_path('backend/assets/css/jquery-confirm.css')) }}" rel="stylesheet" type="text/css" />
 
 <style>
     .select2-container {
@@ -13,11 +14,82 @@
     }
 
     .product-row {
-        border: 1px solid #dee2e6;
-        padding: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 18px;
         border-radius: 8px;
-        margin-bottom: 15px;
-        background: #f8f9fa;
+        margin-bottom: 16px;
+        background: rgba(16, 28, 76, 0.45);
+        transition: all 0.2s ease;
+    }
+
+    .product-row:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        background: rgba(16, 28, 76, 0.6);
+    }
+
+    .product-row label, form label {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        margin-bottom: 6px;
+    }
+
+    .product-row .form-control, form .form-control, form .form-select {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    }
+
+    .product-row .form-control:focus, form .form-control:focus, form .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.14) !important;
+        border-color: #35429E !important;
+        color: #ffffff !important;
+    }
+
+    .product-row .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    .product-row .form-select option, form .form-select option {
+        background-color: #101C4C !important;
+        color: #ffffff !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        height: 42px !important;
+        border-radius: 6px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #ffffff !important;
+        line-height: 40px !important;
+        padding-left: 14px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px !important;
+    }
+
+    .select2-dropdown {
+        background-color: #101C4C !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
+        color: #ffffff !important;
+    }
+
+    .select2-container--default .select2-results__option {
+        color: #ffffff !important;
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #35429E !important;
+        color: #ffffff !important;
+    }
+
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        background-color: #1a2757 !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.25) !important;
     }
 
     .remove-product {
@@ -25,9 +97,14 @@
     }
 
     .required {
-        color: red;
+        color: #ef4444;
     }
-    
+
+    .stock-badge .badge {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
 </style>
 @endsection
 
@@ -39,139 +116,177 @@
         <div class="card">
 
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Assign Multiple Products To Driver</h5>
+                <div>
+                    <h4 class="mb-1 text-white fw-bold"><i class="fa fa-truck me-2"></i>Assign Products to Driver</h4>
+                    <small class="text-white-50">Select driver and specify quantities in Cases and Bottles from warehouse stock.</small>
+                </div>
 
                 <button type="button" class="btn btn-success btn-sm" id="addProduct">
-                    <i class="ti ti-plus"></i> Add Product
+                    <i class="ti ti-plus me-1"></i> Add Another Product
                 </button>
             </div>
 
             <div class="card-body">
 
-                <form method="POST" action="{{ route('driver-product-store') }}" enctype="multipart/form-data">
+                {{-- Flash Message Alerts --}}
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fa fa-check-circle me-1"></i> {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if (session('error_msg'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong><i class="fa fa-triangle-exclamation me-1"></i> Error:</strong> {{ session('error_msg') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if (isset($errors) && $errors->any())
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong><i class="fa fa-triangle-exclamation me-1"></i> Please check the following issues:</strong>
+                        <ul class="mb-0 mt-2">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('driver-product-store') }}" id="assignDriverProductForm" enctype="multipart/form-data">
                     @csrf
 
-                    {{-- Driver --}}
+                    {{-- Driver and Date Row --}}
                     <div class="row mb-4">
-
                         <div class="col-md-6">
                             <label class="form-label">
                                 Driver <span class="required">*</span>
                             </label>
-
-                            <select name="driver_id" class="form-control select2" required>
-
+                            <select name="driver_id" class="form-select select2" required>
                                 <option value="">Select Driver</option>
-
                                 @foreach($drivers as $driver)
                                     <option value="{{ $driver->id }}"
                                         {{ old('driver_id') == $driver->id ? 'selected' : '' }}>
                                         {{ $driver->name }}
                                     </option>
                                 @endforeach
-
                             </select>
-
-                            @error('driver_id')
-                                <span class="help-block text-danger">
-                                    {{ $message }}
-                                </span>
-                            @enderror
                         </div>
 
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                Assign Date <span class="required">*</span>
+                            </label>
+                            <input type="date"
+                                   name="assign_date"
+                                   class="form-control"
+                                   value="{{ old('assign_date', date('Y-m-d')) }}"
+                                   max="{{ date('Y-m-d') }}"
+                                   required>
+                        </div>
                     </div>
 
+                    <h5 class="text-white fw-bold mb-3"><i class="fa fa-boxes-stacked me-2"></i>Product Items</h5>
 
-                    {{-- Products --}}
+                    {{-- Products Container --}}
                     <div id="productContainer">
 
                         <div class="product-row">
 
-                            <div class="row">
+                            <div class="row g-3 align-items-center">
 
-                                {{-- Product --}}
+                                {{-- Product Selection --}}
                                 <div class="col-md-5">
-
-                                    <label class="form-label text-dark">
+                                    <label class="form-label">
                                         Product Name <span class="required">*</span>
                                     </label>
-
                                     <select name="products[0][product_id]"
                                             class="form-control product-select"
                                             required>
-
-                                        <option value="">
-                                            Select Product
-                                        </option>
-
+                                        <option value="">Select Product</option>
                                         @foreach($products as $product)
-
-                                            <option value="{{ $product->id }}">
-                                                {{ $product->name }}
+                                            @php
+                                                $stockCases = (int)$product->stock;
+                                                $stockBottles = (int)$product->bottles;
+                                                $bpc = (int)($product->bottles_per_case ?? 0);
+                                                $stockLabel = ($stockCases > 0 || $stockBottles > 0)
+                                                    ? ($stockCases . ' Cases' . ($stockBottles > 0 ? ' + ' . $stockBottles . ' Bottles' : ''))
+                                                    : '0 Cases';
+                                            @endphp
+                                            <option value="{{ $product->id }}"
+                                                    data-cases="{{ $stockCases }}"
+                                                    data-bottles="{{ $stockBottles }}"
+                                                    data-per-case="{{ $bpc }}">
+                                                {{ $product->name }} (Available: {{ $stockLabel }})
                                             </option>
-
                                         @endforeach
-
                                     </select>
-
+                                    <div class="stock-badge mt-2">
+                                        <span class="badge bg-secondary">Select a product to view available stock</span>
+                                    </div>
                                 </div>
 
-
-                                {{-- Per Case Quantity --}}
-                                <div class="col-md-4">
-
-                                    <label class="form-label text-dark">
-                                        Quantity (Case)
-                                        <span class="required">*</span>
+                                {{-- Cases Quantity --}}
+                                <div class="col-md-3">
+                                    <label class="form-label">
+                                        Cases <span class="required">*</span>
                                     </label>
-
                                     <input type="number"
                                            name="products[0][per_case_quantity]"
-                                           class="form-control"
-                                           placeholder="Quantity in Case"
-                                           min="1"
+                                           class="form-control case-input"
+                                           placeholder="Cases"
+                                           min="0"
+                                           value="0"
                                            required>
-
                                 </div>
-                                
-                                
 
-
-                                {{-- Remove --}}
+                                {{-- Loose Bottles Quantity --}}
                                 <div class="col-md-3">
+                                    <label class="form-label">
+                                        Loose Bottles
+                                    </label>
+                                    <input type="number"
+                                           name="products[0][bottles]"
+                                           class="form-control bottle-input"
+                                           placeholder="Bottles"
+                                           min="0"
+                                           value="0">
+                                </div>
 
+                                {{-- Remove Button --}}
+                                <div class="col-md-1 text-center">
                                     <button type="button"
                                             class="btn btn-danger remove-product"
+                                            title="Remove item"
                                             style="display:none;">
-
                                         <i class="ti ti-trash"></i>
-                                        Remove
-
                                     </button>
-
                                 </div>
 
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <div class="qty-warning text-danger fw-semibold" style="display:none; font-size:12px;"></div>
+                                </div>
                             </div>
 
                         </div>
 
                     </div>
 
-
-                    {{-- Buttons --}}
-                    <div class="text-end btn-page mt-3">
-
-                        <a href="{{ route('manufacture-products') }}"
-                           class="btn btn-outline-secondary">
+                    {{-- Action Buttons --}}
+                    <div class="text-end btn-page mt-4">
+                        <a href="{{ route('driver-management-report') }}"
+                           class="btn btn-outline-secondary me-2">
                             Cancel
                         </a>
-
                         <button type="submit"
                                 class="btn btn-primary">
-                            <i class="ti ti-check"></i>
-                            Assign Products
+                            <i class="ti ti-check me-1"></i> Assign Products
                         </button>
-
                     </div>
 
                 </form>
@@ -184,158 +299,224 @@
 
 @endsection
 
-
 @section('scripts')
+<script src="{{ URL::asset(asset_path('backend/assets/js/jquery-confirm.js')) }}" type="text/javascript"></script>
 
 <script>
-
 $(document).ready(function () {
-    
-    
-
     let productIndex = 1;
 
+    // Build product options HTML for dynamic rows
+    const productOptionsHtml = `
+        <option value="">Select Product</option>
+        @foreach($products as $product)
+            @php
+                $stockCases = (int)$product->stock;
+                $stockBottles = (int)$product->bottles;
+                $bpc = (int)($product->bottles_per_case ?? 0);
+                $stockLabel = ($stockCases > 0 || $stockBottles > 0)
+                    ? ($stockCases . ' Cases' . ($stockBottles > 0 ? ' + ' . $stockBottles . ' Bottles' : ''))
+                    : '0 Cases';
+            @endphp
+            <option value="{{ $product->id }}"
+                    data-cases="{{ $stockCases }}"
+                    data-bottles="{{ $stockBottles }}"
+                    data-per-case="{{ $bpc }}">
+                {{ $product->name }} (Available: {{ $stockLabel }})
+            </option>
+        @endforeach
+    `;
+
     // Initialize Select2
-    function initializeSelect2() {
-
-        $('.product-select').each(function () {
-
+    function initializeSelect2($context) {
+        let $target = $context ? $context.find('.product-select') : $('.product-select');
+        $target.each(function () {
             if ($(this).hasClass('select2-hidden-accessible')) {
                 return;
             }
-
             $(this).select2({
                 placeholder: 'Select Product',
                 allowClear: true,
                 width: '100%'
             });
-
         });
-
     }
 
+    $('.select2').select2({
+        placeholder: 'Select Option',
+        width: '100%'
+    });
 
-    // Initial Select2
     initializeSelect2();
 
+    // Update stock badge and validate quantities for a row
+    function updateRowStock($row) {
+        let $select = $row.find('.product-select');
+        let $selected = $select.find('option:selected');
+        let $badge = $row.find('.stock-badge');
+        let $warning = $row.find('.qty-warning');
 
-    // Add Product
+        if (!$selected.val()) {
+            $badge.html('<span class="badge bg-secondary">Select a product to view available stock</span>');
+            $warning.hide();
+            return;
+        }
+
+        let availCases = parseInt($selected.data('cases')) || 0;
+        let availBottles = parseInt($selected.data('bottles')) || 0;
+        let bpc = parseInt($selected.data('per-case')) || 0;
+
+        let stockText = '';
+        if (availCases > 0 && availBottles > 0) {
+            stockText = availCases + ' Cases + ' + availBottles + ' Bottles';
+        } else if (availCases > 0) {
+            stockText = availCases + ' Cases';
+        } else if (availBottles > 0) {
+            stockText = availBottles + ' Bottles';
+        } else {
+            stockText = '0 Cases';
+        }
+
+        if (availCases <= 0 && availBottles <= 0) {
+            $badge.html('<span class="badge bg-danger"><i class="fa fa-circle-xmark me-1"></i> Out of Stock (0 Available)</span>');
+        } else {
+            let bpcText = bpc > 0 ? ' &bull; ' + bpc + ' btls/case' : '';
+            $badge.html('<span class="badge bg-success"><i class="fa fa-boxes-stacked me-1"></i> Available: ' + stockText + bpcText + '</span>');
+        }
+
+        // Validate requested quantity
+        let reqCases = parseInt($row.find('.case-input').val()) || 0;
+        let reqBottles = parseInt($row.find('.bottle-input').val()) || 0;
+
+        let isExceeded = false;
+        if (bpc > 0) {
+            let totalAvail = (availCases * bpc) + availBottles;
+            let totalReq = (reqCases * bpc) + reqBottles;
+            if (totalReq > totalAvail) {
+                isExceeded = true;
+            }
+        } else {
+            if (reqCases > availCases || reqBottles > availBottles) {
+                isExceeded = true;
+            }
+        }
+
+        if (isExceeded) {
+            $warning.html('<i class="fa fa-triangle-exclamation me-1"></i> Warning: Requested quantity exceeds currently available warehouse stock (' + stockText + ')!').show();
+        } else {
+            $warning.hide();
+        }
+    }
+
+    // Event listeners for stock changes
+    $(document).on('change', '.product-select', function () {
+        updateRowStock($(this).closest('.product-row'));
+    });
+
+    $(document).on('input', '.case-input, .bottle-input', function () {
+        updateRowStock($(this).closest('.product-row'));
+    });
+
+    // Add Product Row
     $('#addProduct').click(function () {
-
         let html = `
-
         <div class="product-row">
-
-            <div class="row">
-
+            <div class="row g-3 align-items-center">
                 <div class="col-md-5">
-
-                    <label class="form-label text-dark">
-                        Product Name
-                        <span class="required">*</span>
+                    <label class="form-label">
+                        Product Name <span class="required">*</span>
                     </label>
-
                     <select name="products[${productIndex}][product_id]"
                             class="form-control product-select"
                             required>
-
-                        <option value="">
-                            Select Product
-                        </option>
-
-                        @foreach($products as $product)
-
-                            <option value="{{ $product->id }}">
-                                {{ $product->name }}
-                            </option>
-
-                        @endforeach
-
+                        ${productOptionsHtml}
                     </select>
-
+                    <div class="stock-badge mt-2">
+                        <span class="badge bg-secondary">Select a product to view available stock</span>
+                    </div>
                 </div>
-
-
-                <div class="col-md-4">
-
-                    <label class="form-label text-dark">
-                        Per Case Quantity
-                        <span class="required">*</span>
-                    </label>
-
-                    <input type="number"
-                           name="products[${productIndex}][per_case_quantity]"
-                           class="form-control"
-                           placeholder="Quantity in Case"
-                           min="1"
-                           required>
-
-                </div>
-
 
                 <div class="col-md-3">
-
-                    <button type="button"
-                            class="btn btn-danger remove-product">
-
-                        <i class="ti ti-trash"></i>
-                        Remove
-
-                    </button>
-
+                    <label class="form-label">
+                        Cases <span class="required">*</span>
+                    </label>
+                    <input type="number"
+                           name="products[${productIndex}][per_case_quantity]"
+                           class="form-control case-input"
+                           placeholder="Cases"
+                           min="0"
+                           value="0"
+                           required>
                 </div>
 
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Loose Bottles
+                    </label>
+                    <input type="number"
+                           name="products[${productIndex}][bottles]"
+                           class="form-control bottle-input"
+                           placeholder="Bottles"
+                           min="0"
+                           value="0">
+                </div>
+
+                <div class="col-md-1 text-center">
+                    <button type="button"
+                            class="btn btn-danger remove-product"
+                            title="Remove item">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
             </div>
 
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="qty-warning text-danger fw-semibold" style="display:none; font-size:12px;"></div>
+                </div>
+            </div>
         </div>
-
         `;
 
-        $('#productContainer').append(html);
-        
-        // Initialize Select2 for newly added field
-        initializeSelect2();
-
+        let $newRow = $(html);
+        $('#productContainer').append($newRow);
+        initializeSelect2($newRow);
         productIndex++;
-
         updateRemoveButtons();
-
     });
 
-
-    // Remove Product
+    // Remove Product Row
     $(document).on('click', '.remove-product', function () {
-
         $(this).closest('.product-row').remove();
-
         updateRemoveButtons();
-
     });
 
-
-    // Hide remove button when only one product exists
     function updateRemoveButtons() {
-
         let rows = $('.product-row');
-
         if (rows.length === 1) {
-
             rows.find('.remove-product').hide();
-
         } else {
-
             rows.find('.remove-product').show();
-
         }
-
     }
 
+    // Form submit validation: ensure at least one item has > 0 quantity
+    $('#assignDriverProductForm').on('submit', function (e) {
+        let hasValidQty = false;
+        $('.product-row').each(function () {
+            let cases = parseInt($(this).find('.case-input').val()) || 0;
+            let bottles = parseInt($(this).find('.bottle-input').val()) || 0;
+            if (cases > 0 || bottles > 0) {
+                hasValidQty = true;
+            }
+        });
+
+        if (!hasValidQty) {
+            e.preventDefault();
+            alert('Please specify at least 1 Case or 1 Bottle for at least one product.');
+            return false;
+        }
+    });
 });
-
-
-    $('.select2').select2();
-  
-
 </script>
-
 @endsection
