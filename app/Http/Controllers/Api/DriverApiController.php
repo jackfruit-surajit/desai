@@ -758,7 +758,7 @@ class DriverApiController extends Controller
         }
 
         $result = ShopProductReplacement::join('products','shop_product_replacements.product_id','products.id')
-                    ->join('customers','shop_product_replacements.shop_id','customers.id')
+                    ->join('customers','shop_product_replacements.shop_id','customers.id')->whereDate('shop_product_replacements.created_at',date('Y-m-d'))
                     ->where('shop_product_replacements.driver_id',$request->user_id)->get(['shop_product_replacements.*','customers.shop_name','customers.mobile_no','products.name as product_name']);
 
         if($result){

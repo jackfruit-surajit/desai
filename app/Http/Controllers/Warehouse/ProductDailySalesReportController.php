@@ -97,6 +97,9 @@ class ProductDailySalesReportController extends Controller
                 ->whereIn('driver_id', $driverIds)
                 ->whereDate('return_date', $reportDate)
                 ->get();
+            $driversWithReturns = $manualReturns->pluck('driver_id')->unique()->toArray();
+        } else {
+            $driversWithReturns = [];
         }
 
         // Group queries by product_id for fast lookup
@@ -145,21 +148,17 @@ class ProductDailySalesReportController extends Controller
                     continue;
                 }
 
+                $driverHasReturn = in_array($did, $driversWithReturns);
+
                 // Driver's assigned
                 $dAssigned = $pAssignedItems->firstWhere('driver_id', $did);
                 $dACases = $dAssigned ? (int)$dAssigned->cases : 0;
                 $dABottles = $dAssigned ? (int)$dAssigned->bottles : 0;
                 $dTotalAssignedB = ($dACases * $bpc) + $dABottles;
 
-                // Driver's sold
-                $dSold = $pSoldItems->firstWhere('driver_id', $did);
-                $dTotalSoldB = $dSold ? (int)$dSold->sold_bottles : 0;
-                $dInvoicesCount = $dSold ? (int)$dSold->invoices_count : 0;
-
-                // Driver's returned
+                // Driver's returned: Default 0 until physical return quantity is added
                 $dRet = $pReturnItems->firstWhere('driver_id', $did);
                 $hasManualRet = !is_null($dRet);
-                // Driver's returned: Default 0 until physical return quantity is added
                 if ($hasManualRet) {
                     $dRCases = (int)$dRet->cases;
                     $dRBottles = (int)$dRet->bottles;
@@ -168,6 +167,20 @@ class ProductDailySalesReportController extends Controller
                     $dTotalReturnedB = 0;
                     $dRCases = 0;
                     $dRBottles = 0;
+                }
+
+                // Driver's sold: Sold Quantity = Assigned Quantity - Returned Quantity
+                $dSold = $pSoldItems->firstWhere('driver_id', $did);
+                $invSoldB = $dSold ? (int)$dSold->sold_bottles : 0;
+                $dInvoicesCount = $dSold ? (int)$dSold->invoices_count : 0;
+
+                if ($driverHasReturn) {
+                    $dTotalSoldB = max(0, $dTotalAssignedB - $dTotalReturnedB);
+                    if ($dTotalSoldB == 0 && $dTotalAssignedB == 0 && $invSoldB > 0) {
+                        $dTotalSoldB = $invSoldB;
+                    }
+                } else {
+                    $dTotalSoldB = $invSoldB;
                 }
 
                 $dRevenue = $dTotalSoldB * $bottlePrice;
@@ -383,6 +396,13 @@ class ProductDailySalesReportController extends Controller
             ->get()
             ->keyBy('driver_id');
 
+        $driversWithReturns = DriverReturn::where('warehouse_id', $warehouse_id)
+            ->whereIn('driver_id', $driverIds)
+            ->whereDate('return_date', $date)
+            ->pluck('driver_id')
+            ->unique()
+            ->toArray();
+
         $items = [];
         $totAssignedCases = 0;
         $totAssignedBottles = 0;
@@ -394,6 +414,8 @@ class ProductDailySalesReportController extends Controller
 
         foreach ($warehouseDrivers as $driver) {
             $did = $driver->id;
+            $driverHasReturn = in_array($did, $driversWithReturns);
+
             $aRow = $assignedRows->get($did);
             $sRow = $soldRows->get($did);
             $rRow = $manualReturns->get($did);
@@ -402,21 +424,34 @@ class ProductDailySalesReportController extends Controller
             $aBottles = $aRow ? (int)$aRow->bottles : 0;
             $totalAssignedB = ($aCases * $bpc) + $aBottles;
 
-            $sBottles = $sRow ? (int)$sRow->sold_bottles : 0;
-            $sCases = intdiv($sBottles, $bpc);
-            $sLoose = $sBottles % $bpc;
-            $invCount = $sRow ? (int)$sRow->invoices_count : 0;
-
             // Driver's returned: Default 0 until physical return quantity is added
             if ($rRow) {
                 $rCases = (int)$rRow->cases;
                 $rBottles = (int)$rRow->bottles;
+                $totalRetB = ($rCases * $bpc) + $rBottles;
                 $hasManual = true;
             } else {
                 $rCases = 0;
                 $rBottles = 0;
+                $totalRetB = 0;
                 $hasManual = false;
             }
+
+            // Driver's sold: Sold Quantity = Assigned Quantity - Returned Quantity
+            $invSoldB = $sRow ? (int)$sRow->sold_bottles : 0;
+            $invCount = $sRow ? (int)$sRow->invoices_count : 0;
+
+            if ($driverHasReturn) {
+                $sBottles = max(0, $totalAssignedB - $totalRetB);
+                if ($sBottles == 0 && $totalAssignedB == 0 && $invSoldB > 0) {
+                    $sBottles = $invSoldB;
+                }
+            } else {
+                $sBottles = $invSoldB;
+            }
+
+            $sCases = intdiv($sBottles, $bpc);
+            $sLoose = $sBottles % $bpc;
 
             $rev = $sBottles * $bottlePrice;
 
@@ -523,6 +558,9 @@ class ProductDailySalesReportController extends Controller
                 ->whereIn('driver_id', $driverIds)
                 ->whereDate('return_date', $reportDate)
                 ->get();
+            $driversWithReturns = $manualReturns->pluck('driver_id')->unique()->toArray();
+        } else {
+            $driversWithReturns = [];
         }
 
         $assignedByProduct = $assignedRows->groupBy('product_id');
@@ -539,7 +577,7 @@ class ProductDailySalesReportController extends Controller
             'Expires' => '0',
         ];
 
-        $callback = function () use ($allCatalogProducts, $assignedByProduct, $soldByProduct, $returnsByProduct, $warehouseDrivers) {
+        $callback = function () use ($allCatalogProducts, $assignedByProduct, $soldByProduct, $returnsByProduct, $warehouseDrivers, $driversWithReturns) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, [
                 '#',
@@ -580,19 +618,30 @@ class ProductDailySalesReportController extends Controller
                     $did = $driver->id;
                     if (!$driversInvolved->contains($did)) continue;
 
+                    $driverHasReturn = in_array($did, $driversWithReturns);
+
                     $dAss = $pAssigned->firstWhere('driver_id', $did);
                     $dACases = $dAss ? (int)$dAss->cases : 0;
                     $dABottles = $dAss ? (int)$dAss->bottles : 0;
                     $dTotAssB = ($dACases * $bpc) + $dABottles;
 
                     $dSl = $pSold->firstWhere('driver_id', $did);
-                    $dTotSlB = $dSl ? (int)$dSl->sold_bottles : 0;
+                    $invTotSlB = $dSl ? (int)$dSl->sold_bottles : 0;
 
                     $dRt = $pRet->firstWhere('driver_id', $did);
                     if ($dRt) {
                         $dTotRtB = ((int)$dRt->cases * $bpc) + (int)$dRt->bottles;
                     } else {
                         $dTotRtB = 0;
+                    }
+
+                    if ($driverHasReturn) {
+                        $dTotSlB = max(0, $dTotAssB - $dTotRtB);
+                        if ($dTotSlB == 0 && $dTotAssB == 0 && $invTotSlB > 0) {
+                            $dTotSlB = $invTotSlB;
+                        }
+                    } else {
+                        $dTotSlB = $invTotSlB;
                     }
 
                     $pTotAssignedB += $dTotAssB;

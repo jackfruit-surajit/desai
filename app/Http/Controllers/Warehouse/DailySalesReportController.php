@@ -111,10 +111,12 @@ class DailySalesReportController extends Controller
             $driverAssignedTotalBottles = 0;
             $driverSoldTotalBottles = 0;
             $driverReturnedTotalBottles = 0;
+            $calculatedDriverSalesAmount = 0;
 
             foreach ($allProductIds as $pid) {
                 $p = $products->get($pid) ?? Product::find($pid);
                 $bpc = ($p && $p->per_case_quantity > 0) ? (int)$p->per_case_quantity : 24;
+                $bottlePrice = (float)($p ? ($p->per_bottle_price ?? 0) : 0);
 
                 // Assigned
                 $aRow = $assignedRows->get($pid);
@@ -122,11 +124,6 @@ class DailySalesReportController extends Controller
                 $aLoose = $aRow ? (int)$aRow->total_bottles : 0;
                 $pAssignedBottles = ($aCases * $bpc) + $aLoose;
                 $driverAssignedTotalBottles += $pAssignedBottles;
-
-                // Sold
-                $sRow = $soldRows->get($pid);
-                $pSoldBottles = $sRow ? (int)$sRow->sold_bottles : 0;
-                $driverSoldTotalBottles += $pSoldBottles;
 
                 // Returned: Default 0 until physical return quantity is added
                 if ($hasManualReturn && $manualReturns->has($pid)) {
@@ -138,12 +135,34 @@ class DailySalesReportController extends Controller
                     $pReturnedBottles = 0;
                 }
                 $driverReturnedTotalBottles += $pReturnedBottles;
+
+                // Sold: When return is entered, Sold Quantity = Assigned Quantity - Returned Quantity
+                $sRow = $soldRows->get($pid);
+                $invSoldBottles = $sRow ? (int)$sRow->sold_bottles : 0;
+
+                if ($hasManualReturn) {
+                    $pSoldBottles = max(0, $pAssignedBottles - $pReturnedBottles);
+                    if ($pSoldBottles == 0 && $pAssignedBottles == 0 && $invSoldBottles > 0) {
+                        $pSoldBottles = $invSoldBottles;
+                    }
+                } else {
+                    $pSoldBottles = $invSoldBottles;
+                }
+                $driverSoldTotalBottles += $pSoldBottles;
+
+                $calculatedDriverSalesAmount += ($pSoldBottles * $bottlePrice);
             }
 
             // Normalization helper
             $assignedText = $this->bottlesToCaseText($driverAssignedTotalBottles);
             $soldText = $this->bottlesToCaseText($driverSoldTotalBottles);
             $returnedText = $this->bottlesToCaseText($driverReturnedTotalBottles);
+
+            if ($hasManualReturn) {
+                $driverSalesAmount = $calculatedDriverSalesAmount;
+            } else {
+                $driverSalesAmount = ($driverSalesAmount > 0) ? $driverSalesAmount : $calculatedDriverSalesAmount;
+            }
 
             $isActive = ($driverAssignedTotalBottles > 0 || $driverSoldTotalBottles > 0 || $driverSalesAmount > 0 || $driverInvoicesCount > 0);
 
@@ -274,6 +293,8 @@ class DailySalesReportController extends Controller
         $totalReturnedBottles = 0;
         $totalSalesAmount = 0;
 
+        $hasManualReturn = $manualReturns->isNotEmpty();
+
         foreach ($allProductIds as $pid) {
             $p = $products->get($pid) ?? Product::find($pid);
             if (!$p) continue;
@@ -287,12 +308,6 @@ class DailySalesReportController extends Controller
             $aLoose = $aRow ? (int)$aRow->total_bottles : 0;
             $totalAssignedB = ($aCases * $bpc) + $aLoose;
 
-            // Sold
-            $sRow = $soldRows->get($pid);
-            $sBottles = $sRow ? (int)$sRow->sold_bottles : 0;
-            $sCases = intdiv($sBottles, $bpc);
-            $sLoose = $sBottles % $bpc;
-
             // Returned: Default 0 until physical return quantity is added
             if ($manualReturns->has($pid)) {
                 $m = $manualReturns->get($pid);
@@ -302,6 +317,23 @@ class DailySalesReportController extends Controller
                 $rCases = 0;
                 $rLoose = 0;
             }
+            $totalRetB = ($rCases * $bpc) + $rLoose;
+
+            // Sold: When return is entered, Sold Quantity = Assigned Quantity - Returned Quantity
+            $sRow = $soldRows->get($pid);
+            $invBottles = $sRow ? (int)$sRow->sold_bottles : 0;
+
+            if ($hasManualReturn) {
+                $sBottles = max(0, $totalAssignedB - $totalRetB);
+                if ($sBottles == 0 && $totalAssignedB == 0 && $invBottles > 0) {
+                    $sBottles = $invBottles;
+                }
+            } else {
+                $sBottles = $invBottles;
+            }
+
+            $sCases = intdiv($sBottles, $bpc);
+            $sLoose = $sBottles % $bpc;
 
             $itemRevenue = $sBottles * $bottlePrice;
             $totalSalesAmount += $itemRevenue;
