@@ -21,7 +21,10 @@ use App\Models\Product;
 use App\Models\Admin;
 use App\Models\Invoice;
 use App\Models\InvoiceData;
+use App\Models\ShopProductReplacement;
+use App\Models\ShopProductReplacementDetails;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Hash;
 use DB;
 
@@ -701,6 +704,381 @@ class DriverApiController extends Controller
         if($result){
             return response()->json(['status' => 200, 'message' => 'Products verified successfully.','data' => [],], 200);
         }
+        return response()->json(['status' => 400, 'message' => 'Failed to verify products.','data' => [],], 400);
     }
 
+    /**
+     * Store a product replacement transaction when a shop returns defective/damaged product to the driver.
+     * Supports both single-product flat fields and multi-product arrays.
+     */
+    public function storeShopProductReplacement(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id'                => 'nullable|integer',
+            'driver_id'              => 'nullable|integer',
+            'shop_id'                => 'nullable|integer',
+            'customer_id'            => 'nullable|integer',
+            'warehouse_id'           => 'nullable|integer',
+            'replace_date'           => 'nullable|date',
+            'date'                   => 'nullable|date',
+            'status'                 => 'nullable|string',
+            'reason'                 => 'nullable|string',
+            'notes'                  => 'nullable|string',
+            'product_id'             => 'nullable|integer',
+            'cases'                  => 'nullable|integer',
+            'bottles'                => 'nullable|integer',
+            'replacement_product_id' => 'nullable|integer',
+            'replacement_cases'      => 'nullable|integer',
+            'replacement_bottles'    => 'nullable|integer',
+            'image'                  => 'nullable|file|mimes:jpeg,png,jpg,webp,gif|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 422,
+                'message' => $validator->errors(),
+                'data' => []
+            ], 422);
+        }
+
+        // Driver ID
+        $driverId = $request->input('driver_id', $request->input('user_id'));
+        if (!$driverId) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Driver ID (driver_id or user_id) is required.',
+                'data' => []
+            ], 422);
+        }
+
+        $driver = DB::table('admins')->where('id', $driverId)->first();
+        if (!$driver) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Driver not found.',
+                'data' => []
+            ], 404);
+        }
+
+        // Shop ID
+        $shopId = $request->input('shop_id', $request->input('customer_id'));
+        if (!$shopId) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'Shop ID (shop_id or customer_id) is required.',
+                'data' => []
+            ], 422);
+        }
+
+        $shop = Customer::find($shopId);
+        if (!$shop) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Shop / Customer not found.',
+                'data' => []
+            ], 404);
+        }
+
+        // Warehouse ID
+        $warehouseId = $request->input('warehouse_id');
+        if (!$warehouseId) {
+            $warehouseId = DB::table('driver_warehouse')->where('driver_id', $driverId)->value('warehouse_id');
+        }
+
+        $replaceDate = $request->input('replace_date', $request->input('date', date('Y-m-d')));
+
+        // Parse items (multi-product or single flat product)
+        $rawProducts = $request->input('products', $request->input('items'));
+        if (is_string($rawProducts)) {
+            $decoded = json_decode($rawProducts, true);
+            if (is_array($decoded)) {
+                $rawProducts = $decoded;
+            }
+        }
+
+        $items = [];
+        if (is_array($rawProducts) && count($rawProducts) > 0) {
+            foreach ($rawProducts as $it) {
+                if (!empty($it['product_id'])) {
+                    $prodId = (int)$it['product_id'];
+                    $replId = !empty($it['replacement_product_id']) ? (int)$it['replacement_product_id'] : $prodId;
+                    $c = isset($it['cases']) ? (int)$it['cases'] : 0;
+                    $b = isset($it['bottles']) ? (int)$it['bottles'] : 0;
+                    $rc = isset($it['replacement_cases']) ? (int)$it['replacement_cases'] : $c;
+                    $rb = isset($it['replacement_bottles']) ? (int)$it['replacement_bottles'] : $b;
+                    $rReason = !empty($it['reason']) ? $it['reason'] : $request->input('reason', 'Replacement');
+                    $rNotes = isset($it['notes']) ? $it['notes'] : $request->input('notes');
+
+                    $items[] = [
+                        'product_id'             => $prodId,
+                        'cases'                  => $c,
+                        'bottles'                => $b,
+                        'replacement_product_id' => $replId,
+                        'replacement_cases'      => $rc,
+                        'replacement_bottles'    => $rb,
+                        'reason'                 => $rReason,
+                        'notes'                  => $rNotes,
+                        'image'                  => isset($it['image']) ? $it['image'] : null,
+                    ];
+                }
+            }
+        }
+
+        // If no items in products array, check if flat single product fields are present
+        if (empty($items) && $request->filled('product_id')) {
+            $prodId = (int)$request->input('product_id');
+            $c = (int)$request->input('cases', 0);
+            $b = (int)$request->input('bottles', 0);
+            $replId = (int)$request->input('replacement_product_id', $prodId);
+            $rc = (int)$request->input('replacement_cases', $c);
+            $rb = (int)$request->input('replacement_bottles', $b);
+
+            $items[] = [
+                'product_id'             => $prodId,
+                'cases'                  => $c,
+                'bottles'                => $b,
+                'replacement_product_id' => $replId,
+                'replacement_cases'      => $rc,
+                'replacement_bottles'    => $rb,
+                'reason'                 => $request->input('reason', 'Replacement'),
+                'notes'                  => $request->input('notes'),
+                'image'                  => null,
+            ];
+        }
+
+        if (empty($items)) {
+            return response()->json([
+                'status' => 422,
+                'message' => 'At least one product is required for replacement (provide product_id or products array).',
+                'data' => []
+            ], 422);
+        }
+
+        // Validate products existence and non-zero quantity
+        foreach ($items as $item) {
+            if (!DB::table('products')->where('id', $item['product_id'])->exists()) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => 'Product ID ' . $item['product_id'] . ' not found.',
+                    'data' => []
+                ], 422);
+            }
+            if (!empty($item['replacement_product_id']) && !DB::table('products')->where('id', $item['replacement_product_id'])->exists()) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => 'Replacement Product ID ' . $item['replacement_product_id'] . ' not found.',
+                    'data' => []
+                ], 422);
+            }
+            if ($item['cases'] <= 0 && $item['bottles'] <= 0) {
+                return response()->json([
+                    'status' => 422,
+                    'message' => 'Quantity (cases or bottles) must be greater than 0 for product ID ' . $item['product_id'] . '.',
+                    'data' => []
+                ], 422);
+            }
+        }
+
+        // Image upload handling
+        $imageName = null;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $imageName = 'rep_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('uploads/replacements');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+            $file->move($destinationPath, $imageName);
+        } elseif ($request->hasFile('selfie')) {
+            $file = $request->file('selfie');
+            $imageName = 'rep_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('uploads/replacements');
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+            $file->move($destinationPath, $imageName);
+        }
+
+        DB::beginTransaction();
+        try {
+            $totalCases = 0;
+            $totalBottles = 0;
+            foreach ($items as $it) {
+                $totalCases += (int)$it['cases'];
+                $totalBottles += (int)$it['bottles'];
+            }
+
+            $firstItem = $items[0];
+
+            // Generate unique replacement number
+            $replacementNo = 'REP-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+            while (ShopProductReplacement::where('replacement_no', $replacementNo)->exists()) {
+                $replacementNo = 'REP-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+            }
+
+            $replacement = ShopProductReplacement::create([
+                'replacement_no'         => $replacementNo,
+                'shop_id'                => (int)$shopId,
+                'driver_id'              => (int)$driverId,
+                'warehouse_id'           => $warehouseId ? (int)$warehouseId : null,
+                'replace_date'           => $replaceDate,
+                'total_products'         => count($items),
+                'total_cases'            => $totalCases,
+                'total_bottles'          => $totalBottles,
+                'product_id'             => $firstItem['product_id'],
+                'cases'                  => $firstItem['cases'],
+                'bottles'                => $firstItem['bottles'],
+                'replacement_product_id' => $firstItem['replacement_product_id'],
+                'replacement_cases'      => $firstItem['replacement_cases'],
+                'replacement_bottles'    => $firstItem['replacement_bottles'],
+                'reason'                 => $request->input('reason', $firstItem['reason']),
+                'status'                 => $request->input('status', 'pending'),
+                'image'                  => $imageName,
+                'notes'                  => $request->input('notes', $firstItem['notes']),
+            ]);
+
+            foreach ($items as $it) {
+                $detailImage = !empty($it['image']) ? $it['image'] : $imageName;
+                ShopProductReplacementDetails::create([
+                    'replacement_id'         => $replacement->id,
+                    'shop_id'                => (int)$shopId,
+                    'driver_id'              => (int)$driverId,
+                    'product_id'             => $it['product_id'],
+                    'cases'                  => $it['cases'],
+                    'bottles'                => $it['bottles'],
+                    'replacement_product_id' => $it['replacement_product_id'],
+                    'replacement_cases'      => $it['replacement_cases'],
+                    'replacement_bottles'    => $it['replacement_bottles'],
+                    'reason'                 => $it['reason'],
+                    'status'                 => $request->input('status', 'pending'),
+                    'image'                  => $detailImage,
+                    'notes'                  => $it['notes'],
+                ]);
+            }
+
+            DB::commit();
+
+            // Load relations and format response
+            $replacement->load([
+                'shop:id,name,shop_name,mobile_no,address,city',
+                'driver:id,name,email,phone',
+                'warehouse:id,name,email,phone',
+                'product:id,name,per_case_quantity,per_bottle_price',
+                'replacementProduct:id,name,per_case_quantity,per_bottle_price',
+                'details.product:id,name,per_case_quantity,per_bottle_price',
+                'details.replacementProduct:id,name,per_case_quantity,per_bottle_price',
+            ]);
+
+            $replacement->image_url = $replacement->image ? url('uploads/replacements/' . $replacement->image) : null;
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Shop product replacement recorded successfully.',
+                'data' => $replacement,
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 500,
+                'message' => 'Error recording product replacement: ' . $e->getMessage(),
+                'data' => []
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product replacement records (history) filtered by driver, shop, date, etc.
+     */
+    public function getShopProductReplacements(Request $request)
+    {
+        // If a specific ID is requested
+        $singleId = $request->input('replacement_id', $request->input('id'));
+        if ($singleId) {
+            $record = ShopProductReplacement::with([
+                'shop:id,name,shop_name,mobile_no,address,city',
+                'driver:id,name,email,phone',
+                'warehouse:id,name,email,phone',
+                'product:id,name,per_case_quantity,per_bottle_price',
+                'replacementProduct:id,name,per_case_quantity,per_bottle_price',
+                'details.product:id,name,per_case_quantity,per_bottle_price',
+                'details.replacementProduct:id,name,per_case_quantity,per_bottle_price',
+            ])->find($singleId);
+
+            if (!$record) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Replacement record not found.',
+                    'data' => null,
+                ], 404);
+            }
+
+            $record->image_url = $record->image ? url('uploads/replacements/' . $record->image) : null;
+            if ($record->details) {
+                foreach ($record->details as $d) {
+                    $d->image_url = $d->image ? url('uploads/replacements/' . $d->image) : null;
+                }
+            }
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Replacement record fetched successfully.',
+                'data' => $record,
+            ], 200);
+        }
+
+        $query = ShopProductReplacement::with([
+            'shop:id,name,shop_name,mobile_no,address,city',
+            'driver:id,name,email,phone',
+            'warehouse:id,name,email,phone',
+            'product:id,name,per_case_quantity,per_bottle_price',
+            'replacementProduct:id,name,per_case_quantity,per_bottle_price',
+            'details.product:id,name,per_case_quantity,per_bottle_price',
+            'details.replacementProduct:id,name,per_case_quantity,per_bottle_price',
+        ]);
+
+        $driverId = $request->input('driver_id', $request->input('user_id'));
+        if ($driverId) {
+            $query->where('driver_id', $driverId);
+        }
+
+        $shopId = $request->input('shop_id', $request->input('customer_id'));
+        if ($shopId) {
+            $query->where('shop_id', $shopId);
+        }
+
+        $warehouseId = $request->input('warehouse_id');
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        $replaceDate = $request->input('replace_date', $request->input('date'));
+        if ($replaceDate) {
+            $query->whereDate('replace_date', $replaceDate);
+        }
+
+        $status = $request->input('status');
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        $limit = (int)$request->input('limit', 50);
+        $records = $query->orderBy('id', 'desc')->take($limit)->get();
+
+        foreach ($records as $rec) {
+            $rec->image_url = $rec->image ? url('uploads/replacements/' . $rec->image) : null;
+            if ($rec->details) {
+                foreach ($rec->details as $d) {
+                    $d->image_url = $d->image ? url('uploads/replacements/' . $d->image) : null;
+                }
+            }
+        }
+
+        return response()->json([
+            'status' => 200,
+            'message' => 'Shop product replacements fetched successfully.',
+            'count' => count($records),
+            'data' => $records,
+        ], 200);
+    }
 }
