@@ -57,9 +57,8 @@ Route::prefix('driver')->group(function() {
     Route::post('driver-attendance', ['uses' => 'Api\DriverApiController@driverAttendance', 'as' => 'driver-attendance']);
     Route::post('assigned-products', ['uses' => 'Api\DriverApiController@assignedProducts', 'as' => 'driver-assigned-products']);
     Route::post('verified-products', ['uses' => 'Api\DriverApiController@acceptProducts', 'as' => 'driver-verified-products']);
-    Route::post('store-replacement', ['uses' => 'Api\DriverApiController@storeShopProductReplacement', 'as' => 'driver-store-replacement']);
-    Route::post('shop-replacements', ['uses' => 'Api\DriverApiController@getShopProductReplacements', 'as' => 'driver-shop-replacements']);
-    Route::get('shop-replacements', ['uses' => 'Api\DriverApiController@getShopProductReplacements', 'as' => 'driver-shop-replacements-get']);
+    Route::post('store-product-replacement', ['uses' => 'Api\DriverApiController@storeShopProductReplacement', 'as' => 'store-product-replacement']);
+    Route::post('store-product-replacement-list', ['uses' => 'Api\DriverApiController@driverReplaceProductList', 'as' => 'store-product-replacement-list']);
 
 });
 
