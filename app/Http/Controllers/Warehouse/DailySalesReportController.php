@@ -128,14 +128,14 @@ class DailySalesReportController extends Controller
                 $pSoldBottles = $sRow ? (int)$sRow->sold_bottles : 0;
                 $driverSoldTotalBottles += $pSoldBottles;
 
-                // Returned
+                // Returned: Default 0 until physical return quantity is added
                 if ($hasManualReturn && $manualReturns->has($pid)) {
                     $mRet = $manualReturns->get($pid);
                     $rCases = (int)$mRet->cases;
                     $rLoose = (int)$mRet->bottles;
                     $pReturnedBottles = ($rCases * $bpc) + $rLoose;
                 } else {
-                    $pReturnedBottles = max(0, $pAssignedBottles - $pSoldBottles);
+                    $pReturnedBottles = 0;
                 }
                 $driverReturnedTotalBottles += $pReturnedBottles;
             }
@@ -293,15 +293,14 @@ class DailySalesReportController extends Controller
             $sCases = intdiv($sBottles, $bpc);
             $sLoose = $sBottles % $bpc;
 
-            // Returned
+            // Returned: Default 0 until physical return quantity is added
             if ($manualReturns->has($pid)) {
                 $m = $manualReturns->get($pid);
                 $rCases = (int)$m->cases;
                 $rLoose = (int)$m->bottles;
             } else {
-                $retTotalB = max(0, $totalAssignedB - $sBottles);
-                $rCases = intdiv($retTotalB, $bpc);
-                $rLoose = $retTotalB % $bpc;
+                $rCases = 0;
+                $rLoose = 0;
             }
 
             $itemRevenue = $sBottles * $bottlePrice;

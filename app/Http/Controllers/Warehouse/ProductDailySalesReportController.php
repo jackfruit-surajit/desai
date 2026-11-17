@@ -159,14 +159,15 @@ class ProductDailySalesReportController extends Controller
                 // Driver's returned
                 $dRet = $pReturnItems->firstWhere('driver_id', $did);
                 $hasManualRet = !is_null($dRet);
+                // Driver's returned: Default 0 until physical return quantity is added
                 if ($hasManualRet) {
                     $dRCases = (int)$dRet->cases;
                     $dRBottles = (int)$dRet->bottles;
                     $dTotalReturnedB = ($dRCases * $bpc) + $dRBottles;
                 } else {
-                    $dTotalReturnedB = max(0, $dTotalAssignedB - $dTotalSoldB);
-                    $dRCases = intdiv($dTotalReturnedB, $bpc);
-                    $dRBottles = $dTotalReturnedB % $bpc;
+                    $dTotalReturnedB = 0;
+                    $dRCases = 0;
+                    $dRBottles = 0;
                 }
 
                 $dRevenue = $dTotalSoldB * $bottlePrice;
@@ -406,14 +407,14 @@ class ProductDailySalesReportController extends Controller
             $sLoose = $sBottles % $bpc;
             $invCount = $sRow ? (int)$sRow->invoices_count : 0;
 
+            // Driver's returned: Default 0 until physical return quantity is added
             if ($rRow) {
                 $rCases = (int)$rRow->cases;
                 $rBottles = (int)$rRow->bottles;
                 $hasManual = true;
             } else {
-                $totalRetB = max(0, $totalAssignedB - $sBottles);
-                $rCases = intdiv($totalRetB, $bpc);
-                $rBottles = $totalRetB % $bpc;
+                $rCases = 0;
+                $rBottles = 0;
                 $hasManual = false;
             }
 
@@ -591,7 +592,7 @@ class ProductDailySalesReportController extends Controller
                     if ($dRt) {
                         $dTotRtB = ((int)$dRt->cases * $bpc) + (int)$dRt->bottles;
                     } else {
-                        $dTotRtB = max(0, $dTotAssB - $dTotSlB);
+                        $dTotRtB = 0;
                     }
 
                     $pTotAssignedB += $dTotAssB;

@@ -435,6 +435,9 @@
                                                     @endif
                                                 @else
                                                     <span class="text-white-50">0 Cases</span>
+                                                    @if($report['has_manual_return'])
+                                                        <small class="badge bg-success ms-1" title="Confirmed physical return">Verified</small>
+                                                    @endif
                                                 @endif
                                             </td>
 
