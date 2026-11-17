@@ -62,10 +62,7 @@ Route::prefix('driver')->group(function() {
 
 });
 
-
 Route::get('product-list', ['uses' => 'Api\ProductApiController@productList', 'as' => 'product-list']);
-Route::post('shop-product-replacement-store', ['uses' => 'Api\DriverApiController@storeShopProductReplacement', 'as' => 'shop-product-replacement-store']);
-Route::match(['get', 'post'], 'shop-product-replacement-list', ['uses' => 'Api\DriverApiController@getShopProductReplacements', 'as' => 'shop-product-replacement-list']);
 
 Route::prefix('sales-executive')->group(function() {
     Route::post('routes', ['uses' => 'Api\SalesExecutiveController@routeList', 'as' => 'route-list']);
