@@ -678,6 +678,7 @@ class DriverApiController extends Controller
         return response()->json([
             'status' => 200,
             'message' => 'Driver assigned products fetched successfully.',
+            'total_item' => count($result),
             'data' => $result,
         ], 200);
     }
