@@ -59,6 +59,7 @@ Route::prefix('driver')->group(function() {
     Route::post('verified-products', ['uses' => 'Api\DriverApiController@acceptProducts', 'as' => 'driver-verified-products']);
     Route::post('store-product-replacement', ['uses' => 'Api\DriverApiController@storeShopProductReplacement', 'as' => 'store-product-replacement']);
     Route::post('store-product-replacement-list', ['uses' => 'Api\DriverApiController@driverReplaceProductList', 'as' => 'store-product-replacement-list']);
+    Route::post('daily-summary', ['uses' => 'Api\DriverApiController@dailySummary', 'as' => 'driver-daily-summary']);
 
 });
 

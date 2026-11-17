@@ -771,5 +771,365 @@ class DriverApiController extends Controller
         
     }
 
-    
+    /**
+     * Driver Daily Summary API:
+     * 1. Assigned Stock count (cases, bottles, text)
+     * 2. Sold Products count (cases, bottles, text, sales amount)
+     * 3. Unsold Products count (cases, bottles, text)
+     * 4. Replacements count (cases, bottles, records)
+     * Plus product-wise breakdown for the day.
+     */
+    public function dailySummary(Request $request){
+        $validator = Validator::make($request->all(), [
+            'user_id'   => 'nullable|integer|exists:admins,id',
+            'driver_id' => 'nullable|integer|exists:admins,id',
+            'date'      => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $driverId = $request->input('user_id', $request->input('driver_id'));
+        $reportDate = $request->filled('date') ? $request->date : date('Y-m-d');
+
+        // All active products
+        $products = Product::where('status', '1')->get()->keyBy('id');
+
+        // 1. Assigned Stock on this date
+        $assignedRows = DB::table('driver_products')
+            ->join('driver_product_details', 'driver_products.id', '=', 'driver_product_details.driver_products_id')
+            ->where('driver_products.driver_id', $driverId)
+            ->where(function ($q) use ($reportDate) {
+                $q->whereDate('driver_products.assign_date', $reportDate)
+                  ->orWhere(function ($sub) use ($reportDate) {
+                      $sub->whereNull('driver_products.assign_date')
+                          ->whereDate('driver_products.created_at', $reportDate);
+                  });
+            })
+            ->select([
+                'driver_product_details.product_id',
+                DB::raw('SUM(driver_product_details.quantity) as total_cases'),
+                DB::raw('SUM(driver_product_details.bottles) as total_bottles')
+            ])
+            ->groupBy('driver_product_details.product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        // 2. Invoices (Deliveries made on this date)
+        $invoices = Invoice::where('driver_id', $driverId)
+            ->whereDate('created_at', $reportDate)
+            ->get();
+
+        $invoiceCount = $invoices->count();
+        $invoiceTotalAmount = (float)$invoices->sum('total_price');
+
+        $soldRows = DB::table('invoice')
+            ->join('invoice_data', 'invoice.id', '=', 'invoice_data.invoice_id')
+            ->where('invoice.driver_id', $driverId)
+            ->whereDate('invoice.created_at', $reportDate)
+            ->select([
+                'invoice_data.product_id',
+                DB::raw('SUM(invoice_data.quantity) as sold_bottles')
+            ])
+            ->groupBy('invoice_data.product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        // 3. Physical Returns recorded by warehouse
+        $manualReturns = DB::table('driver_returns')
+            ->where('driver_id', $driverId)
+            ->whereDate('return_date', $reportDate)
+            ->select([
+                'product_id',
+                DB::raw('SUM(cases) as total_cases'),
+                DB::raw('SUM(bottles) as total_bottles')
+            ])
+            ->groupBy('product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        $hasManualReturn = $manualReturns->isNotEmpty();
+
+        // 4. Replacements on this date
+        $replacementRows = DB::table('shop_product_replacements')
+            ->where('driver_id', $driverId)
+            ->where(function ($q) use ($reportDate) {
+                $q->whereDate('replace_date', $reportDate)
+                  ->orWhere(function ($sub) use ($reportDate) {
+                      $sub->whereNull('replace_date')
+                          ->whereDate('created_at', $reportDate);
+                  });
+            })
+            ->select([
+                'product_id',
+                DB::raw('COUNT(id) as total_records'),
+                DB::raw('SUM(cases) as total_cases'),
+                DB::raw('SUM(bottles) as total_bottles')
+            ])
+            ->groupBy('product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        $replacementList = ShopProductReplacement::join('products', 'shop_product_replacements.product_id', '=', 'products.id')
+            ->join('customers', 'shop_product_replacements.shop_id', '=', 'customers.id')
+            ->where('shop_product_replacements.driver_id', $driverId)
+            ->where(function ($q) use ($reportDate) {
+                $q->whereDate('shop_product_replacements.replace_date', $reportDate)
+                  ->orWhere(function ($sub) use ($reportDate) {
+                      $sub->whereNull('shop_product_replacements.replace_date')
+                          ->whereDate('shop_product_replacements.created_at', $reportDate);
+                  });
+            })
+            ->select([
+                'shop_product_replacements.id',
+                'shop_product_replacements.shop_id',
+                'customers.shop_name',
+                'customers.name as customer_name',
+                'customers.mobile_no',
+                'shop_product_replacements.product_id',
+                'products.name as product_name',
+                'shop_product_replacements.cases',
+                'shop_product_replacements.bottles',
+                'shop_product_replacements.reason',
+                'shop_product_replacements.replace_date',
+                'shop_product_replacements.created_at'
+            ])
+            ->orderBy('shop_product_replacements.id', 'desc')
+            ->get();
+
+        // All distinct product IDs involved
+        $allProductIds = $assignedRows->keys()
+            ->merge($soldRows->keys())
+            ->merge($manualReturns->keys())
+            ->merge($replacementRows->keys())
+            ->unique();
+
+        $productList = [];
+        $overallAssignedBottles = 0;
+        $overallAssignedCases = 0;
+        $overallAssignedLoose = 0;
+
+        $overallSoldBottles = 0;
+        $overallSoldCases = 0;
+        $overallSoldLoose = 0;
+
+        $overallUnsoldBottles = 0;
+        $overallUnsoldCases = 0;
+        $overallUnsoldLoose = 0;
+
+        $overallReturnedBottles = 0;
+        $overallReturnedCases = 0;
+        $overallReturnedLoose = 0;
+
+        $overallReplacementBottles = 0;
+        $overallReplacementCases = 0;
+        $overallReplacementLoose = 0;
+        $totalReplacementCount = $replacementList->count();
+
+        $calculatedRevenue = 0;
+
+        foreach ($allProductIds as $pid) {
+            $p = $products->get($pid) ?? Product::find($pid);
+            if (!$p) continue;
+
+            $bpc = ($p->per_case_quantity > 0) ? (int)$p->per_case_quantity : 24;
+            $bottlePrice = (float)($p->per_bottle_price ?? 0);
+            $casePrice = (float)($p->per_case_price ?? ($bottlePrice * $bpc));
+
+            // Assigned
+            $aRow = $assignedRows->get($pid);
+            $aCases = $aRow ? (int)$aRow->total_cases : 0;
+            $aLoose = $aRow ? (int)$aRow->total_bottles : 0;
+            $pAssignedBottles = ($aCases * $bpc) + $aLoose;
+
+            // Returned
+            $rRow = $manualReturns->get($pid);
+            $rCases = ($hasManualReturn && $rRow) ? (int)$rRow->total_cases : 0;
+            $rLoose = ($hasManualReturn && $rRow) ? (int)$rRow->total_bottles : 0;
+            $pReturnedBottles = ($rCases * $bpc) + $rLoose;
+
+            // Replacements
+            $repRow = $replacementRows->get($pid);
+            $repCases = $repRow ? (int)$repRow->total_cases : 0;
+            $repLoose = $repRow ? (int)$repRow->total_bottles : 0;
+            $pReplacementBottles = ($repCases * $bpc) + $repLoose;
+            $repCount = $repRow ? (int)$repRow->total_records : 0;
+
+            // Sold
+            $sRow = $soldRows->get($pid);
+            $invBottles = $sRow ? (int)$sRow->sold_bottles : 0;
+
+            if ($hasManualReturn) {
+                $pSoldBottles = max(0, $pAssignedBottles - $pReturnedBottles);
+                if ($pSoldBottles == 0 && $pAssignedBottles == 0 && $invBottles > 0) {
+                    $pSoldBottles = $invBottles;
+                }
+            } else {
+                $pSoldBottles = $invBottles;
+            }
+
+            $sCases = intdiv($pSoldBottles, $bpc);
+            $sLoose = $pSoldBottles % $bpc;
+
+            // Unsold / Not Sold:
+            if ($hasManualReturn) {
+                $pUnsoldBottles = $pReturnedBottles;
+            } else {
+                $pUnsoldBottles = max(0, $pAssignedBottles - $pSoldBottles);
+            }
+
+            $uCases = intdiv($pUnsoldBottles, $bpc);
+            $uLoose = $pUnsoldBottles % $bpc;
+
+            $itemRevenue = $pSoldBottles * $bottlePrice;
+            $calculatedRevenue += $itemRevenue;
+
+            // Accumulate totals
+            $overallAssignedBottles += $pAssignedBottles;
+            $overallAssignedCases += $aCases;
+            $overallAssignedLoose += $aLoose;
+
+            $overallSoldBottles += $pSoldBottles;
+            $overallSoldCases += $sCases;
+            $overallSoldLoose += $sLoose;
+
+            $overallUnsoldBottles += $pUnsoldBottles;
+            $overallUnsoldCases += $uCases;
+            $overallUnsoldLoose += $uLoose;
+
+            $overallReturnedBottles += $pReturnedBottles;
+            $overallReturnedCases += $rCases;
+            $overallReturnedLoose += $rLoose;
+
+            $overallReplacementBottles += $pReplacementBottles;
+            $overallReplacementCases += $repCases;
+            $overallReplacementLoose += $repLoose;
+
+            $productList[] = [
+                'product_id'        => $p->id,
+                'product_name'      => $p->name,
+                'hsn_code'          => $p->hsn_code ?? 'N/A',
+                'bottles_per_case'  => $bpc,
+                'bottle_price'      => $bottlePrice,
+                'case_price'        => $casePrice,
+
+                // 1. Assign stock count
+                'assigned' => [
+                    'cases'         => $aCases,
+                    'bottles'       => $aLoose,
+                    'total_bottles' => $pAssignedBottles,
+                    'text'          => $this->formatStockText($aCases, $aLoose),
+                ],
+
+                // 2. Koto gulo sale hoyache
+                'sold' => [
+                    'cases'         => $sCases,
+                    'bottles'       => $sLoose,
+                    'total_bottles' => $pSoldBottles,
+                    'text'          => $this->formatStockText($sCases, $sLoose),
+                    'sales_amount'  => round($itemRevenue, 2),
+                ],
+
+                // 3. Koto gulo sale hoini
+                'unsold' => [
+                    'cases'         => $uCases,
+                    'bottles'       => $uLoose,
+                    'total_bottles' => $pUnsoldBottles,
+                    'text'          => $this->formatStockText($uCases, $uLoose),
+                ],
+
+                // Physical returned
+                'returned' => [
+                    'cases'         => $rCases,
+                    'bottles'       => $rLoose,
+                    'total_bottles' => $pReturnedBottles,
+                    'text'          => $this->formatStockText($rCases, $rLoose),
+                ],
+
+                // 4. Koto gulo replacement hoyache
+                'replacement' => [
+                    'count'         => $repCount,
+                    'cases'         => $repCases,
+                    'bottles'       => $repLoose,
+                    'total_bottles' => $pReplacementBottles,
+                    'text'          => $this->formatStockText($repCases, $repLoose),
+                ],
+            ];
+        }
+
+        $totalSalesAmount = ($hasManualReturn || $invoiceTotalAmount == 0)
+            ? round($calculatedRevenue, 2)
+            : round($invoiceTotalAmount, 2);
+
+        // Overall summary structure
+        $summary = [
+
+            'assign_stock' => [
+                'total_assigned_products'      => count($assignedRows),
+                'total_assigned_cases'         => $overallAssignedCases,
+                'total_assigned_bottles'       => $overallAssignedLoose,
+                // 'total_assigned_total_bottles' => $overallAssignedBottles,
+                // 'assigned_text'                => $this->formatStockText($overallAssignedCases, $overallAssignedLoose),
+            ],
+
+            // 2. Koto gulo product sale hoyache
+
+            'sold_stock' => [
+                'total_sold_cases'             => $overallSoldCases,
+                'total_sold_bottles'           => $overallSoldLoose,
+                // 'total_sold_total_bottles'     => $overallSoldBottles,
+                // 'sold_text'                    => $this->formatStockText($overallSoldCases, $overallSoldLoose),
+                // 'total_sales_amount'           => $totalSalesAmount,
+                // 'total_invoices'               => $invoiceCount,
+            ],
+
+            // 3. Koto gulo sale hoini
+            'unsold_stock' => [
+                'total_unsold_cases'           => $overallUnsoldCases,
+                'total_unsold_bottles'         => $overallUnsoldLoose,
+                // 'total_unsold_total_bottles'   => $overallUnsoldBottles,
+                // 'unsold_text'                  => $this->formatStockText($overallUnsoldCases, $overallUnsoldLoose),
+            ],
+
+            // Returned stock
+            // 'total_returned_cases'         => $overallReturnedCases,
+            // 'total_returned_bottles'       => $overallReturnedLoose,
+            // 'total_returned_total_bottles' => $overallReturnedBottles,
+            // 'returned_text'                => $this->formatStockText($overallReturnedCases, $overallReturnedLoose),
+
+            // 4. Koto gulo replacement hoyache
+
+            'replacement_stock' => [
+                // 'total_replacement_records'       => $totalReplacementCount,
+                'total_replacement_cases'         => $overallReplacementCases,
+                'total_replacement_bottles'       => $overallReplacementLoose,
+                // 'total_replacement_total_bottles' => $overallReplacementBottles,
+                // 'replacement_text'                => $this->formatStockText($overallReplacementCases, $overallReplacementLoose),
+            ],
+        ];
+
+        return response()->json([
+            'status'               => 200,
+            'message'              => 'Driver daily summary fetched successfully.',
+            'date'                 => $reportDate,
+            'summary'              => $summary,
+            // 'products'             => $productList,
+            // 'replacement_details'  => $replacementList,
+        ], 200);
+    }
+
+    private function formatStockText($cases, $bottles){
+        $cases = (int)$cases;
+        $bottles = (int)$bottles;
+        if ($cases > 0 && $bottles > 0) {
+            return "{$cases} Cases + {$bottles} Bottles";
+        } elseif ($cases > 0) {
+            return "{$cases} Cases";
+        } elseif ($bottles > 0) {
+            return "{$bottles} Bottles";
+        }
+        return "0 Cases";
+    }
+
 }
