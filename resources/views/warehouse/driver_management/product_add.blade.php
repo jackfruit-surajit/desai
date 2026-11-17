@@ -115,15 +115,9 @@
 
         <div class="card">
 
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <div>
-                    <h4 class="mb-1 text-white fw-bold"><i class="fa fa-truck me-2"></i>Assign Products to Driver</h4>
-                    <small class="text-white-50">Select driver and specify quantities in Cases and Bottles from warehouse stock.</small>
-                </div>
-
-                <button type="button" class="btn btn-success btn-sm" id="addProduct">
-                    <i class="ti ti-plus me-1"></i> Add Another Product
-                </button>
+            <div class="card-header">
+                <h4 class="mb-1 text-white fw-bold"><i class="fa fa-truck me-2"></i>Assign Products to Driver</h4>
+                <small class="text-white-50">Select driver and specify quantities in Cases and Bottles from warehouse stock.</small>
             </div>
 
             <div class="card-body">
@@ -277,6 +271,17 @@
 
                         </div>
 
+                    </div>
+
+                    {{-- Add Another Product (fixed at the bottom of the product list) --}}
+                    <div class="d-flex justify-content-between align-items-center p-3 my-3 rounded" style="background: rgba(40, 167, 69, 0.08); border: 1px dashed rgba(40, 167, 69, 0.35);">
+                        <div>
+                            <button type="button" class="btn btn-success fw-bold shadow-sm" id="addProduct">
+                                <i class="ti ti-plus me-1"></i> Add Another Product
+                            </button>
+                            <span class="text-white-50 ms-2" style="font-size: 13px;">Click to add another product item</span>
+                        </div>
+                        <span class="badge bg-secondary" id="productCountBadge" style="font-size: 12px;">1 Product</span>
                     </div>
 
                     {{-- Action Buttons --}}
@@ -500,6 +505,7 @@ $(document).ready(function () {
         } else {
             rows.find('.remove-product').show();
         }
+        $('#productCountBadge').text(rows.length + (rows.length === 1 ? ' Product' : ' Products'));
     }
 
     // Form submit validation: ensure at least one item has > 0 quantity
