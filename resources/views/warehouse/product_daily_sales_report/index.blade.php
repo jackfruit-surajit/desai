@@ -356,8 +356,8 @@
                                         <th>Packaging</th>
                                         <th>Warehouse Stock</th>
                                         <th>Total Assigned</th>
-                                        <th>Total Sold</th>
                                         <th>Total Returned</th>
+                                        <th>Total Sold</th>
                                         <th>Unit Price</th>
                                         <th>Sales Revenue</th>
                                         <th>Active Drivers</th>
@@ -405,20 +405,6 @@
                                                 @endif
                                             </td>
 
-                                            {{-- Total Sold --}}
-                                            <td>
-                                                @if($report['sold_total_bottles'] > 0)
-                                                    <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 12px;">
-                                                        <i class="fa fa-cart-shopping me-1"></i> {{ $report['sold_text'] }}
-                                                    </span>
-                                                    <div class="text-white-50" style="font-size: 11px;">
-                                                        {{ $report['sold_total_bottles'] }} bottles
-                                                    </div>
-                                                @else
-                                                    <span class="text-white-50">0 Cases</span>
-                                                @endif
-                                            </td>
-
                                             {{-- Total Returned --}}
                                             <td>
                                                 @if($report['returned_total_bottles'] > 0)
@@ -427,6 +413,20 @@
                                                     </span>
                                                     <div class="text-white-50" style="font-size: 11px;">
                                                         {{ $report['returned_total_bottles'] }} bottles
+                                                    </div>
+                                                @else
+                                                    <span class="text-white-50">0 Cases</span>
+                                                @endif
+                                            </td>
+
+                                            {{-- Total Sold --}}
+                                            <td>
+                                                @if($report['sold_total_bottles'] > 0)
+                                                    <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 12px;">
+                                                        <i class="fa fa-cart-shopping me-1"></i> {{ $report['sold_text'] }}
+                                                    </span>
+                                                    <div class="text-white-50" style="font-size: 11px;">
+                                                        {{ $report['sold_total_bottles'] }} bottles
                                                     </div>
                                                 @else
                                                     <span class="text-white-50">0 Cases</span>
@@ -489,8 +489,8 @@
                                     <tr style="background: rgba(53, 66, 158, 0.45); font-weight: bold;">
                                         <td colspan="4" class="text-white text-uppercase">Overall Warehouse Total</td>
                                         <td class="text-info">{{ $overallAssignedText }}</td>
-                                        <td class="text-primary" style="color: #93c5fd !important;">{{ $overallSoldText }}</td>
                                         <td class="text-warning">{{ $overallReturnedText }}</td>
+                                        <td class="text-primary" style="color: #93c5fd !important;">{{ $overallSoldText }}</td>
                                         <td>-</td>
                                         <td class="text-success fs-5">₹ {{ number_format($overallSalesAmount, 2) }}</td>
                                         <td colspan="2" class="no-print"></td>
@@ -532,8 +532,8 @@
                                     <tr>
                                         <th>Driver Name</th>
                                         <th>Assigned Qty</th>
-                                        <th>Sold Qty</th>
                                         <th>Returned Qty</th>
+                                        <th>Sold Qty</th>
                                         <th>Revenue (₹)</th>
                                         <th>Deliveries</th>
                                     </tr>
@@ -545,8 +545,8 @@
                                     <tr style="background: rgba(53, 66, 158, 0.45); font-weight: bold;">
                                         <td class="text-white text-uppercase">Total</td>
                                         <td id="totAssigned" class="text-info">-</td>
-                                        <td id="totSold" class="text-primary" style="color: #93c5fd !important;">-</td>
                                         <td id="totReturned" class="text-warning">-</td>
+                                        <td id="totSold" class="text-primary" style="color: #93c5fd !important;">-</td>
                                         <td id="totRevenue" class="text-success fs-6">-</td>
                                         <td>-</td>
                                     </tr>
@@ -603,8 +603,8 @@
                             rows += '<tr>' +
                                 '<td><strong class="text-white">' + item.driver_name + '</strong></td>' +
                                 '<td><span class="badge bg-info text-dark">' + item.assigned_text + '</span></td>' +
-                                '<td><span class="badge bg-primary text-white">' + item.sold_text + '</span></td>' +
                                 '<td><span class="badge bg-warning text-dark">' + item.returned_text + '</span>' + verifiedBadge + '</td>' +
+                                '<td><span class="badge bg-primary text-white">' + item.sold_text + '</span></td>' +
                                 '<td><strong class="text-success">₹ ' + item.sales_amount + '</strong></td>' +
                                 '<td><span class="badge bg-light text-dark">' + item.invoices_count + ' Invoices</span></td>' +
                             '</tr>';
@@ -612,14 +612,14 @@
 
                         $('#breakdownTableBody').html(rows);
                         $('#totAssigned').text(res.totals.assigned_text);
-                        $('#totSold').text(res.totals.sold_text);
                         $('#totReturned').text(res.totals.returned_text);
+                        $('#totSold').text(res.totals.sold_text);
                         $('#totRevenue').text(res.totals.sales_amount);
                     } else {
                         $('#breakdownTableBody').html('<tr><td colspan="6" class="text-center text-muted py-4">No driver activity found for this product on this date.</td></tr>');
                         $('#totAssigned').text('0 Cases');
-                        $('#totSold').text('0 Cases');
                         $('#totReturned').text('0 Cases');
+                        $('#totSold').text('0 Cases');
                         $('#totRevenue').text('₹ 0.00');
                     }
                 },

@@ -388,15 +388,87 @@ class DailySalesReportController extends Controller
             return response()->json(['status' => 403, 'message' => 'Driver is not assigned to your warehouse.'], 403);
         }
 
-        $returns = DriverReturn::where('warehouse_id', $warehouse_id)
+        // 1. Fetch products assigned to this driver on this date
+        $assignedRows = DB::table('driver_products')
+            ->join('driver_product_details', 'driver_products.id', '=', 'driver_product_details.driver_products_id')
+            ->join('products', 'driver_product_details.product_id', '=', 'products.id')
+            ->where('driver_products.driver_id', $driver_id)
+            ->where(function ($q) use ($date) {
+                $q->whereDate('driver_products.assign_date', $date)
+                  ->orWhere(function ($sub) use ($date) {
+                      $sub->whereNull('driver_products.assign_date')
+                          ->whereDate('driver_products.created_at', $date);
+                  });
+            })
+            ->select([
+                'driver_product_details.product_id',
+                'products.name as product_name',
+                'products.per_case_quantity',
+                DB::raw('SUM(driver_product_details.quantity) as total_cases'),
+                DB::raw('SUM(driver_product_details.bottles) as total_bottles')
+            ])
+            ->groupBy('driver_product_details.product_id', 'products.name', 'products.per_case_quantity')
+            ->get()
+            ->keyBy('product_id');
+
+        // 2. Fetch recorded returns for this driver on this date (if any)
+        $recordedReturns = DriverReturn::where('warehouse_id', $warehouse_id)
             ->where('driver_id', $driver_id)
             ->whereDate('return_date', $date)
-            ->get(['product_id', 'cases', 'bottles', 'notes']);
+            ->get(['product_id', 'cases', 'bottles', 'is_carry_forward', 'is_return', 'notes'])
+            ->keyBy('product_id');
+
+        $notes = $recordedReturns->isNotEmpty() ? ($recordedReturns->first()->notes ?? '') : '';
+
+        // Combine: all assigned products + any other recorded returns
+        $allProductIds = $assignedRows->keys()->merge($recordedReturns->keys())->unique();
+
+        $rows = [];
+        foreach ($allProductIds as $pid) {
+            $aRow = $assignedRows->get($pid);
+            $rRow = $recordedReturns->get($pid);
+
+            $product = Product::find($pid);
+            if (!$product) continue;
+
+            $aCases = $aRow ? (int)$aRow->total_cases : 0;
+            $aBottles = $aRow ? (int)$aRow->total_bottles : 0;
+            $assignedText = $this->formatStockText($aCases, $aBottles);
+
+            $rCases = $rRow ? (int)$rRow->cases : 0;
+            $rBottles = $rRow ? (int)$rRow->bottles : 0;
+            $isCarryForward = $rRow ? ((int)$rRow->is_carry_forward === 1) : false;
+            $isReturn = $rRow ? ((int)$rRow->is_return === 1) : false;
+
+            $rows[] = [
+                'product_id'        => $product->id,
+                'product_name'      => $product->name,
+                'assigned_cases'    => $aCases,
+                'assigned_bottles'  => $aBottles,
+                'assigned_text'     => $assignedText,
+                'cases'             => $rCases,
+                'bottles'           => $rBottles,
+                'is_carry_forward'  => $isCarryForward,
+                'is_return'         => $isReturn,
+                'has_return'        => $rRow ? true : false,
+            ];
+        }
+
+        $assignedProductsList = [];
+        foreach ($assignedRows as $pid => $item) {
+            $assignedProductsList[] = [
+                'product_id'    => $item->product_id,
+                'product_name'  => $item->product_name,
+                'assigned_text' => $this->formatStockText($item->total_cases, $item->total_bottles),
+            ];
+        }
 
         return response()->json([
-            'status' => 200,
-            'returns' => $returns,
-            'notes' => $returns->first()->notes ?? ''
+            'status'            => 200,
+            'returns'           => $rows,
+            'assigned_products' => $assignedProductsList,
+            'has_recorded'      => $recordedReturns->isNotEmpty(),
+            'notes'             => $notes,
         ]);
     }
 
@@ -409,13 +481,14 @@ class DailySalesReportController extends Controller
             'returns.*.product_id' => 'nullable|exists:products,id',
             'returns.*.cases' => 'nullable|integer|min:0',
             'returns.*.bottles' => 'nullable|integer|min:0',
+            'returns.*.is_carry_forward' => 'nullable',
+            'returns.*.is_return' => 'nullable',
             'notes' => 'nullable|string',
         ]);
 
         $warehouse_id = Auth::guard('backend')->user()->id;
         $driver_id = (int)$request->driver_id;
         $return_date = $request->return_date;
-        $restock = $request->boolean('restock_warehouse');
 
         // Security check: verify driver strictly belongs to this warehouse
         $isDriverAssigned = DriverWarehouse::where('warehouse_id', $warehouse_id)
@@ -440,12 +513,26 @@ class DailySalesReportController extends Controller
                     $pid = (int)$retItem['product_id'];
                     $c = (int)($retItem['cases'] ?? 0);
                     $b = (int)($retItem['bottles'] ?? 0);
+                    $isCarryForward = !empty($retItem['is_carry_forward']);
+                    $isReturn = !empty($retItem['is_return']);
 
                     if (!isset($grouped[$pid])) {
-                        $grouped[$pid] = ['cases' => 0, 'bottles' => 0];
+                        $grouped[$pid] = [
+                            'cases' => 0,
+                            'bottles' => 0,
+                            'is_carry_forward' => 0,
+                            'is_return' => 0,
+                        ];
                     }
                     $grouped[$pid]['cases'] += $c;
                     $grouped[$pid]['bottles'] += $b;
+                    if ($isCarryForward) {
+                        $grouped[$pid]['is_carry_forward'] = 1;
+                        $grouped[$pid]['is_return'] = 0;
+                    } elseif ($isReturn) {
+                        $grouped[$pid]['is_return'] = 1;
+                        $grouped[$pid]['is_carry_forward'] = 0;
+                    }
                 }
 
                 foreach ($grouped as $pid => $qty) {
@@ -459,11 +546,13 @@ class DailySalesReportController extends Controller
                             'product_id' => $pid,
                             'cases' => $c,
                             'bottles' => $b,
+                            'is_carry_forward' => $qty['is_carry_forward'],
+                            'is_return' => $qty['is_return'],
                             'notes' => $request->notes,
                         ]);
 
-                        // Optionally restock returned goods back into warehouse stock
-                        if ($restock) {
+                        // If carry forward is true, add returned items back into warehouse stock; if return, stock will not be updated
+                        if ($qty['is_carry_forward']) {
                             $this->restockWarehouse($warehouse_id, $pid, $c, $b);
                         }
                     }

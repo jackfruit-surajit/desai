@@ -14,6 +14,8 @@ class DriverReturn extends Model
         'product_id',
         'cases',
         'bottles',
+        'is_carry_forward',
+        'is_return',
         'notes',
         'created_at',
         'updated_at'

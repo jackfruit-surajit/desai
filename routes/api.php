@@ -60,8 +60,12 @@ Route::prefix('driver')->group(function() {
     Route::post('store-product-replacement', ['uses' => 'Api\DriverApiController@storeShopProductReplacement', 'as' => 'store-product-replacement']);
     Route::post('store-product-replacement-list', ['uses' => 'Api\DriverApiController@driverReplaceProductList', 'as' => 'store-product-replacement-list']);
     Route::post('daily-summary', ['uses' => 'Api\DriverApiController@dailySummary', 'as' => 'driver-daily-summary']);
+    Route::post('accept-assigned-products', ['uses' => 'Api\DriverApiController@acceptAssignedProducts', 'as' => 'driver-accept-assigned-products']);
+    Route::post('product-stock', ['uses' => 'Api\DriverApiController@driverProductStock', 'as' => 'product-stock']);
+    Route::post('product-list', ['uses' => 'Api\DriverApiController@productList', 'as' => 'driver-product-list']);
 
 });
+
 
 Route::get('product-list', ['uses' => 'Api\ProductApiController@productList', 'as' => 'product-list']);
 

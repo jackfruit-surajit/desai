@@ -345,8 +345,12 @@ class DriverApiController extends Controller
             $sequence = $previous_shop->sequence;
         }
         else{
-            $previous_shop = Customer::latest()->first(['sequence']);
-            $sequence = $previous_shop->sequence + 1;
+            if($previous_shop = Customer::latest()->first(['sequence'])){
+              $sequence = $previous_shop->sequence + 1;  
+            }
+            else{
+                $sequence = 1;
+            }
         }
         
         
@@ -707,12 +711,7 @@ class DriverApiController extends Controller
         return response()->json(['status' => 400, 'message' => 'Failed to verify products.','data' => [],], 400);
     }
 
-    /**
-     * Store a product replacement transaction when a shop returns defective/damaged product to the driver.
-     * Supports both single-product flat fields and multi-product arrays.
-     */
-    public function storeShopProductReplacement(Request $request)
-    {
+   public function storeShopProductReplacement(Request $request){
         $validator = Validator::make($request->all(), [
             'user_id'                => 'required|integer|exists:admins,id',
             'shop_id'                => 'required|integer|exists:customers,id',
@@ -748,8 +747,7 @@ class DriverApiController extends Controller
     }
 
 
-    public function driverReplaceProductList(Request $request)
-    {
+    public function driverReplaceProductList(Request $request){
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|integer|exists:admins,id',
         ]);
@@ -768,17 +766,8 @@ class DriverApiController extends Controller
         else{
              return response()->json(['status' => 400, 'message' => 'Unable to replaced products.','data' => [],], 400);
         }
-        
     }
-
-    /**
-     * Driver Daily Summary API:
-     * 1. Assigned Stock count (cases, bottles, text)
-     * 2. Sold Products count (cases, bottles, text, sales amount)
-     * 3. Unsold Products count (cases, bottles, text)
-     * 4. Replacements count (cases, bottles, records)
-     * Plus product-wise breakdown for the day.
-     */
+    
     public function dailySummary(Request $request){
         $validator = Validator::make($request->all(), [
             'user_id'   => 'nullable|integer|exists:admins,id',
@@ -1131,5 +1120,237 @@ class DriverApiController extends Controller
         }
         return "0 Cases";
     }
+    
+    public function acceptAssignedProducts(Request $request){
+        $validator = Validator::make($request->all(), [
+            'user_id'        => 'required|integer|exists:admins,id',
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $driverId = $request->input('user_id');
+        $today = date('Y-m-d');
+        $result = DriverProduct::join('driver_product_details','driver_products.id','driver_product_details.driver_products_id')
+                ->join('products','driver_product_details.product_id','products.id')
+                ->where('driver_products.driver_id', $driverId)
+                ->whereDate('driver_products.assign_date',$today)
+                ->where('driver_product_details.status','1')
+                ->get(['driver_product_details.id','driver_product_details.quantity as case','driver_product_details.bottles','products.id as product_id','products.name','products.hsn_code','driver_product_details.status','driver_product_details.comment']);
+        return response()->json([
+            'status' => 200,
+            'message' => 'Driver assigned products fetched successfully.',
+            'total_item' => count($result),
+            'data' => $result,
+        ], 200);
+    }
+    
+    public function driverProductStock(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id'   => 'nullable|integer|exists:admins,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 422,
+                'message' => $validator->errors(),
+                'data'    => []
+            ], 422);
+        }
+
+        $driverId = $request->input('user_id');
+        if (!$driverId) {
+            return response()->json([
+                'status'  => 422,
+                'message' => 'The user_id or driver_id field is required.',
+                'data'    => []
+            ], 422);
+        }
+
+        $reportDate = date('Y-m-d');
+        $driver = Admin::find($driverId);
+
+        // All active products
+        $products = Product::where('status', '1')->get()->keyBy('id');
+
+        // 1. Assigned Stock on this date
+        $assignedRows = DB::table('driver_products')
+            ->join('driver_product_details', 'driver_products.id', '=', 'driver_product_details.driver_products_id')
+            ->where('driver_products.driver_id', $driverId)
+            ->where('driver_product_details.status', '1')
+            ->where(function ($q) use ($reportDate) {
+                $q->whereDate('driver_products.assign_date', $reportDate)
+                  ->orWhere(function ($sub) use ($reportDate) {
+                      $sub->whereNull('driver_products.assign_date')
+                          ->whereDate('driver_products.created_at', $reportDate);
+                  });
+            })
+            ->select([
+                'driver_product_details.product_id',
+                DB::raw('SUM(driver_product_details.quantity) as total_cases'),
+                DB::raw('SUM(driver_product_details.bottles) as total_bottles')
+            ])
+            ->groupBy('driver_product_details.product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        // 2. Invoices (Deliveries / Sales made on this date)
+        $soldRows = DB::table('invoice')
+            ->join('invoice_data', 'invoice.id', '=', 'invoice_data.invoice_id')
+            ->where('invoice.driver_id', $driverId)
+            ->whereDate('invoice.created_at', $reportDate)
+            ->select([
+                'invoice_data.product_id',
+                DB::raw('SUM(invoice_data.quantity) as sold_bottles')
+            ])
+            ->groupBy('invoice_data.product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        // 3. Physical Returns recorded by warehouse
+        $manualReturns = DB::table('driver_returns')
+            ->where('driver_id', $driverId)
+            ->whereDate('return_date', $reportDate)
+            ->select([
+                'product_id',
+                DB::raw('SUM(cases) as total_cases'),
+                DB::raw('SUM(bottles) as total_bottles'),
+                DB::raw('MAX(is_carry_forward) as is_carry_forward'),
+                DB::raw('MAX(is_return) as is_return')
+            ])
+            ->groupBy('product_id')
+            ->get()
+            ->keyBy('product_id');
+
+        $hasManualReturn = $manualReturns->isNotEmpty();
+
+        // Distinct product IDs involved
+        $allProductIds = $assignedRows->keys()
+            ->merge($soldRows->keys())
+            ->merge($manualReturns->keys())
+            ->unique();
+
+        $unsoldList = [];
+        $totalUnsoldBottlesSum = 0;
+        $returnAll = $request->boolean('all');
+
+        foreach ($allProductIds as $pid) {
+            $p = $products->get($pid) ?? Product::find($pid);
+            if (!$p) continue;
+
+            $bpc = ($p->per_case_quantity > 0) ? (int)$p->per_case_quantity : 24;
+            $bottlePrice = (float)($p->per_bottle_price ?? 0);
+            $casePrice = (float)($p->per_case_price ?? ($bottlePrice * $bpc));
+
+            // Assigned
+            $aRow = $assignedRows->get($pid);
+            $aCases = $aRow ? (int)$aRow->total_cases : 0;
+            $aLoose = $aRow ? (int)$aRow->total_bottles : 0;
+            $pAssignedBottles = ($aCases * $bpc) + $aLoose;
+
+            // Physical Return
+            $rRow = $manualReturns->get($pid);
+            $rCases = ($hasManualReturn && $rRow) ? (int)$rRow->total_cases : 0;
+            $rLoose = ($hasManualReturn && $rRow) ? (int)$rRow->total_bottles : 0;
+            $pReturnedBottles = ($rCases * $bpc) + $rLoose;
+            $isCarryForward = ($rRow && (int)$rRow->is_carry_forward === 1) ? 1 : 0;
+            $isReturn = ($rRow && (int)$rRow->is_return === 1) ? 1 : 0;
+
+            // Sold
+            $sRow = $soldRows->get($pid);
+            $invBottles = $sRow ? (int)$sRow->sold_bottles : 0;
+
+            if ($hasManualReturn) {
+                $pSoldBottles = max(0, $pAssignedBottles - $pReturnedBottles);
+                if ($pSoldBottles == 0 && $pAssignedBottles == 0 && $invBottles > 0) {
+                    $pSoldBottles = $invBottles;
+                }
+            } else {
+                $pSoldBottles = $invBottles;
+            }
+
+            $sCases = intdiv($pSoldBottles, $bpc);
+            $sLoose = $pSoldBottles % $bpc;
+
+            // Unsold:
+            if ($hasManualReturn) {
+                $pUnsoldBottles = $pReturnedBottles;
+            } else {
+                $pUnsoldBottles = max(0, $pAssignedBottles - $pSoldBottles);
+            }
+
+            // Unless 'all=1' was passed, skip products with zero unsold quantity
+            if (!$returnAll && $pUnsoldBottles <= 0) {
+                continue;
+            }
+
+            $uCases = intdiv($pUnsoldBottles, $bpc);
+            $uLoose = $pUnsoldBottles % $bpc;
+
+            $totalUnsoldBottlesSum += $pUnsoldBottles;
+
+            $unsoldList[] = [
+                'product_id'             => $p->id,
+                'product_name'           => $p->name,
+                'hsn_code'               => $p->hsn_code ?? 'N/A',
+                'unsold_cases'           => $uCases,
+                'unsold_bottles'         => $uLoose,
+            ];
+        }
+
+        // Compute total unsold cases and loose bottles across all items
+        $totalUnsoldCases = 0;
+        $totalUnsoldLoose = 0;
+        foreach ($unsoldList as $item) {
+            $totalUnsoldCases += $item['unsold_cases'];
+            $totalUnsoldLoose += $item['unsold_bottles'];
+        }
+
+        $replacement_products = ShopProductReplacement::join('products','shop_product_replacements.product_id','products.id')
+                    ->join('customers','shop_product_replacements.shop_id','customers.id')->whereDate('shop_product_replacements.created_at',date('Y-m-d'))
+                    ->where('shop_product_replacements.driver_id',$request->user_id)->get(['shop_product_replacements.*','customers.shop_name','customers.mobile_no','products.name as product_name']);
+
+        $accepted_products = DriverProduct::join('driver_product_details','driver_products.id','driver_product_details.driver_products_id')
+                ->join('products','driver_product_details.product_id','products.id')
+                ->where('driver_products.driver_id', $request->user_id)
+                ->whereDate('driver_products.assign_date',date('Y-m-d'))
+                ->where('driver_product_details.status','1')
+                ->get(['driver_product_details.id','driver_product_details.quantity as case','driver_product_details.bottles','products.id as product_id','products.name','products.hsn_code','driver_product_details.status','driver_product_details.comment']);
+
+        return response()->json([
+            'status'                     => 200,
+            'message'                    => 'Driver unsold products fetched successfully.',
+            'accepted_products'       => $accepted_products,
+            'replacement_products'       => $replacement_products,
+            'unsold_product'             => $unsoldList,
+        ], 200);
+    }
+
+    public function productList(Request $request){
+
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
+        }
+
+        $result = DriverProduct::join('driver_product_details','driver_products.id','driver_product_details.driver_products_id')
+                    ->join('products','driver_product_details.product_id','products.id')
+                    ->where('driver_products.driver_id', $request->user_id)
+                    ->whereDate('driver_products.assign_date',date('Y-m-d'))
+                    ->where('driver_product_details.status','1')
+                    ->get(['products.id as product_id','driver_product_details.quantity as case','driver_product_details.bottles','products.name','products.hsn_code','products.per_case_price','products.per_bottle_price']);
+
+        if(count($result) > 0){
+            return response()->json(['status' => 200,'message' => 'Record Found.', 'data'  =>$result],200);
+        }else{
+            return response()->json(['status' => 200,'message' => 'Record Not Found.', 'data'  =>[]],200);
+        }
+    }
+    
+    
 }

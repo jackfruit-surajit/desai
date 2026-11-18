@@ -165,6 +165,16 @@
         #returnsTable td {
             vertical-align: middle !important;
         }
+        @media (min-width: 992px) {
+            #returnModal .modal-xl {
+                max-width: 1050px;
+            }
+        }
+        @media (min-width: 1200px) {
+            #returnModal .modal-xl {
+                max-width: 1200px;
+            }
+        }
 
         @media print {
             body * {
@@ -324,22 +334,6 @@
                 </div>
             </div>
 
-            {{-- Total Sold --}}
-            <div class="col-xl-3 col-md-6">
-                <div class="kpi-card">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Total Cases Sold</span>
-                            <h3 class="mb-0 mt-1 fw-bold text-primary">{{ $overallSoldText }}</h3>
-                            <small class="text-white-50">Delivered & verified</small>
-                        </div>
-                        <div class="kpi-icon bg-primary bg-opacity-25 text-primary">
-                            <i class="fa fa-cart-shopping"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {{-- Total Returned --}}
             <div class="col-xl-3 col-md-6">
                 <div class="kpi-card">
@@ -351,6 +345,22 @@
                         </div>
                         <div class="kpi-icon bg-warning bg-opacity-25 text-warning">
                             <i class="fa fa-arrow-rotate-left"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Total Sold --}}
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Total Cases Sold</span>
+                            <h3 class="mb-0 mt-1 fw-bold text-primary">{{ $overallSoldText }}</h3>
+                            <small class="text-white-50">Delivered & verified</small>
+                        </div>
+                        <div class="kpi-icon bg-primary bg-opacity-25 text-primary">
+                            <i class="fa fa-cart-shopping"></i>
                         </div>
                     </div>
                 </div>
@@ -382,8 +392,8 @@
                                         <th scope="col" style="width: 50px;">#</th>
                                         <th scope="col">Driver Name</th>
                                         <th scope="col">Total Cases Assigned</th>
-                                        <th scope="col">Total Cases Sold</th>
                                         <th scope="col">Total Cases Returned</th>
+                                        <th scope="col">Total Cases Sold</th>
                                         <th scope="col">Total Sales (₹)</th>
                                         <th scope="col">Deliveries</th>
                                         <th scope="col" class="no-print" style="width: 170px;">Actions</th>
@@ -402,7 +412,7 @@
                                                 @endif
                                             </td>
 
-                                            {{-- Assigned --}}
+                                            {{-- 1. Assigned --}}
                                             <td>
                                                 @if($report['assigned_bottles'] > 0)
                                                     <span class="badge bg-info text-dark fw-bold px-2 py-1" style="font-size: 12px;">
@@ -413,18 +423,7 @@
                                                 @endif
                                             </td>
 
-                                            {{-- Sold --}}
-                                            <td>
-                                                @if($report['sold_bottles'] > 0)
-                                                    <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 12px;">
-                                                        <i class="fa fa-cart-shopping me-1"></i> {{ $report['sold_text'] }}
-                                                    </span>
-                                                @else
-                                                    <span class="text-white-50">0 Cases</span>
-                                                @endif
-                                            </td>
-
-                                            {{-- Returned --}}
+                                            {{-- 2. Returned --}}
                                             <td>
                                                 @if($report['returned_bottles'] > 0)
                                                     <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 12px;">
@@ -438,6 +437,17 @@
                                                     @if($report['has_manual_return'])
                                                         <small class="badge bg-success ms-1" title="Confirmed physical return">Verified</small>
                                                     @endif
+                                                @endif
+                                            </td>
+
+                                            {{-- 3. Sold --}}
+                                            <td>
+                                                @if($report['sold_bottles'] > 0)
+                                                    <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 12px;">
+                                                        <i class="fa fa-cart-shopping me-1"></i> {{ $report['sold_text'] }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-white-50">0 Cases</span>
                                                 @endif
                                             </td>
 
@@ -493,8 +503,8 @@
                                     <tr style="background: rgba(53, 66, 158, 0.45); font-weight: bold;">
                                         <td colspan="2" class="text-white text-uppercase">Overall Warehouse Total</td>
                                         <td class="text-info">{{ $overallAssignedText }}</td>
-                                        <td class="text-primary">{{ $overallSoldText }}</td>
                                         <td class="text-warning">{{ $overallReturnedText }}</td>
+                                        <td class="text-primary">{{ $overallSoldText }}</td>
                                         <td class="text-success fs-5">₹ {{ number_format($overallSalesAmount, 2) }}</td>
                                         <td class="text-white">{{ $overallTotalInvoices }} Invoices</td>
                                         <td class="no-print"></td>
@@ -537,8 +547,8 @@
                                     <tr>
                                         <th class="text-start">Product Name</th>
                                         <th>Assigned</th>
-                                        <th>Sold</th>
                                         <th>Returned</th>
+                                        <th>Sold</th>
                                         <th>Revenue (₹)</th>
                                     </tr>
                                 </thead>
@@ -548,8 +558,8 @@
                                     <tr class="fw-bold" style="background: rgba(255, 255, 255, 0.08);">
                                         <td class="text-start text-white">Total</td>
                                         <td id="modalTotalAssigned" class="text-info"></td>
-                                        <td id="modalTotalSold" class="text-primary"></td>
                                         <td id="modalTotalReturned" class="text-warning"></td>
+                                        <td id="modalTotalSold" class="text-primary"></td>
                                         <td id="modalTotalRevenue" class="text-success"></td>
                                     </tr>
                                 </tfoot>
@@ -566,7 +576,7 @@
 
     {{-- Record / Confirm Return Modal --}}
     <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content">
                 <form method="POST" action="{{ route('warehouse-driver-return-store') }}" id="returnForm">
                     @csrf
@@ -594,7 +604,7 @@
 
                         <div id="returnModalContent">
                             <div class="alert alert-info py-2 mb-3" style="font-size: 13px;">
-                                <i class="fa fa-info-circle me-1"></i> Select only the products physically returned by the driver. You can add multiple rows using <strong>+ Add Product</strong>.
+                                <i class="fa fa-info-circle me-1"></i> Products assigned to the driver on this date are automatically loaded below. Enter returned quantities and select <strong>Carry Forward</strong> (adds back to warehouse stock) or <strong>Return</strong> (no stock update).
                             </div>
 
                             <div class="table-responsive mb-2">
@@ -602,9 +612,12 @@
                                     <thead>
                                         <tr style="background: rgba(255, 255, 255, 0.08);">
                                             <th style="min-width: 280px;">Product <span class="text-danger">*</span></th>
-                                            <th style="width: 140px;" class="text-center">Returned Cases</th>
-                                            <th style="width: 140px;" class="text-center">Returned Loose Bottles</th>
-                                            <th style="width: 50px;" class="text-center">Action</th>
+                                            <th style="width: 150px;" class="text-center">Assigned Stock</th>
+                                            <th style="width: 130px;" class="text-center">Returned Cases</th>
+                                            <th style="width: 130px;" class="text-center">Returned Loose Bottles</th>
+                                            <th style="width: 125px;" class="text-center" title="Carry Forward: Adds returned stock back into warehouse inventory">Carry Forward</th>
+                                            <th style="width: 105px;" class="text-center" title="Return: Warehouse stock will NOT be updated">Return</th>
+                                            <th style="width: 45px;" class="text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="returnsTableBody">
@@ -623,13 +636,6 @@
                             <div class="mb-3">
                                 <label class="form-label text-white fw-semibold mb-1">Return Notes / Reason (Optional)</label>
                                 <textarea name="notes" id="returnNotes" class="form-control form-control-sm" rows="2" placeholder="e.g. Broken bottles, customer cancellations, returned unsold stock..."></textarea>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="restock_warehouse" id="restockCheckbox" value="1" checked>
-                                <label class="form-check-label text-white" for="restockCheckbox">
-                                    Automatically add returned items back into Warehouse Stock
-                                </label>
                             </div>
                         </div>
                     </div>
@@ -710,8 +716,8 @@ $(document).ready(function () {
                                     <small class="text-white-50 d-block">${item.bottles_per_case} btls/case</small>
                                 </td>
                                 <td class="text-info">${item.assigned_text}</td>
-                                <td class="text-primary">${item.sold_text}</td>
                                 <td class="text-warning">${item.returned_text}</td>
+                                <td class="text-primary">${item.sold_text}</td>
                                 <td class="text-success fw-bold">₹ ${item.sales_amount}</td>
                             </tr>
                         `;
@@ -722,8 +728,8 @@ $(document).ready(function () {
 
                 $('#breakdownTableBody').html(rowsHtml);
                 $('#modalTotalAssigned').text(res.totals.assigned_text);
-                $('#modalTotalSold').text(res.totals.sold_text);
                 $('#modalTotalReturned').text(res.totals.returned_text);
+                $('#modalTotalSold').text(res.totals.sold_text);
                 $('#modalTotalRevenue').text(res.totals.sales_amount);
             },
             error: function () {
@@ -736,11 +742,19 @@ $(document).ready(function () {
 
     // Dynamic Returns Multi-Row Management
     let returnRowIndex = 0;
+    let driverAssignedMap = {};
 
-    function addReturnRow(productId, cases, bottles) {
+    function addReturnRow(productId, cases, bottles, isCarryForward, isReturn, assignedText) {
         productId = productId || '';
         cases = cases !== undefined ? cases : 0;
         bottles = bottles !== undefined ? bottles : 0;
+        isCarryForward = isCarryForward === true || isCarryForward === 1 || isCarryForward === '1';
+        isReturn = isReturn === true || isReturn === 1 || isReturn === '1';
+
+        assignedText = assignedText || (driverAssignedMap[productId] || (productId ? 'Not Assigned' : '-'));
+        let badgeClass = (assignedText && assignedText !== 'Not Assigned' && assignedText !== '-')
+            ? 'bg-info text-dark'
+            : 'bg-secondary text-white-50';
 
         let currentIdx = returnRowIndex++;
         let optionsHtml = $('#returnProductOptionsTemplate').html();
@@ -751,6 +765,9 @@ $(document).ready(function () {
                     <select name="returns[${currentIdx}][product_id]" class="form-select form-select-sm select2-return-product" required>
                         ${optionsHtml}
                     </select>
+                </td>
+                <td class="text-center align-middle">
+                    <span class="badge ${badgeClass} font-monospace row-assigned-text" style="font-size: 12px;">${assignedText}</span>
                 </td>
                 <td>
                     <input type="number"
@@ -767,6 +784,26 @@ $(document).ready(function () {
                            min="0"
                            value="${bottles}"
                            placeholder="0">
+                </td>
+                <td class="text-center align-middle">
+                    <div class="form-check d-flex justify-content-center mb-0">
+                        <input class="form-check-input return-carry-forward-check"
+                               type="checkbox"
+                               name="returns[${currentIdx}][is_carry_forward]"
+                               value="1"
+                               ${isCarryForward ? 'checked' : ''}
+                               title="Carry Forward: Adds to warehouse stock">
+                    </div>
+                </td>
+                <td class="text-center align-middle">
+                    <div class="form-check d-flex justify-content-center mb-0">
+                        <input class="form-check-input return-return-check"
+                               type="checkbox"
+                               name="returns[${currentIdx}][is_return]"
+                               value="1"
+                               ${isReturn ? 'checked' : ''}
+                               title="Return: Warehouse stock will NOT be updated">
+                    </div>
                 </td>
                 <td class="text-center">
                     <button type="button" class="btn btn-outline-danger btn-sm btn-remove-return-row" title="Remove row">
@@ -793,14 +830,38 @@ $(document).ready(function () {
         updateReturnRowCount();
     }
 
+    // Dynamic stock badge update when product selection changes
+    $(document).on('change', '.select2-return-product', function () {
+        let pid = $(this).val();
+        let text = driverAssignedMap[pid] || (pid ? 'Not Assigned' : '-');
+        let bClass = (driverAssignedMap[pid]) ? 'bg-info text-dark' : 'bg-secondary text-white-50';
+        $(this).closest('tr').find('.row-assigned-text')
+            .text(text)
+            .removeClass('bg-info text-dark bg-secondary text-white-50')
+            .addClass(bClass);
+    });
+
     function updateReturnRowCount() {
         let count = $('#returnsTableBody tr.return-row').length;
-        $('#returnRowCountText').text(count + ' product' + (count !== 1 ? 's' : '') + ' added');
+        $('#returnRowCountText').text(count + ' product' + (count !== 1 ? 's' : '') + ' in list');
     }
+
+    // Mutual exclusivity between Carry Forward and Return checkboxes
+    $(document).on('change', '.return-carry-forward-check', function () {
+        if ($(this).is(':checked')) {
+            $(this).closest('tr').find('.return-return-check').prop('checked', false);
+        }
+    });
+
+    $(document).on('change', '.return-return-check', function () {
+        if ($(this).is(':checked')) {
+            $(this).closest('tr').find('.return-carry-forward-check').prop('checked', false);
+        }
+    });
 
     // Add another product button
     $('#btnAddReturnRow').click(function () {
-        addReturnRow('', 0, 0);
+        addReturnRow('', 0, 0, false, false, '-');
     });
 
     // Remove product row button
@@ -819,6 +880,12 @@ $(document).ready(function () {
             $row.find('.select2-return-product').val('').trigger('change');
             $row.find('.return-cases').val(0);
             $row.find('.return-bottles').val(0);
+            $row.find('.return-carry-forward-check').prop('checked', false);
+            $row.find('.return-return-check').prop('checked', false);
+            $row.find('.row-assigned-text')
+                .text('-')
+                .removeClass('bg-info text-dark')
+                .addClass('bg-secondary text-white-50');
         }
     });
 
@@ -837,8 +904,9 @@ $(document).ready(function () {
         $('#returnModal').modal('show');
 
         returnRowIndex = 0;
+        driverAssignedMap = {};
 
-        // Fetch existing recorded returns for this driver on this date
+        // Fetch products assigned to this driver and any existing returns
         let url = '{{ route("warehouse-driver-returns-data", [":driver_id", ":date"]) }}';
         url = url.replace(':driver_id', driverId).replace(':date', date);
 
@@ -850,21 +918,27 @@ $(document).ready(function () {
                 $('#returnModalLoading').hide();
                 $('#returnModalContent').show();
 
+                if (res.assigned_products && res.assigned_products.length > 0) {
+                    res.assigned_products.forEach(function (ap) {
+                        driverAssignedMap[ap.product_id] = ap.assigned_text;
+                    });
+                }
+
                 if (res.status === 200 && res.returns && res.returns.length > 0) {
                     res.returns.forEach(function (ret) {
-                        addReturnRow(ret.product_id, ret.cases, ret.bottles);
+                        addReturnRow(ret.product_id, ret.cases, ret.bottles, ret.is_carry_forward == 1, ret.is_return == 1, ret.assigned_text);
                     });
                     if (res.notes) {
                         $('#returnNotes').val(res.notes);
                     }
                 } else {
-                    addReturnRow('', 0, 0);
+                    addReturnRow('', 0, 0, false, false, '-');
                 }
             },
             error: function () {
                 $('#returnModalLoading').hide();
                 $('#returnModalContent').show();
-                addReturnRow('', 0, 0);
+                addReturnRow('', 0, 0, false, false, '-');
             }
         });
     });
