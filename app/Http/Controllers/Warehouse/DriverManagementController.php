@@ -12,6 +12,7 @@ use App\Models\WarehouseProduct;
 use App\Models\DriverProductDetails;
 use App\Models\DriverProduct;
 use App\Models\DriverWarehouse;
+use App\Models\DriverReturn;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DB;
 use URL;
@@ -30,17 +31,33 @@ class DriverManagementController extends Controller
                     ->orderBy('admins.name', 'asc')
                     ->get(['admins.id','admins.name']);
 
+        // Fetch product IDs that have carry forward stock in this warehouse
+        $carryForwardProductIds = DriverReturn::where('warehouse_id', $warehouse_id)
+            ->where('is_carry_forward', 1)
+            ->where(function ($q) {
+                $q->where('cases', '>', 0)
+                  ->orWhere('bottles', '>', 0);
+            })
+            ->pluck('product_id')
+            ->unique()
+            ->toArray();
+
         // Fetch products with this warehouse's stock (cases + bottles)
-        // Show only products that have available stock (cases > 0 or bottles > 0)
+        // Show only products that have available stock (cases > 0 or bottles > 0) OR carry forward products
         $products = DB::table('products')
-            ->join('warehouse_stock', function($join) use ($warehouse_id) {
+            ->leftJoin('warehouse_stock', function($join) use ($warehouse_id) {
                 $join->on('products.id', '=', 'warehouse_stock.product_id')
                      ->where('warehouse_stock.warehouse_id', '=', $warehouse_id);
             })
             ->where('products.status', '1')
-            ->where(function ($q) {
-                $q->where('warehouse_stock.stock', '>', 0)
-                  ->orWhere('warehouse_stock.bottles', '>', 0);
+            ->where(function ($q) use ($carryForwardProductIds) {
+                $q->where(function ($sub) {
+                    $sub->where('warehouse_stock.stock', '>', 0)
+                        ->orWhere('warehouse_stock.bottles', '>', 0);
+                });
+                if (!empty($carryForwardProductIds)) {
+                    $q->orWhereIn('products.id', $carryForwardProductIds);
+                }
             })
             ->select([
                 'products.id',
@@ -52,7 +69,101 @@ class DriverManagementController extends Controller
             ->orderBy('products.name', 'asc')
             ->get();
 
-        return view('warehouse.driver_management.product_add', compact(['drivers','products']));
+        $selectedDriverId = $request->filled('driver_id') ? (int)$request->driver_id : (old('driver_id') ? (int)old('driver_id') : null);
+
+        return view('warehouse.driver_management.product_add', compact(['drivers','products','selectedDriverId']));
+    }
+
+    public function getDriverCarryForwardStock(Request $request, $driver_id)
+    {
+        $warehouse_id = Auth::guard('backend')->user()->id;
+
+        // Security check: verify driver strictly belongs to this warehouse
+        $isDriverAssigned = DriverWarehouse::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->exists();
+        if (!$isDriverAssigned) {
+            return response()->json(['status' => 403, 'message' => 'Driver is not assigned to your warehouse.'], 403);
+        }
+
+        $assignDate = $request->filled('assign_date') ? $request->assign_date : date('Y-m-d');
+
+        // Find the latest return date that had carry forward stock on or before the assign date
+        $latestReturnDate = DriverReturn::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->where('is_carry_forward', 1)
+            ->where(function ($q) {
+                $q->where('cases', '>', 0)
+                  ->orWhere('bottles', '>', 0);
+            })
+            ->whereDate('return_date', '<=', $assignDate)
+            ->max('return_date');
+
+        if (!$latestReturnDate) {
+            return response()->json([
+                'status' => 200,
+                'driver_id' => (int)$driver_id,
+                'return_date' => null,
+                'has_carry_forward' => false,
+                'items' => [],
+            ]);
+        }
+
+        // Fetch grouped carry forward items for this driver on that latest return date
+        $cfRows = DriverReturn::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->where('is_carry_forward', 1)
+            ->whereDate('return_date', $latestReturnDate)
+            ->where(function ($q) {
+                $q->where('cases', '>', 0)
+                  ->orWhere('bottles', '>', 0);
+            })
+            ->select([
+                'product_id',
+                DB::raw('SUM(cases) as total_cases'),
+                DB::raw('SUM(bottles) as total_bottles')
+            ])
+            ->groupBy('product_id')
+            ->get();
+
+        $items = [];
+        foreach ($cfRows as $row) {
+            $product = Product::find($row->product_id);
+            if (!$product) continue;
+            $bpc = (int)($product->per_case_quantity ?? 0);
+
+            // Fetch available warehouse stock
+            $wStock = WarehouseStock::where('warehouse_id', $warehouse_id)
+                ->where('product_id', $row->product_id)
+                ->first();
+            $availCases = $wStock ? (int)$wStock->stock : 0;
+            $availBottles = $wStock ? (int)$wStock->bottles : 0;
+
+            $stockLabel = ($availCases > 0 || $availBottles > 0)
+                ? ($availCases . ' Cases' . ($availBottles > 0 ? ' + ' . $availBottles . ' Bottles' : ''))
+                : '0 Cases';
+
+            $items[] = [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'bottles_per_case' => $bpc,
+                'cases' => (int)$row->total_cases,
+                'bottles' => (int)$row->total_bottles,
+                'formatted_text' => $this->formatQtyText((int)$row->total_cases, (int)$row->total_bottles),
+                'available_cases' => $availCases,
+                'available_bottles' => $availBottles,
+                'available_stock_label' => $stockLabel
+            ];
+        }
+
+        return response()->json([
+            'status' => 200,
+            'driver_id' => (int)$driver_id,
+            'return_date' => date('d F, Y', strtotime($latestReturnDate)),
+            'raw_return_date' => $latestReturnDate,
+            'has_carry_forward' => !empty($items),
+            'items' => $items,
+        ]);
     }
     
     

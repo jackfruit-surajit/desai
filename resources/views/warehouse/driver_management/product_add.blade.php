@@ -155,14 +155,14 @@
                     {{-- Driver and Date Row --}}
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label class="form-label">
+                            <label class="form-label" for="driver_id">
                                 Driver <span class="required">*</span>
                             </label>
-                            <select name="driver_id" class="form-select select2" required>
+                            <select name="driver_id" id="driver_id" class="form-select select2" required>
                                 <option value="">Select Driver</option>
                                 @forelse($drivers as $driver)
                                     <option value="{{ $driver->id }}"
-                                        {{ old('driver_id') == $driver->id ? 'selected' : '' }}>
+                                        {{ (old('driver_id', $selectedDriverId ?? '') == $driver->id) ? 'selected' : '' }}>
                                         {{ $driver->name }}
                                     </option>
                                 @empty
@@ -172,16 +172,33 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">
+                            <label class="form-label" for="assign_date">
                                 Assign Date <span class="required">*</span>
                             </label>
                             <input type="date"
                                    name="assign_date"
+                                   id="assign_date"
                                    class="form-control"
                                    value="{{ old('assign_date', date('Y-m-d')) }}"
-                                   max="{{ date('Y-m-d') }}"
                                    required>
                         </div>
+                    </div>
+
+                    {{-- Carry Forward Stock Notification Banner --}}
+                    <div id="carryForwardAlert" class="alert d-flex align-items-center justify-content-between p-3 mb-3 rounded" style="display:none; background: rgba(13, 202, 240, 0.12); border: 1px solid rgba(13, 202, 240, 0.4);">
+                        <div class="d-flex align-items-center">
+                            <i class="fa fa-share-from-square fs-3 me-3" style="color: #0dcaf0;"></i>
+                            <div>
+                                <h6 class="mb-0 text-white fw-bold">Carry Forward Stock Found (<span id="cfReturnDateText"></span>)</h6>
+                                <small class="text-white-50">This driver has unsold stock carried forward from previous return. The items have been automatically loaded row-wise below.</small>
+                            </div>
+                        </div>
+                        <span class="badge font-monospace px-3 py-2" id="cfCountBadge" style="background: #0dcaf0; color: #000; font-size: 12px;"></span>
+                    </div>
+
+                    {{-- Carry Forward Loading Indicator --}}
+                    <div id="cfLoadingIndicator" style="display:none;" class="text-info mb-3">
+                        <i class="fa fa-spinner fa-spin me-1"></i> Checking driver carry forward stock...
                     </div>
 
                     @if($products->isEmpty())
@@ -433,16 +450,16 @@ $(document).ready(function () {
         updateRowStock($(this).closest('.product-row'));
     });
 
-    // Add Product Row
-    $('#addProduct').click(function () {
-        let html = `
+    // Build blank product row HTML
+    function createBlankRowHtml(idx) {
+        return `
         <div class="product-row">
             <div class="row g-3 align-items-center">
                 <div class="col-md-5">
                     <label class="form-label">
                         Product Name <span class="required">*</span>
                     </label>
-                    <select name="products[${productIndex}][product_id]"
+                    <select name="products[${idx}][product_id]"
                             class="form-control product-select"
                             required>
                         ${productOptionsHtml}
@@ -457,7 +474,7 @@ $(document).ready(function () {
                         Cases <span class="required">*</span>
                     </label>
                     <input type="number"
-                           name="products[${productIndex}][per_case_quantity]"
+                           name="products[${idx}][per_case_quantity]"
                            class="form-control case-input"
                            placeholder="Cases"
                            min="0"
@@ -470,11 +487,82 @@ $(document).ready(function () {
                         Loose Bottles
                     </label>
                     <input type="number"
-                           name="products[${productIndex}][bottles]"
+                           name="products[${idx}][bottles]"
                            class="form-control bottle-input"
                            placeholder="Bottles"
                            min="0"
                            value="0">
+                </div>
+
+                <div class="col-md-1 text-center">
+                    <button type="button"
+                            class="btn btn-danger remove-product"
+                            title="Remove item"
+                            style="display:none;">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="qty-warning text-danger fw-semibold" style="display:none; font-size:12px;"></div>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
+    // Build Carry Forward product row HTML
+    function createCarryForwardRowHtml(idx, item, returnDate) {
+        return `
+        <div class="product-row carry-forward-row" data-cf="1" style="background: rgba(13, 202, 240, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(13, 202, 240, 0.35); margin-bottom: 16px;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="badge" style="background:#0dcaf0; color:#000; font-size:11.5px; font-weight:700;">
+                    <i class="fa fa-share-from-square me-1"></i> Carry Forward: ${item.formatted_text} (Return Date: ${returnDate})
+                </span>
+                <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 11px;">
+                    <i class="fa fa-rotate-left me-1"></i> Pre-loaded from Driver Unsold Stock
+                </span>
+            </div>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <label class="form-label">
+                        Product Name <span class="required">*</span>
+                    </label>
+                    <select name="products[${idx}][product_id]"
+                            class="form-control product-select"
+                            required>
+                        ${productOptionsHtml}
+                    </select>
+                    <div class="stock-badge mt-2">
+                        <span class="badge bg-secondary">Select a product to view available stock</span>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Cases <span class="required">*</span>
+                    </label>
+                    <input type="number"
+                           name="products[${idx}][per_case_quantity]"
+                           class="form-control case-input"
+                           placeholder="Cases"
+                           min="0"
+                           value="${item.cases}"
+                           required>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Loose Bottles
+                    </label>
+                    <input type="number"
+                           name="products[${idx}][bottles]"
+                           class="form-control bottle-input"
+                           placeholder="Bottles"
+                           min="0"
+                           value="${item.bottles}">
                 </div>
 
                 <div class="col-md-1 text-center">
@@ -493,7 +581,11 @@ $(document).ready(function () {
             </div>
         </div>
         `;
+    }
 
+    // Add Product Row
+    $('#addProduct').click(function () {
+        let html = createBlankRowHtml(productIndex);
         let $newRow = $(html);
         $('#productContainer').append($newRow);
         initializeSelect2($newRow);
@@ -515,6 +607,90 @@ $(document).ready(function () {
             rows.find('.remove-product').show();
         }
         $('#productCountBadge').text(rows.length + (rows.length === 1 ? ' Product' : ' Products'));
+    }
+
+    // Dynamic Carry Forward Stock Check
+    function checkDriverCarryForward() {
+        let driverId = $('select[name="driver_id"]').val();
+        let assignDate = $('input[name="assign_date"]').val();
+
+        if (!driverId) {
+            $('#carryForwardAlert').hide();
+            $('#cfLoadingIndicator').hide();
+            return;
+        }
+
+        $('#cfLoadingIndicator').show();
+
+        let url = '{{ route("warehouse-driver-carry-forward-stock", ":driver_id") }}';
+        url = url.replace(':driver_id', driverId);
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            data: { assign_date: assignDate },
+            dataType: 'json',
+            success: function (res) {
+                $('#cfLoadingIndicator').hide();
+
+                if (res.status === 200 && res.has_carry_forward && res.items && res.items.length > 0) {
+                    $('#cfReturnDateText').text(res.return_date);
+                    $('#cfCountBadge').text(res.items.length + (res.items.length === 1 ? ' Item Carried Forward' : ' Items Carried Forward'));
+                    $('#carryForwardAlert').slideDown();
+
+                    // Empty container and load carry forward rows
+                    $('#productContainer').empty();
+                    productIndex = 0;
+
+                    res.items.forEach(function (item) {
+                        let rowHtml = createCarryForwardRowHtml(productIndex, item, res.return_date);
+                        let $row = $(rowHtml);
+                        $('#productContainer').append($row);
+
+                        let $select = $row.find('.product-select');
+                        if ($select.find('option[value="' + item.product_id + '"]').length === 0) {
+                            $select.append(`<option value="${item.product_id}" data-cases="${item.available_cases}" data-bottles="${item.available_bottles}" data-per-case="${item.bottles_per_case}">${item.product_name} (Available: ${item.available_stock_label})</option>`);
+                        }
+                        $select.val(item.product_id);
+
+                        initializeSelect2($row);
+                        updateRowStock($row);
+                        productIndex++;
+                    });
+
+                    updateRemoveButtons();
+                } else {
+                    $('#carryForwardAlert').slideUp();
+
+                    // If existing rows were carry-forward rows, reset back to 1 clean blank row
+                    if ($('.carry-forward-row').length > 0) {
+                        $('#productContainer').empty();
+                        productIndex = 0;
+                        let $blankRow = $(createBlankRowHtml(productIndex));
+                        $('#productContainer').append($blankRow);
+                        initializeSelect2($blankRow);
+                        productIndex++;
+                        updateRemoveButtons();
+                    }
+                }
+            },
+            error: function () {
+                $('#cfLoadingIndicator').hide();
+            }
+        });
+    }
+
+    $('select[name="driver_id"]').on('change', function () {
+        checkDriverCarryForward();
+    });
+
+    $('input[name="assign_date"]').on('change', function () {
+        checkDriverCarryForward();
+    });
+
+    // Check carry forward on page load if driver is selected
+    if ($('select[name="driver_id"]').val()) {
+        checkDriverCarryForward();
     }
 
     // Form submit validation: ensure at least one item has > 0 quantity

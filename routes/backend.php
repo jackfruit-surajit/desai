@@ -256,6 +256,7 @@
                 Route::post('invoice-store', ['uses' => 'Warehouse\StockController@invoiceStore', 'as' => 'warehouse-invoice-store']);
                 
                 Route::get('driver-product-create', ['uses' => 'Warehouse\DriverManagementController@productAdd', 'as' => 'driver-product-create']);
+                Route::get('driver-carry-forward-stock/{driver_id}', ['uses' => 'Warehouse\DriverManagementController@getDriverCarryForwardStock', 'as' => 'warehouse-driver-carry-forward-stock']);
                 Route::post('driver-product-store', ['uses' => 'Warehouse\DriverManagementController@productStore', 'as' => 'driver-product-store']);
                 Route::get('driver-management-report', ['uses' => 'Warehouse\DriverManagementController@driverManagementReport', 'as' => 'driver-management-report']);
                 Route::get('get-driver-management-report-datatable', ['uses' => 'Warehouse\DriverManagementController@getDriverManagementReportDatatable', 'as' => 'get-driver-management-report-datatable']);
