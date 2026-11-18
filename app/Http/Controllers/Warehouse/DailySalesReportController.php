@@ -46,8 +46,9 @@ class DailySalesReportController extends Controller
         $overallSalesAmount = 0;
         $overallTotalInvoices = 0;
         $overallAssignedBottles = 0;
-        $overallSoldBottles = 0;
+        $overallCarryForwardBottles = 0;
         $overallReturnedBottles = 0;
+        $overallSoldBottles = 0;
         $activeDriversCount = 0;
 
         foreach ($driversToProcess as $driver) {
@@ -98,19 +99,42 @@ class DailySalesReportController extends Controller
             $manualReturns = DriverReturn::where('warehouse_id', $warehouse_id)
                 ->where('driver_id', $did)
                 ->whereDate('return_date', $reportDate)
-                ->get()
-                ->keyBy('product_id');
+                ->get();
             $hasManualReturn = $manualReturns->isNotEmpty();
+
+            // Group returns per product into Carry Forward vs Return
+            $productReturns = [];
+            foreach ($manualReturns as $mRet) {
+                $pid = (int)$mRet->product_id;
+                if (!isset($productReturns[$pid])) {
+                    $productReturns[$pid] = [
+                        'cf_cases' => 0,
+                        'cf_bottles' => 0,
+                        'ret_cases' => 0,
+                        'ret_bottles' => 0,
+                    ];
+                }
+                $c = (int)$mRet->cases;
+                $b = (int)$mRet->bottles;
+                if ((int)$mRet->is_carry_forward === 1) {
+                    $productReturns[$pid]['cf_cases'] += $c;
+                    $productReturns[$pid]['cf_bottles'] += $b;
+                } else {
+                    $productReturns[$pid]['ret_cases'] += $c;
+                    $productReturns[$pid]['ret_bottles'] += $b;
+                }
+            }
 
             // Calculate driver totals across all relevant products
             $allProductIds = $assignedRows->keys()
                 ->merge($soldRows->keys())
-                ->merge($manualReturns->keys())
+                ->merge(array_keys($productReturns))
                 ->unique();
 
             $driverAssignedTotalBottles = 0;
-            $driverSoldTotalBottles = 0;
+            $driverCarryForwardTotalBottles = 0;
             $driverReturnedTotalBottles = 0;
+            $driverSoldTotalBottles = 0;
             $calculatedDriverSalesAmount = 0;
 
             foreach ($allProductIds as $pid) {
@@ -125,23 +149,24 @@ class DailySalesReportController extends Controller
                 $pAssignedBottles = ($aCases * $bpc) + $aLoose;
                 $driverAssignedTotalBottles += $pAssignedBottles;
 
-                // Returned: Default 0 until physical return quantity is added
-                if ($hasManualReturn && $manualReturns->has($pid)) {
-                    $mRet = $manualReturns->get($pid);
-                    $rCases = (int)$mRet->cases;
-                    $rLoose = (int)$mRet->bottles;
-                    $pReturnedBottles = ($rCases * $bpc) + $rLoose;
-                } else {
-                    $pReturnedBottles = 0;
+                // Carry Forward & Returned
+                $pCfBottles = 0;
+                $pRetBottles = 0;
+                if ($hasManualReturn && isset($productReturns[$pid])) {
+                    $pRetData = $productReturns[$pid];
+                    $pCfBottles = ($pRetData['cf_cases'] * $bpc) + $pRetData['cf_bottles'];
+                    $pRetBottles = ($pRetData['ret_cases'] * $bpc) + $pRetData['ret_bottles'];
                 }
-                $driverReturnedTotalBottles += $pReturnedBottles;
+                $driverCarryForwardTotalBottles += $pCfBottles;
+                $driverReturnedTotalBottles += $pRetBottles;
+                $pUnsoldBottles = $pCfBottles + $pRetBottles;
 
-                // Sold: When return is entered, Sold Quantity = Assigned Quantity - Returned Quantity
+                // Sold: When return is entered, Sold Quantity = Assigned Quantity - (Carry Forward + Returned Quantity)
                 $sRow = $soldRows->get($pid);
                 $invSoldBottles = $sRow ? (int)$sRow->sold_bottles : 0;
 
                 if ($hasManualReturn) {
-                    $pSoldBottles = max(0, $pAssignedBottles - $pReturnedBottles);
+                    $pSoldBottles = max(0, $pAssignedBottles - $pUnsoldBottles);
                     if ($pSoldBottles == 0 && $pAssignedBottles == 0 && $invSoldBottles > 0) {
                         $pSoldBottles = $invSoldBottles;
                     }
@@ -155,8 +180,9 @@ class DailySalesReportController extends Controller
 
             // Normalization helper
             $assignedText = $this->bottlesToCaseText($driverAssignedTotalBottles);
-            $soldText = $this->bottlesToCaseText($driverSoldTotalBottles);
+            $carryForwardText = $this->bottlesToCaseText($driverCarryForwardTotalBottles);
             $returnedText = $this->bottlesToCaseText($driverReturnedTotalBottles);
+            $soldText = $this->bottlesToCaseText($driverSoldTotalBottles);
 
             if ($hasManualReturn) {
                 $driverSalesAmount = $calculatedDriverSalesAmount;
@@ -164,7 +190,7 @@ class DailySalesReportController extends Controller
                 $driverSalesAmount = ($driverSalesAmount > 0) ? $driverSalesAmount : $calculatedDriverSalesAmount;
             }
 
-            $isActive = ($driverAssignedTotalBottles > 0 || $driverSoldTotalBottles > 0 || $driverSalesAmount > 0 || $driverInvoicesCount > 0);
+            $isActive = ($driverAssignedTotalBottles > 0 || $driverSoldTotalBottles > 0 || $driverSalesAmount > 0 || $driverInvoicesCount > 0 || $driverCarryForwardTotalBottles > 0 || $driverReturnedTotalBottles > 0);
 
             if ($isActive) {
                 $activeDriversCount++;
@@ -175,10 +201,12 @@ class DailySalesReportController extends Controller
                 'driver_name' => $driver->name,
                 'assigned_bottles' => $driverAssignedTotalBottles,
                 'assigned_text' => $assignedText,
-                'sold_bottles' => $driverSoldTotalBottles,
-                'sold_text' => $soldText,
+                'carry_forward_bottles' => $driverCarryForwardTotalBottles,
+                'carry_forward_text' => $carryForwardText,
                 'returned_bottles' => $driverReturnedTotalBottles,
                 'returned_text' => $returnedText,
+                'sold_bottles' => $driverSoldTotalBottles,
+                'sold_text' => $soldText,
                 'has_manual_return' => $hasManualReturn,
                 'sales_amount' => $driverSalesAmount,
                 'invoices_count' => $driverInvoicesCount,
@@ -188,8 +216,9 @@ class DailySalesReportController extends Controller
             $overallSalesAmount += $driverSalesAmount;
             $overallTotalInvoices += $driverInvoicesCount;
             $overallAssignedBottles += $driverAssignedTotalBottles;
-            $overallSoldBottles += $driverSoldTotalBottles;
+            $overallCarryForwardBottles += $driverCarryForwardTotalBottles;
             $overallReturnedBottles += $driverReturnedTotalBottles;
+            $overallSoldBottles += $driverSoldTotalBottles;
         }
 
         // Sort: Active drivers first, then by sales amount descending
@@ -201,8 +230,9 @@ class DailySalesReportController extends Controller
         });
 
         $overallAssignedText = $this->bottlesToCaseText($overallAssignedBottles);
-        $overallSoldText = $this->bottlesToCaseText($overallSoldBottles);
+        $overallCarryForwardText = $this->bottlesToCaseText($overallCarryForwardBottles);
         $overallReturnedText = $this->bottlesToCaseText($overallReturnedBottles);
+        $overallSoldText = $this->bottlesToCaseText($overallSoldBottles);
 
         return view('warehouse.daily_sales_report.index', compact([
             'reportDate',
@@ -212,8 +242,9 @@ class DailySalesReportController extends Controller
             'overallSalesAmount',
             'overallTotalInvoices',
             'overallAssignedText',
-            'overallSoldText',
+            'overallCarryForwardText',
             'overallReturnedText',
+            'overallSoldText',
             'activeDriversCount',
             'products'
         ]));
@@ -276,21 +307,44 @@ class DailySalesReportController extends Controller
         $manualReturns = DriverReturn::where('warehouse_id', $warehouse_id)
             ->where('driver_id', $driver_id)
             ->whereDate('return_date', $date)
-            ->get()
-            ->keyBy('product_id');
+            ->get();
+
+        $productReturns = [];
+        foreach ($manualReturns as $mRet) {
+            $pid = (int)$mRet->product_id;
+            if (!isset($productReturns[$pid])) {
+                $productReturns[$pid] = [
+                    'cf_cases' => 0,
+                    'cf_bottles' => 0,
+                    'ret_cases' => 0,
+                    'ret_bottles' => 0,
+                ];
+            }
+            $c = (int)$mRet->cases;
+            $b = (int)$mRet->bottles;
+            if ((int)$mRet->is_carry_forward === 1) {
+                $productReturns[$pid]['cf_cases'] += $c;
+                $productReturns[$pid]['cf_bottles'] += $b;
+            } else {
+                $productReturns[$pid]['ret_cases'] += $c;
+                $productReturns[$pid]['ret_bottles'] += $b;
+            }
+        }
 
         $allProductIds = $assignedRows->keys()
             ->merge($soldRows->keys())
-            ->merge($manualReturns->keys())
+            ->merge(array_keys($productReturns))
             ->unique();
 
         $items = [];
         $totalAssignedCases = 0;
         $totalAssignedBottles = 0;
-        $totalSoldCases = 0;
-        $totalSoldBottles = 0;
+        $totalCarryForwardCases = 0;
+        $totalCarryForwardBottles = 0;
         $totalReturnedCases = 0;
         $totalReturnedBottles = 0;
+        $totalSoldCases = 0;
+        $totalSoldBottles = 0;
         $totalSalesAmount = 0;
 
         $hasManualReturn = $manualReturns->isNotEmpty();
@@ -308,23 +362,29 @@ class DailySalesReportController extends Controller
             $aLoose = $aRow ? (int)$aRow->total_bottles : 0;
             $totalAssignedB = ($aCases * $bpc) + $aLoose;
 
-            // Returned: Default 0 until physical return quantity is added
-            if ($manualReturns->has($pid)) {
-                $m = $manualReturns->get($pid);
-                $rCases = (int)$m->cases;
-                $rLoose = (int)$m->bottles;
+            // Carry Forward & Returned
+            if (isset($productReturns[$pid])) {
+                $pRet = $productReturns[$pid];
+                $cfCases = $pRet['cf_cases'];
+                $cfLoose = $pRet['cf_bottles'];
+                $rCases = $pRet['ret_cases'];
+                $rLoose = $pRet['ret_bottles'];
             } else {
+                $cfCases = 0;
+                $cfLoose = 0;
                 $rCases = 0;
                 $rLoose = 0;
             }
+            $totalCfB = ($cfCases * $bpc) + $cfLoose;
             $totalRetB = ($rCases * $bpc) + $rLoose;
+            $totalUnsoldB = $totalCfB + $totalRetB;
 
-            // Sold: When return is entered, Sold Quantity = Assigned Quantity - Returned Quantity
+            // Sold: When return is entered, Sold Quantity = Assigned Quantity - (Carry Forward + Returned Quantity)
             $sRow = $soldRows->get($pid);
             $invBottles = $sRow ? (int)$sRow->sold_bottles : 0;
 
             if ($hasManualReturn) {
-                $sBottles = max(0, $totalAssignedB - $totalRetB);
+                $sBottles = max(0, $totalAssignedB - $totalUnsoldB);
                 if ($sBottles == 0 && $totalAssignedB == 0 && $invBottles > 0) {
                     $sBottles = $invBottles;
                 }
@@ -340,10 +400,12 @@ class DailySalesReportController extends Controller
 
             $totalAssignedCases += $aCases;
             $totalAssignedBottles += $aLoose;
-            $totalSoldCases += $sCases;
-            $totalSoldBottles += $sLoose;
+            $totalCarryForwardCases += $cfCases;
+            $totalCarryForwardBottles += $cfLoose;
             $totalReturnedCases += $rCases;
             $totalReturnedBottles += $rLoose;
+            $totalSoldCases += $sCases;
+            $totalSoldBottles += $sLoose;
 
             $items[] = [
                 'product_id' => $p->id,
@@ -352,12 +414,15 @@ class DailySalesReportController extends Controller
                 'assigned_cases' => $aCases,
                 'assigned_bottles' => $aLoose,
                 'assigned_text' => $this->formatStockText($aCases, $aLoose),
-                'sold_cases' => $sCases,
-                'sold_bottles' => $sLoose,
-                'sold_text' => $this->formatStockText($sCases, $sLoose),
+                'carry_forward_cases' => $cfCases,
+                'carry_forward_bottles' => $cfLoose,
+                'carry_forward_text' => $this->formatStockText($cfCases, $cfLoose),
                 'returned_cases' => $rCases,
                 'returned_bottles' => $rLoose,
                 'returned_text' => $this->formatStockText($rCases, $rLoose),
+                'sold_cases' => $sCases,
+                'sold_bottles' => $sLoose,
+                'sold_text' => $this->formatStockText($sCases, $sLoose),
                 'sales_amount' => number_format($itemRevenue, 2),
             ];
         }
@@ -369,8 +434,9 @@ class DailySalesReportController extends Controller
             'items' => $items,
             'totals' => [
                 'assigned_text' => $this->formatStockText($totalAssignedCases, $totalAssignedBottles),
-                'sold_text' => $this->formatStockText($totalSoldCases, $totalSoldBottles),
+                'carry_forward_text' => $this->formatStockText($totalCarryForwardCases, $totalCarryForwardBottles),
                 'returned_text' => $this->formatStockText($totalReturnedCases, $totalReturnedBottles),
+                'sold_text' => $this->formatStockText($totalSoldCases, $totalSoldBottles),
                 'sales_amount' => '₹ ' . number_format($totalSalesAmount, 2),
             ]
         ]);
@@ -415,43 +481,58 @@ class DailySalesReportController extends Controller
         $recordedReturns = DriverReturn::where('warehouse_id', $warehouse_id)
             ->where('driver_id', $driver_id)
             ->whereDate('return_date', $date)
-            ->get(['product_id', 'cases', 'bottles', 'is_carry_forward', 'is_return', 'notes'])
-            ->keyBy('product_id');
+            ->get(['product_id', 'cases', 'bottles', 'is_carry_forward', 'is_return', 'notes']);
 
         $notes = $recordedReturns->isNotEmpty() ? ($recordedReturns->first()->notes ?? '') : '';
 
-        // Combine: all assigned products + any other recorded returns
-        $allProductIds = $assignedRows->keys()->merge($recordedReturns->keys())->unique();
-
         $rows = [];
-        foreach ($allProductIds as $pid) {
-            $aRow = $assignedRows->get($pid);
-            $rRow = $recordedReturns->get($pid);
+        $loadedProductIds = [];
+        if ($recordedReturns->isNotEmpty()) {
+            foreach ($recordedReturns as $rRow) {
+                $pid = $rRow->product_id;
+                $product = Product::find($pid);
+                if (!$product) continue;
 
-            $product = Product::find($pid);
-            if (!$product) continue;
+                $aRow = $assignedRows->get($pid);
+                $aCases = $aRow ? (int)$aRow->total_cases : 0;
+                $aBottles = $aRow ? (int)$aRow->total_bottles : 0;
+                $assignedText = $this->formatStockText($aCases, $aBottles);
 
-            $aCases = $aRow ? (int)$aRow->total_cases : 0;
-            $aBottles = $aRow ? (int)$aRow->total_bottles : 0;
-            $assignedText = $this->formatStockText($aCases, $aBottles);
+                $rows[] = [
+                    'product_id'        => $product->id,
+                    'product_name'      => $product->name,
+                    'assigned_cases'    => $aCases,
+                    'assigned_bottles'  => $aBottles,
+                    'assigned_text'     => $assignedText,
+                    'cases'             => (int)$rRow->cases,
+                    'bottles'           => (int)$rRow->bottles,
+                    'is_carry_forward'  => (int)$rRow->is_carry_forward === 1,
+                    'is_return'         => (int)$rRow->is_return === 1,
+                    'has_return'        => true,
+                ];
+                $loadedProductIds[] = $pid;
+            }
+        }
 
-            $rCases = $rRow ? (int)$rRow->cases : 0;
-            $rBottles = $rRow ? (int)$rRow->bottles : 0;
-            $isCarryForward = $rRow ? ((int)$rRow->is_carry_forward === 1) : false;
-            $isReturn = $rRow ? ((int)$rRow->is_return === 1) : false;
+        // Also add any assigned products that were not in recorded returns
+        foreach ($assignedRows as $pid => $aRow) {
+            if (!in_array($pid, $loadedProductIds)) {
+                $product = Product::find($pid);
+                if (!$product) continue;
 
-            $rows[] = [
-                'product_id'        => $product->id,
-                'product_name'      => $product->name,
-                'assigned_cases'    => $aCases,
-                'assigned_bottles'  => $aBottles,
-                'assigned_text'     => $assignedText,
-                'cases'             => $rCases,
-                'bottles'           => $rBottles,
-                'is_carry_forward'  => $isCarryForward,
-                'is_return'         => $isReturn,
-                'has_return'        => $rRow ? true : false,
-            ];
+                $rows[] = [
+                    'product_id'        => $product->id,
+                    'product_name'      => $product->name,
+                    'assigned_cases'    => (int)$aRow->total_cases,
+                    'assigned_bottles'  => (int)$aRow->total_bottles,
+                    'assigned_text'     => $this->formatStockText($aRow->total_cases, $aRow->total_bottles),
+                    'cases'             => 0,
+                    'bottles'           => 0,
+                    'is_carry_forward'  => false,
+                    'is_return'         => false,
+                    'has_return'        => false,
+                ];
+            }
         }
 
         $assignedProductsList = [];
@@ -516,28 +597,26 @@ class DailySalesReportController extends Controller
                     $isCarryForward = !empty($retItem['is_carry_forward']);
                     $isReturn = !empty($retItem['is_return']);
 
-                    if (!isset($grouped[$pid])) {
-                        $grouped[$pid] = [
+                    $typeKey = $isCarryForward ? 'cf' : ($isReturn ? 'ret' : 'default');
+                    $groupKey = $pid . '_' . $typeKey;
+
+                    if (!isset($grouped[$groupKey])) {
+                        $grouped[$groupKey] = [
+                            'product_id' => $pid,
                             'cases' => 0,
                             'bottles' => 0,
-                            'is_carry_forward' => 0,
-                            'is_return' => 0,
+                            'is_carry_forward' => $isCarryForward ? 1 : 0,
+                            'is_return' => $isReturn ? 1 : 0,
                         ];
                     }
-                    $grouped[$pid]['cases'] += $c;
-                    $grouped[$pid]['bottles'] += $b;
-                    if ($isCarryForward) {
-                        $grouped[$pid]['is_carry_forward'] = 1;
-                        $grouped[$pid]['is_return'] = 0;
-                    } elseif ($isReturn) {
-                        $grouped[$pid]['is_return'] = 1;
-                        $grouped[$pid]['is_carry_forward'] = 0;
-                    }
+                    $grouped[$groupKey]['cases'] += $c;
+                    $grouped[$groupKey]['bottles'] += $b;
                 }
 
-                foreach ($grouped as $pid => $qty) {
+                foreach ($grouped as $qty) {
                     $c = $qty['cases'];
                     $b = $qty['bottles'];
+                    $pid = $qty['product_id'];
                     if ($c > 0 || $b > 0) {
                         DriverReturn::create([
                             'warehouse_id' => $warehouse_id,

@@ -157,11 +157,11 @@ class ProductDailySalesReportController extends Controller
                 $dTotalAssignedB = ($dACases * $bpc) + $dABottles;
 
                 // Driver's returned: Default 0 until physical return quantity is added
-                $dRet = $pReturnItems->firstWhere('driver_id', $did);
-                $hasManualRet = !is_null($dRet);
+                $dRetItems = $pReturnItems->where('driver_id', $did);
+                $hasManualRet = $dRetItems->isNotEmpty();
                 if ($hasManualRet) {
-                    $dRCases = (int)$dRet->cases;
-                    $dRBottles = (int)$dRet->bottles;
+                    $dRCases = (int)$dRetItems->sum('cases');
+                    $dRBottles = (int)$dRetItems->sum('bottles');
                     $dTotalReturnedB = ($dRCases * $bpc) + $dRBottles;
                 } else {
                     $dTotalReturnedB = 0;
@@ -394,7 +394,7 @@ class ProductDailySalesReportController extends Controller
             ->where('product_id', $product_id)
             ->whereDate('return_date', $date)
             ->get()
-            ->keyBy('driver_id');
+            ->groupBy('driver_id');
 
         $driversWithReturns = DriverReturn::where('warehouse_id', $warehouse_id)
             ->whereIn('driver_id', $driverIds)
@@ -418,16 +418,16 @@ class ProductDailySalesReportController extends Controller
 
             $aRow = $assignedRows->get($did);
             $sRow = $soldRows->get($did);
-            $rRow = $manualReturns->get($did);
+            $rRows = $manualReturns->get($did);
 
             $aCases = $aRow ? (int)$aRow->cases : 0;
             $aBottles = $aRow ? (int)$aRow->bottles : 0;
             $totalAssignedB = ($aCases * $bpc) + $aBottles;
 
             // Driver's returned: Default 0 until physical return quantity is added
-            if ($rRow) {
-                $rCases = (int)$rRow->cases;
-                $rBottles = (int)$rRow->bottles;
+            if ($rRows && $rRows->isNotEmpty()) {
+                $rCases = (int)$rRows->sum('cases');
+                $rBottles = (int)$rRows->sum('bottles');
                 $totalRetB = ($rCases * $bpc) + $rBottles;
                 $hasManual = true;
             } else {
@@ -628,9 +628,9 @@ class ProductDailySalesReportController extends Controller
                     $dSl = $pSold->firstWhere('driver_id', $did);
                     $invTotSlB = $dSl ? (int)$dSl->sold_bottles : 0;
 
-                    $dRt = $pRet->firstWhere('driver_id', $did);
-                    if ($dRt) {
-                        $dTotRtB = ((int)$dRt->cases * $bpc) + (int)$dRt->bottles;
+                    $dRtItems = $pRet->where('driver_id', $did);
+                    if ($dRtItems->isNotEmpty()) {
+                        $dTotRtB = ((int)$dRtItems->sum('cases') * $bpc) + (int)$dRtItems->sum('bottles');
                     } else {
                         $dTotRtB = 0;
                     }

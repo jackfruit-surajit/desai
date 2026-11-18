@@ -303,7 +303,7 @@
         <div class="row g-3 mb-4">
 
             {{-- Total Sales Amount --}}
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl col-md-4 col-sm-6">
                 <div class="kpi-card">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
@@ -319,11 +319,11 @@
             </div>
 
             {{-- Total Assigned --}}
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl col-md-4 col-sm-6">
                 <div class="kpi-card">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Total Cases Assigned</span>
+                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Total Assigned</span>
                             <h3 class="mb-0 mt-1 fw-bold text-info">{{ $overallAssignedText }}</h3>
                             <small class="text-white-50">Dispatched across drivers</small>
                         </div>
@@ -334,14 +334,30 @@
                 </div>
             </div>
 
-            {{-- Total Returned --}}
-            <div class="col-xl-3 col-md-6">
+            {{-- Total Carry Forward --}}
+            <div class="col-xl col-md-4 col-sm-6">
                 <div class="kpi-card">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Total Cases Returned</span>
+                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Carry Forward</span>
+                            <h3 class="mb-0 mt-1 fw-bold" style="color: #0dcaf0;">{{ $overallCarryForwardText }}</h3>
+                            <small class="text-white-50">Added back to stock</small>
+                        </div>
+                        <div class="kpi-icon" style="background: rgba(13, 202, 240, 0.2); color: #0dcaf0;">
+                            <i class="fa fa-share-from-square"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Total Returned --}}
+            <div class="col-xl col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 11px; letter-spacing: 0.5px;">Total Returned</span>
                             <h3 class="mb-0 mt-1 fw-bold text-warning">{{ $overallReturnedText }}</h3>
-                            <small class="text-white-50">Unsold stock returned to depot</small>
+                            <small class="text-white-50">Physical return / damage</small>
                         </div>
                         <div class="kpi-icon bg-warning bg-opacity-25 text-warning">
                             <i class="fa fa-arrow-rotate-left"></i>
@@ -351,7 +367,7 @@
             </div>
 
             {{-- Total Sold --}}
-            <div class="col-xl-3 col-md-6">
+            <div class="col-xl col-md-4 col-sm-6">
                 <div class="kpi-card">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
@@ -391,11 +407,11 @@
                                     <tr>
                                         <th scope="col" style="width: 50px;">#</th>
                                         <th scope="col">Driver Name</th>
-                                        <th scope="col">Total Cases Assigned</th>
-                                        <th scope="col">Total Cases Returned</th>
-                                        <th scope="col">Total Cases Sold</th>
+                                        <th scope="col">Total Assigned</th>
+                                        <th scope="col">Carry Forward</th>
+                                        <th scope="col">Total Returned</th>
+                                        <th scope="col">Total Sold</th>
                                         <th scope="col">Total Sales (₹)</th>
-                                        <th scope="col">Deliveries</th>
                                         <th scope="col" class="no-print" style="width: 170px;">Actions</th>
                                     </tr>
                                 </thead>
@@ -423,24 +439,32 @@
                                                 @endif
                                             </td>
 
-                                            {{-- 2. Returned --}}
+                                            {{-- 2. Carry Forward --}}
+                                            <td>
+                                                @if($report['carry_forward_bottles'] > 0)
+                                                    <span class="badge fw-bold px-2 py-1" style="background-color: #0dcaf0; color: #000; font-size: 12px;">
+                                                        <i class="fa fa-share-from-square me-1"></i> {{ $report['carry_forward_text'] }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-white-50">0 Cases</span>
+                                                @endif
+                                            </td>
+
+                                            {{-- 3. Returned --}}
                                             <td>
                                                 @if($report['returned_bottles'] > 0)
                                                     <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 12px;">
                                                         <i class="fa fa-arrow-rotate-left me-1"></i> {{ $report['returned_text'] }}
                                                     </span>
-                                                    @if($report['has_manual_return'])
-                                                        <small class="badge bg-success ms-1" title="Confirmed physical return">Verified</small>
-                                                    @endif
                                                 @else
                                                     <span class="text-white-50">0 Cases</span>
-                                                    @if($report['has_manual_return'])
-                                                        <small class="badge bg-success ms-1" title="Confirmed physical return">Verified</small>
-                                                    @endif
+                                                @endif
+                                                @if($report['has_manual_return'] && ($report['carry_forward_bottles'] > 0 || $report['returned_bottles'] > 0))
+                                                    <small class="badge bg-success ms-1" title="Confirmed physical return">Verified</small>
                                                 @endif
                                             </td>
 
-                                            {{-- 3. Sold --}}
+                                            {{-- 4. Sold --}}
                                             <td>
                                                 @if($report['sold_bottles'] > 0)
                                                     <span class="badge bg-primary text-white fw-bold px-2 py-1" style="font-size: 12px;">
@@ -456,13 +480,6 @@
                                                 <strong class="text-success fs-6">
                                                     ₹ {{ number_format($report['sales_amount'], 2) }}
                                                 </strong>
-                                            </td>
-
-                                            {{-- Invoices / Deliveries --}}
-                                            <td>
-                                                <span class="badge bg-light text-dark fw-bold">
-                                                    {{ $report['invoices_count'] }} Invoice{{ $report['invoices_count'] != 1 ? 's' : '' }}
-                                                </span>
                                             </td>
 
                                             {{-- Actions --}}
@@ -503,10 +520,10 @@
                                     <tr style="background: rgba(53, 66, 158, 0.45); font-weight: bold;">
                                         <td colspan="2" class="text-white text-uppercase">Overall Warehouse Total</td>
                                         <td class="text-info">{{ $overallAssignedText }}</td>
+                                        <td style="color: #0dcaf0;">{{ $overallCarryForwardText }}</td>
                                         <td class="text-warning">{{ $overallReturnedText }}</td>
                                         <td class="text-primary">{{ $overallSoldText }}</td>
                                         <td class="text-success fs-5">₹ {{ number_format($overallSalesAmount, 2) }}</td>
-                                        <td class="text-white">{{ $overallTotalInvoices }} Invoices</td>
                                         <td class="no-print"></td>
                                     </tr>
                                 </tfoot>
@@ -547,6 +564,7 @@
                                     <tr>
                                         <th class="text-start">Product Name</th>
                                         <th>Assigned</th>
+                                        <th>Carry Forward</th>
                                         <th>Returned</th>
                                         <th>Sold</th>
                                         <th>Revenue (₹)</th>
@@ -558,6 +576,7 @@
                                     <tr class="fw-bold" style="background: rgba(255, 255, 255, 0.08);">
                                         <td class="text-start text-white">Total</td>
                                         <td id="modalTotalAssigned" class="text-info"></td>
+                                        <td id="modalTotalCarryForward" style="color: #0dcaf0;"></td>
                                         <td id="modalTotalReturned" class="text-warning"></td>
                                         <td id="modalTotalSold" class="text-primary"></td>
                                         <td id="modalTotalRevenue" class="text-success"></td>
@@ -716,6 +735,7 @@ $(document).ready(function () {
                                     <small class="text-white-50 d-block">${item.bottles_per_case} btls/case</small>
                                 </td>
                                 <td class="text-info">${item.assigned_text}</td>
+                                <td style="color: #0dcaf0;">${item.carry_forward_text}</td>
                                 <td class="text-warning">${item.returned_text}</td>
                                 <td class="text-primary">${item.sold_text}</td>
                                 <td class="text-success fw-bold">₹ ${item.sales_amount}</td>
@@ -723,11 +743,12 @@ $(document).ready(function () {
                         `;
                     });
                 } else {
-                    rowsHtml = `<tr><td colspan="5" class="text-muted py-3">No product assignments or sales for this driver on this date.</td></tr>`;
+                    rowsHtml = `<tr><td colspan="6" class="text-muted py-3">No product assignments or sales for this driver on this date.</td></tr>`;
                 }
 
                 $('#breakdownTableBody').html(rowsHtml);
                 $('#modalTotalAssigned').text(res.totals.assigned_text);
+                $('#modalTotalCarryForward').text(res.totals.carry_forward_text);
                 $('#modalTotalReturned').text(res.totals.returned_text);
                 $('#modalTotalSold').text(res.totals.sold_text);
                 $('#modalTotalRevenue').text(res.totals.sales_amount);
