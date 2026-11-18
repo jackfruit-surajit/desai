@@ -184,6 +184,15 @@
                         </div>
                     </div>
 
+                    @if($products->isEmpty())
+                        <div class="alert alert-warning d-flex align-items-center mb-3">
+                            <i class="ti ti-alert-triangle fs-4 me-2"></i>
+                            <div>
+                                <strong>No products in stock:</strong> There are currently no products with available stock in this warehouse. Please add stock before assigning products to a driver.
+                            </div>
+                        </div>
+                    @endif
+
                     <h5 class="text-white fw-bold mb-3"><i class="fa fa-boxes-stacked me-2"></i>Product Items</h5>
 
                     {{-- Products Container --}}
@@ -201,7 +210,7 @@
                                     <select name="products[0][product_id]"
                                             class="form-control product-select"
                                             required>
-                                        <option value="">Select Product</option>
+                                        <option value="">{{ $products->isEmpty() ? 'No products available in stock' : 'Select Product' }}</option>
                                         @foreach($products as $product)
                                             @php
                                                 $stockCases = (int)$product->stock;
@@ -315,7 +324,7 @@ $(document).ready(function () {
 
     // Build product options HTML for dynamic rows
     const productOptionsHtml = `
-        <option value="">Select Product</option>
+        <option value="">{{ $products->isEmpty() ? 'No products available in stock' : 'Select Product' }}</option>
         @foreach($products as $product)
             @php
                 $stockCases = (int)$product->stock;

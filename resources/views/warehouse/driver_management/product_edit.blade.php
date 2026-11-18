@@ -213,7 +213,7 @@
                                         <select name="products[{{ $index }}][product_id]"
                                                 class="form-control product-select"
                                                 required>
-                                            <option value="">Select Product</option>
+                                            <option value="">{{ $products->isEmpty() ? 'No products available in stock' : 'Select Product' }}</option>
                                             @foreach($products as $product)
                                                 @php
                                                     $stockCases = (int)$product->stock;
@@ -329,7 +329,7 @@ $(document).ready(function () {
 
     // Build product options HTML for dynamic rows
     const productOptionsHtml = `
-        <option value="">Select Product</option>
+        <option value="">{{ $products->isEmpty() ? 'No products available in stock' : 'Select Product' }}</option>
         @foreach($products as $product)
             @php
                 $stockCases = (int)$product->stock;

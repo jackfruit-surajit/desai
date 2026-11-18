@@ -31,12 +31,17 @@ class DriverManagementController extends Controller
                     ->get(['admins.id','admins.name']);
 
         // Fetch products with this warehouse's stock (cases + bottles)
+        // Show only products that have available stock (cases > 0 or bottles > 0)
         $products = DB::table('products')
-            ->leftJoin('warehouse_stock', function($join) use ($warehouse_id) {
+            ->join('warehouse_stock', function($join) use ($warehouse_id) {
                 $join->on('products.id', '=', 'warehouse_stock.product_id')
                      ->where('warehouse_stock.warehouse_id', '=', $warehouse_id);
             })
             ->where('products.status', '1')
+            ->where(function ($q) {
+                $q->where('warehouse_stock.stock', '>', 0)
+                  ->orWhere('warehouse_stock.bottles', '>', 0);
+            })
             ->select([
                 'products.id',
                 'products.name',
@@ -331,13 +336,26 @@ class DriverManagementController extends Controller
                     ->orderBy('admins.name', 'asc')
                     ->get(['admins.id','admins.name']);
 
+        $assignedProducts = DriverProductDetails::where('driver_products_id', $driverProduct->id)->get();
+        $assignedProductIds = $assignedProducts->pluck('product_id')->toArray();
+
         // Fetch products with this warehouse's stock (cases + bottles)
+        // Show available stock products OR products already assigned in this assignment record
         $products = DB::table('products')
             ->leftJoin('warehouse_stock', function($join) use ($warehouse_id) {
                 $join->on('products.id', '=', 'warehouse_stock.product_id')
                      ->where('warehouse_stock.warehouse_id', '=', $warehouse_id);
             })
             ->where('products.status', '1')
+            ->where(function ($q) use ($assignedProductIds) {
+                $q->where(function ($sub) {
+                    $sub->where('warehouse_stock.stock', '>', 0)
+                        ->orWhere('warehouse_stock.bottles', '>', 0);
+                });
+                if (!empty($assignedProductIds)) {
+                    $q->orWhereIn('products.id', $assignedProductIds);
+                }
+            })
             ->select([
                 'products.id',
                 'products.name',
@@ -347,8 +365,6 @@ class DriverManagementController extends Controller
             ])
             ->orderBy('products.name', 'asc')
             ->get();
-
-        $assignedProducts = DriverProductDetails::where('driver_products_id', $driverProduct->id)->get();
 
         return view('warehouse.driver_management.product_edit', compact(['driverProduct', 'drivers', 'products', 'assignedProducts', 'id']));
     }
