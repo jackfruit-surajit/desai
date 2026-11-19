@@ -711,17 +711,186 @@ class DriverApiController extends Controller
         return response()->json(['status' => 400, 'message' => 'Failed to verify products.','data' => [],], 400);
     }
 
-   public function storeShopProductReplacement(Request $request){
+    public function storeShopProductReplacement(Request $request){
         $validator = Validator::make($request->all(), [
             'user_id'                => 'required|integer|exists:admins,id',
             'shop_id'                => 'required|integer|exists:customers,id',
             'replace_date'           => 'required|date',
             'reason'                 => 'required|string',
-            'product_id'             => 'required|integer',
-            'cases'                  => 'required|integer',
-            'bottles'                => 'required|integer',
-            // 'image'                  => 'nullable|file|mimes:jpeg,png,jpg,webp,gif|max:10240',
+            'product_id'             => 'required|integer|exists:products,id',
+            'cases'                  => 'nullable|integer|min:0',
+            'bottles'                => 'nullable|integer|min:0',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $cases = (int) $request->input('cases', 0);
+            $bottles = (int) $request->input('bottles', 0);
+
+            if ($cases <= 0 && $bottles <= 0) {
+                $validator->errors()->add('cases', 'Please specify at least 1 Case or 1 Bottle for replacement.');
+                return;
+            }
+
+            $driverId = (int) $request->input('user_id');
+            $productId = (int) $request->input('product_id');
+            $replaceDate = $request->filled('replace_date') ? date('Y-m-d', strtotime($request->replace_date)) : date('Y-m-d');
+            $today = date('Y-m-d');
+
+            $product = Product::find($productId);
+            if (!$product) {
+                $validator->errors()->add('product_id', 'Selected product not found.');
+                return;
+            }
+
+            $bpc = ($product->per_case_quantity > 0) ? (int)$product->per_case_quantity : 24;
+            $requestedBottles = ($cases * $bpc) + $bottles;
+
+            // Determine relevant date for assigned stock (check replaceDate, fallback to today if needed)
+            $checkDate = $replaceDate;
+            $hasAssigned = DB::table('driver_products')
+                ->join('driver_product_details', 'driver_products.id', '=', 'driver_product_details.driver_products_id')
+                ->where('driver_products.driver_id', $driverId)
+                ->where('driver_product_details.product_id', $productId)
+                ->where(function ($q) {
+                    $q->whereNull('driver_product_details.status')
+                      ->orWhere('driver_product_details.status', '!=', '2');
+                })
+                ->where(function ($q) use ($checkDate) {
+                    $q->whereDate('driver_products.assign_date', $checkDate)
+                      ->orWhere(function ($sub) use ($checkDate) {
+                          $sub->whereNull('driver_products.assign_date')
+                              ->whereDate('driver_products.created_at', $checkDate);
+                      });
+                })
+                ->exists();
+
+            if (!$hasAssigned && $checkDate !== $today) {
+                $hasAssignedToday = DB::table('driver_products')
+                    ->join('driver_product_details', 'driver_products.id', '=', 'driver_product_details.driver_products_id')
+                    ->where('driver_products.driver_id', $driverId)
+                    ->where('driver_product_details.product_id', $productId)
+                    ->where(function ($q) {
+                        $q->whereNull('driver_product_details.status')
+                          ->orWhere('driver_product_details.status', '!=', '2');
+                    })
+                    ->where(function ($q) use ($today) {
+                        $q->whereDate('driver_products.assign_date', $today)
+                          ->orWhere(function ($sub) use ($today) {
+                              $sub->whereNull('driver_products.assign_date')
+                                  ->whereDate('driver_products.created_at', $today);
+                          });
+                    })
+                    ->exists();
+
+                if ($hasAssignedToday) {
+                    $checkDate = $today;
+                }
+            }
+
+            // 1. Total Assigned bottles for driver on checkDate
+            $assignedStock = DB::table('driver_products')
+                ->join('driver_product_details', 'driver_products.id', '=', 'driver_product_details.driver_products_id')
+                ->where('driver_products.driver_id', $driverId)
+                ->where('driver_product_details.product_id', $productId)
+                ->where(function ($q) {
+                    $q->whereNull('driver_product_details.status')
+                      ->orWhere('driver_product_details.status', '!=', '2');
+                })
+                ->where(function ($q) use ($checkDate) {
+                    $q->whereDate('driver_products.assign_date', $checkDate)
+                      ->orWhere(function ($sub) use ($checkDate) {
+                          $sub->whereNull('driver_products.assign_date')
+                              ->whereDate('driver_products.created_at', $checkDate);
+                      });
+                })
+                ->select([
+                    DB::raw('COALESCE(SUM(driver_product_details.quantity), 0) as total_cases'),
+                    DB::raw('COALESCE(SUM(driver_product_details.bottles), 0) as total_bottles')
+                ])
+                ->first();
+
+            $assignedCases = (int)($assignedStock->total_cases ?? 0);
+            $assignedLoose = (int)($assignedStock->total_bottles ?? 0);
+            $totalAssignedBottles = ($assignedCases * $bpc) + $assignedLoose;
+
+            if ($totalAssignedBottles <= 0) {
+                $validator->errors()->add('product_id', "This product ({$product->name}) is not in your assigned stock for " . date('d-m-Y', strtotime($checkDate)) . ".");
+                return;
+            }
+
+            // 2. Total Sold bottles via invoices on checkDate
+            $soldBottles = (int) DB::table('invoice')
+                ->join('invoice_data', 'invoice.id', '=', 'invoice_data.invoice_id')
+                ->where('invoice.driver_id', $driverId)
+                ->where('invoice_data.product_id', $productId)
+                ->whereDate('invoice.created_at', $checkDate)
+                ->sum('invoice_data.quantity');
+
+            // 3. Total Already Replaced bottles on checkDate
+            $replacedStock = DB::table('shop_product_replacements')
+                ->where('driver_id', $driverId)
+                ->where('product_id', $productId)
+                ->where(function ($q) use ($checkDate) {
+                    $q->whereDate('replace_date', $checkDate)
+                      ->orWhere(function ($sub) use ($checkDate) {
+                          $sub->whereNull('replace_date')
+                              ->whereDate('created_at', $checkDate);
+                      });
+                })
+                ->select([
+                    DB::raw('COALESCE(SUM(cases), 0) as total_cases'),
+                    DB::raw('COALESCE(SUM(bottles), 0) as total_bottles')
+                ])
+                ->first();
+
+            $alreadyReplacedBottles = ((int)($replacedStock->total_cases ?? 0) * $bpc) + (int)($replacedStock->total_bottles ?? 0);
+
+            // 4. Total Returned bottles to warehouse on checkDate
+            $returnedStock = DB::table('driver_returns')
+                ->where('driver_id', $driverId)
+                ->where('product_id', $productId)
+                ->whereDate('return_date', $checkDate)
+                ->select([
+                    DB::raw('COALESCE(SUM(cases), 0) as total_cases'),
+                    DB::raw('COALESCE(SUM(bottles), 0) as total_bottles')
+                ])
+                ->first();
+
+            $alreadyReturnedBottles = ((int)($returnedStock->total_cases ?? 0) * $bpc) + (int)($returnedStock->total_bottles ?? 0);
+
+            // 5. Net Available bottles
+            $availableBottles = $totalAssignedBottles - $soldBottles - $alreadyReplacedBottles - $alreadyReturnedBottles;
+            if ($availableBottles <= 0) {
+                $validator->errors()->add('product_id', "This product ({$product->name}) is currently out of stock.");
+                return;
+            }
+
+            if ($requestedBottles > $availableBottles) {
+                $availCases = intdiv($availableBottles, $bpc);
+                $availLoose = $availableBottles % $bpc;
+                $availParts = [];
+                if ($availCases > 0) {
+                    $availParts[] = "{$availCases} " . ($availCases == 1 ? 'Case' : 'Cases');
+                }
+                if ($availLoose > 0) {
+                    $availParts[] = "{$availLoose} " . ($availLoose == 1 ? 'Bottle' : 'Bottles');
+                }
+                $availText = !empty($availParts) ? implode(' + ', $availParts) : '0 Bottles';
+
+                $reqCases = intdiv($requestedBottles, $bpc);
+                $reqLoose = $requestedBottles % $bpc;
+                $reqParts = [];
+                if ($reqCases > 0) {
+                    $reqParts[] = "{$reqCases} " . ($reqCases == 1 ? 'Case' : 'Cases');
+                }
+                if ($reqLoose > 0) {
+                    $reqParts[] = "{$reqLoose} " . ($reqLoose == 1 ? 'Bottle' : 'Bottles');
+                }
+                $reqText = !empty($reqParts) ? implode(' + ', $reqParts) : '0 Bottles';
+
+                $validator->errors()->add('product_id', "Insufficient stock for {$product->name}. Requested: {$reqText}, Available: {$availText}.");
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json(['status' => 422, 'message' => $validator->errors(), 'data' => []], 422);
@@ -732,8 +901,8 @@ class DriverApiController extends Controller
                     'driver_id' => $request->user_id,
                     'replace_date' => $request->replace_date,
                     'product_id' => $request->product_id,
-                    'cases' => $request->cases,
-                    'bottles' => $request->bottles,
+                    'cases' => (int) $request->input('cases', 0),
+                    'bottles' => (int) $request->input('bottles', 0),
                     'reason' => $request->reason,
                 ]);
 
