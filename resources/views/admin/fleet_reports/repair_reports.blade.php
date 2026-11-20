@@ -108,6 +108,17 @@
                         @endforeach
                     </select>
                 </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="filter_driver_id">Driver</label>
+                    <select class="form-select" id="filter_driver_id">
+                        <option value="">All Drivers</option>
+                        @foreach($drivers as $driver)
+                            <option value="{{ $driver->id }}" data-warehouse-id="{{ $driver->warehouse_id }}" data-vehicle-id="{{ $driver->vehicle_id }}">{{ $driver->name }} ({{ $driver->phone ?? 'No Phone' }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                
                 <div class="col-md-3">
                     <label class="form-label" for="filter_vehicle_id">Vehicle</label>
                     <select class="form-select" id="filter_vehicle_id">
@@ -117,15 +128,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label" for="filter_driver_id">Driver</label>
-                    <select class="form-select" id="filter_driver_id">
-                        <option value="">All Drivers</option>
-                        @foreach($drivers as $driver)
-                            <option value="{{ $driver->id }}" data-vehicle-id="{{ $driver->vehicle_id }}">{{ $driver->name }} ({{ $driver->phone ?? 'No Phone' }})</option>
-                        @endforeach
-                    </select>
-                </div>
+                
                 <div class="col-md-3">
                     <label class="form-label" for="filter_payment_status">Payment Status</label>
                     <select class="form-select" id="filter_payment_status">
@@ -238,8 +241,29 @@ $(document).ready(function () {
         ]
     });
 
+    // Cache all driver options for dynamic warehouse filtering
+    var allDriverOptions = $('#filter_driver_id option').clone();
+
+    // When Warehouse filter changes: auto-filter Drivers of that Warehouse
+    $('#filter_warehouse_id').on('change', function () {
+        var whId = $(this).val();
+
+        $('#filter_driver_id').empty();
+        allDriverOptions.each(function () {
+            var opt = $(this);
+            var optWh = opt.data('warehouse-id');
+            if (!opt.val() || !whId || optWh == whId) {
+                $('#filter_driver_id').append(opt.clone());
+            }
+        });
+
+        $('#filter_driver_id').val('');
+        $('#filter_vehicle_id').val('');
+        table.ajax.reload();
+    });
+
     // Auto-select Vehicle filter when Driver is selected
-    $('#filter_driver_id').on('change', function () {
+    $(document).on('change', '#filter_driver_id', function () {
         var opt = $(this).find('option:selected');
         var vId = opt.data('vehicle-id');
         if (vId) {
@@ -247,6 +271,7 @@ $(document).ready(function () {
         } else if (!$(this).val()) {
             $('#filter_vehicle_id').val('');
         }
+        table.ajax.reload();
     });
 
     $('#btn-filter').on('click', function () {
@@ -261,6 +286,13 @@ $(document).ready(function () {
 
     $('#btn-reset').on('click', function () {
         $('#filter_warehouse_id').val('');
+
+        // Restore all driver options
+        $('#filter_driver_id').empty();
+        allDriverOptions.each(function () {
+            $('#filter_driver_id').append($(this).clone());
+        });
+
         $('#filter_vehicle_id').val('');
         $('#filter_driver_id').val('');
         $('#filter_payment_status').val('');

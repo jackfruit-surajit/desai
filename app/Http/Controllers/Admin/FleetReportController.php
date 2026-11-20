@@ -23,7 +23,12 @@ class FleetReportController extends Controller
     public function fuelReports(Request $request)
     {
         $warehouses = Admin::where('role_id', 4)->where('is_hidden', 0)->orderBy('name', 'asc')->get(['id', 'name']);
-        $drivers = Admin::where('role_id', 3)->where('is_hidden', 0)->orderBy('name', 'asc')->get(['id', 'name', 'phone', 'vehicle_id']);
+        $drivers = Admin::where('admins.role_id', 3)
+            ->where('admins.is_hidden', 0)
+            ->leftJoin('driver_warehouse', 'admins.id', '=', 'driver_warehouse.driver_id')
+            ->select('admins.id', 'admins.name', 'admins.phone', 'admins.vehicle_id', 'driver_warehouse.warehouse_id')
+            ->orderBy('admins.name', 'asc')
+            ->get();
         $vehicles = Vehicle::orderBy('vehicle_no', 'asc')->get(['id', 'vehicle_no', 'vehicle_name']);
 
         $fuelQuery = VehicleFuelLog::query();
@@ -157,7 +162,12 @@ class FleetReportController extends Controller
     public function dailyExpenses(Request $request)
     {
         $warehouses = Admin::where('role_id', 4)->where('is_hidden', 0)->orderBy('name', 'asc')->get(['id', 'name']);
-        $drivers = Admin::where('role_id', 3)->where('is_hidden', 0)->orderBy('name', 'asc')->get(['id', 'name', 'phone', 'vehicle_id']);
+        $drivers = Admin::where('admins.role_id', 3)
+            ->where('admins.is_hidden', 0)
+            ->leftJoin('driver_warehouse', 'admins.id', '=', 'driver_warehouse.driver_id')
+            ->select('admins.id', 'admins.name', 'admins.phone', 'admins.vehicle_id', 'driver_warehouse.warehouse_id')
+            ->orderBy('admins.name', 'asc')
+            ->get();
         $vehicles = Vehicle::orderBy('vehicle_no', 'asc')->get(['id', 'vehicle_no', 'vehicle_name']);
 
         $expQuery = VehicleDailyExpense::query();
@@ -277,7 +287,12 @@ class FleetReportController extends Controller
     public function repairReports(Request $request)
     {
         $warehouses = Admin::where('role_id', 4)->where('is_hidden', 0)->orderBy('name', 'asc')->get(['id', 'name']);
-        $drivers = Admin::where('role_id', 3)->where('is_hidden', 0)->orderBy('name', 'asc')->get(['id', 'name', 'phone', 'vehicle_id']);
+        $drivers = Admin::where('admins.role_id', 3)
+            ->where('admins.is_hidden', 0)
+            ->leftJoin('driver_warehouse', 'admins.id', '=', 'driver_warehouse.driver_id')
+            ->select('admins.id', 'admins.name', 'admins.phone', 'admins.vehicle_id', 'driver_warehouse.warehouse_id')
+            ->orderBy('admins.name', 'asc')
+            ->get();
         $vehicles = Vehicle::orderBy('vehicle_no', 'asc')->get(['id', 'vehicle_no', 'vehicle_name']);
 
         $repairQuery = VehicleRepairLog::query();
