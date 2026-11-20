@@ -156,12 +156,18 @@ class DriverManagementController extends Controller
             ];
         }
 
+        $isAlreadyAssigned = DriverProduct::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->whereDate('assign_date', $assignDate)
+            ->exists();
+
         return response()->json([
             'status' => 200,
             'driver_id' => (int)$driver_id,
             'return_date' => date('d F, Y', strtotime($latestReturnDate)),
             'raw_return_date' => $latestReturnDate,
             'has_carry_forward' => !empty($items),
+            'is_already_assigned' => $isAlreadyAssigned,
             'items' => $items,
         ]);
     }
@@ -206,51 +212,193 @@ class DriverManagementController extends Controller
             $requestedTotals[$pId]['bottles'] += $bottles;
         }
 
-        // Verify stock sufficiency for all products
-        foreach ($requestedTotals as $pId => $reqQty) {
-            $wStock = WarehouseStock::where('warehouse_id', $warehouse_id)
-                ->where('product_id', $pId)
-                ->first();
-            $availCases = $wStock ? (int)$wStock->stock : 0;
-            $availBottles = $wStock ? (int)$wStock->bottles : 0;
-            $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
-            $pName = Product::where('id', $pId)->value('name') ?? 'Product';
+        $assignDate = $request->filled('assign_date') ? $request->assign_date : date('Y-m-d');
 
-            if ($bottlesPerCase > 0) {
-                $totalAvailBottles = ($availCases * $bottlesPerCase) + $availBottles;
-                $totalReqBottles = ($reqQty['cases'] * $bottlesPerCase) + $reqQty['bottles'];
-                if ($totalReqBottles > $totalAvailBottles) {
+        // Fetch carry forward stock for this driver on or before this assign_date
+        $carryForwardMap = $this->getCarryForwardMap($warehouse_id, $request->driver_id, $assignDate);
+
+        // All product IDs involved (requested + carry-forward)
+        $allProductIds = array_unique(array_merge(
+            array_keys($requestedTotals),
+            array_keys($carryForwardMap)
+        ));
+
+        // Verify stock sufficiency for net additional required stock from warehouse
+        foreach ($allProductIds as $pId) {
+            $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
+            $bpc = ($bottlesPerCase > 0) ? $bottlesPerCase : 24;
+
+            $reqCases = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['cases'] : 0;
+            $reqBottles = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['bottles'] : 0;
+            $reqTotalBottles = ($reqCases * $bpc) + $reqBottles;
+
+            $cfCases = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['cases'] : 0;
+            $cfBottles = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['bottles'] : 0;
+            $cfTotalBottles = ($cfCases * $bpc) + $cfBottles;
+
+            $netBottlesDiff = $reqTotalBottles - $cfTotalBottles;
+
+            // Only validate if additional stock is needed from warehouse
+            if ($netBottlesDiff > 0) {
+                $wStock = WarehouseStock::where('warehouse_id', $warehouse_id)
+                    ->where('product_id', $pId)
+                    ->first();
+                $availCases = $wStock ? (int)$wStock->stock : 0;
+                $availBottles = $wStock ? (int)$wStock->bottles : 0;
+                $totalAvailBottles = ($availCases * $bpc) + $availBottles;
+
+                if ($netBottlesDiff > $totalAvailBottles) {
+                    $pName = Product::where('id', $pId)->value('name') ?? 'Product';
                     $availText = $this->formatQtyText($availCases, $availBottles);
-                    $reqText = $this->formatQtyText($reqQty['cases'], $reqQty['bottles']);
-                    return redirect()->back()->withInput()->with('error_msg', "Insufficient stock for {$pName}. Available: {$availText}, Requested: {$reqText}.");
-                }
-            } else {
-                if ($reqQty['cases'] > $availCases || $reqQty['bottles'] > $availBottles) {
-                    $availText = $this->formatQtyText($availCases, $availBottles);
-                    $reqText = $this->formatQtyText($reqQty['cases'], $reqQty['bottles']);
-                    return redirect()->back()->withInput()->with('error_msg', "Insufficient stock for {$pName}. Available: {$availText}, Requested: {$reqText}.");
+                    $neededCases = intdiv($netBottlesDiff, $bpc);
+                    $neededLoose = $netBottlesDiff % $bpc;
+                    $neededText = $this->formatQtyText($neededCases, $neededLoose);
+                    return redirect()->back()->withInput()->with('error_msg', "Insufficient stock for {$pName}. Available in warehouse: {$availText}, Additional required: {$neededText}.");
                 }
             }
         }
 
-        $assignDate = $request->filled('assign_date') ? $request->assign_date : date('Y-m-d');
+        DB::beginTransaction();
+        try {
+            $existingDp = DriverProduct::where('warehouse_id', $warehouse_id)
+                ->where('driver_id', $request->driver_id)
+                ->whereDate('assign_date', $assignDate)
+                ->first();
 
-        $result = DriverProduct::create([
+            if ($existingDp) {
+                $existingDp->update([
+                    'total_products' => count($request->products),
+                    'assign_date' => $assignDate,
+                    'grand_total' => null,
+                ]);
+                DriverProductDetails::where('driver_products_id', $existingDp->id)->delete();
+                $result = $existingDp;
+            } else {
+                $result = DriverProduct::create([
                     'driver_id' => $request->driver_id,
                     'warehouse_id' => $warehouse_id,
                     'total_products' => count($request->products),
                     'assign_date' => $assignDate,
                 ]);
-    
-        foreach ($request->products as $product) {
-            $c = (int)($product['per_case_quantity'] ?? 0);
-            $b = (int)($product['bottles'] ?? 0);
-            $this->updateWarehouseStock($request->driver_id, $product['product_id'], $c, $b, $result->id);
+            }
+
+            foreach ($request->products as $product) {
+                $c = (int)($product['per_case_quantity'] ?? 0);
+                $b = (int)($product['bottles'] ?? 0);
+
+                DriverProductDetails::create([
+                    'driver_products_id' => $result->id,
+                    'driver_id' => $request->driver_id,
+                    'product_id' => $product['product_id'],
+                    'quantity' => $c,
+                    'bottles' => $b,
+                ]);
+            }
+
+            // Adjust warehouse stock only by the difference: (Requested - CarryForward)
+            foreach ($allProductIds as $pId) {
+                $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
+                $bpc = ($bottlesPerCase > 0) ? $bottlesPerCase : 24;
+
+                $reqCases = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['cases'] : 0;
+                $reqBottles = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['bottles'] : 0;
+                $reqTotalBottles = ($reqCases * $bpc) + $reqBottles;
+
+                $cfCases = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['cases'] : 0;
+                $cfBottles = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['bottles'] : 0;
+                $cfTotalBottles = ($cfCases * $bpc) + $cfBottles;
+
+                $netBottlesDiff = $reqTotalBottles - $cfTotalBottles;
+
+                if ($netBottlesDiff > 0) {
+                    // Deduct only newly added difference from warehouse stock
+                    $this->adjustWarehouseStock($warehouse_id, $pId, -$netBottlesDiff, $bpc);
+                } elseif ($netBottlesDiff < 0) {
+                    // Add back reduced quantity to warehouse stock
+                    $this->adjustWarehouseStock($warehouse_id, $pId, abs($netBottlesDiff), $bpc);
+                }
+            }
+
+            DB::commit();
+            return redirect()->route('driver-management-report')->withSuccess('Products assigned successfully to the driver.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withInput()->with('error_msg', 'Failed to assign products: ' . $e->getMessage());
         }
-    
-        return redirect()->route('driver-management-report')->withSuccess('Products assigned successfully to the driver.');
     }
-    
+
+    private function getCarryForwardMap($warehouse_id, $driver_id, $assignDate)
+    {
+        $carryForwardMap = [];
+        $latestReturnDate = DriverReturn::where('warehouse_id', $warehouse_id)
+            ->where('driver_id', $driver_id)
+            ->where('is_carry_forward', 1)
+            ->where(function ($q) {
+                $q->where('cases', '>', 0)
+                  ->orWhere('bottles', '>', 0);
+            })
+            ->whereDate('return_date', '<=', $assignDate)
+            ->max('return_date');
+
+        if ($latestReturnDate) {
+            $cfRows = DriverReturn::where('warehouse_id', $warehouse_id)
+                ->where('driver_id', $driver_id)
+                ->where('is_carry_forward', 1)
+                ->whereDate('return_date', $latestReturnDate)
+                ->where(function ($q) {
+                    $q->where('cases', '>', 0)
+                      ->orWhere('bottles', '>', 0);
+                })
+                ->select([
+                    'product_id',
+                    DB::raw('SUM(cases) as total_cases'),
+                    DB::raw('SUM(bottles) as total_bottles')
+                ])
+                ->groupBy('product_id')
+                ->get();
+
+            foreach ($cfRows as $cf) {
+                $carryForwardMap[(int)$cf->product_id] = [
+                    'cases' => (int)$cf->total_cases,
+                    'bottles' => (int)$cf->total_bottles,
+                ];
+            }
+        }
+        return $carryForwardMap;
+    }
+
+    private function adjustWarehouseStock($warehouse_id, $product_id, $bottleDelta, $bpc = 24)
+    {
+        if ($bottleDelta == 0) {
+            return;
+        }
+
+        $bpc = ($bpc > 0) ? $bpc : (int)Product::where('id', $product_id)->value('per_case_quantity');
+        $bpc = ($bpc > 0) ? $bpc : 24;
+
+        $productStock = WarehouseStock::where('warehouse_id', $warehouse_id)->where('product_id', $product_id)->first();
+        if ($productStock) {
+            $currTotal = ((int)$productStock->stock * $bpc) + (int)$productStock->bottles;
+            $newTotal = max(0, $currTotal + $bottleDelta);
+            $newStock = intdiv($newTotal, $bpc);
+            $newBottles = $newTotal % $bpc;
+
+            WarehouseStock::where('id', $productStock->id)->update([
+                'stock' => $newStock,
+                'bottles' => $newBottles,
+            ]);
+        } elseif ($bottleDelta > 0) {
+            $newStock = intdiv($bottleDelta, $bpc);
+            $newBottles = $bottleDelta % $bpc;
+            WarehouseStock::create([
+                'warehouse_id' => $warehouse_id,
+                'product_id' => $product_id,
+                'stock' => $newStock,
+                'bottles' => $newBottles,
+            ]);
+        }
+    }
+
     private function updateWarehouseStock($driver_id, $product_id, $cases, $bottles, $driver_products_id){
         $warehouse_id = Auth::guard('backend')->user()->id;
         $productStock = WarehouseStock::where('warehouse_id', $warehouse_id)->where('product_id', $product_id)->first();
@@ -521,10 +669,48 @@ class DriverManagementController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Revert previous stock deduction back to warehouse_stock
+            $assignDate = $request->filled('assign_date') ? $request->assign_date : ($driverProduct->assign_date ?? date('Y-m-d'));
+
+            // Carry forward map for this driver on this assignment date
+            $carryForwardMap = $this->getCarryForwardMap($warehouse_id, $driverProduct->driver_id, $assignDate);
+
+            // 1. Revert previous net stock deduction back to warehouse_stock
             $oldDetails = DriverProductDetails::where('driver_products_id', $driverProduct->id)->get();
+            $oldTotals = [];
             foreach ($oldDetails as $oldItem) {
-                $this->revertWarehouseStock($oldItem->product_id, (int)$oldItem->quantity, (int)($oldItem->bottles ?? 0));
+                $pId = (int)$oldItem->product_id;
+                if (!isset($oldTotals[$pId])) {
+                    $oldTotals[$pId] = ['cases' => 0, 'bottles' => 0];
+                }
+                $oldTotals[$pId]['cases'] += (int)$oldItem->quantity;
+                $oldTotals[$pId]['bottles'] += (int)($oldItem->bottles ?? 0);
+            }
+
+            $allOldProductIds = array_unique(array_merge(
+                array_keys($oldTotals),
+                array_keys($carryForwardMap)
+            ));
+
+            foreach ($allOldProductIds as $pId) {
+                $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
+                $bpc = ($bottlesPerCase > 0) ? $bottlesPerCase : 24;
+
+                $oldCases = isset($oldTotals[$pId]) ? (int)$oldTotals[$pId]['cases'] : 0;
+                $oldBottles = isset($oldTotals[$pId]) ? (int)$oldTotals[$pId]['bottles'] : 0;
+                $oldTotalBottles = ($oldCases * $bpc) + $oldBottles;
+
+                $cfCases = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['cases'] : 0;
+                $cfBottles = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['bottles'] : 0;
+                $cfTotalBottles = ($cfCases * $bpc) + $cfBottles;
+
+                $oldNetDeduction = $oldTotalBottles - $cfTotalBottles;
+
+                // Revert previous net adjustment: if previously deducted (>0), add it back; if previously added (<0), deduct it back
+                if ($oldNetDeduction > 0) {
+                    $this->adjustWarehouseStock($warehouse_id, $pId, $oldNetDeduction, $bpc);
+                } elseif ($oldNetDeduction < 0) {
+                    $this->adjustWarehouseStock($warehouse_id, $pId, $oldNetDeduction, $bpc);
+                }
             }
 
             // 2. Validate requested quantities and check sufficiency against reverted warehouse stock
@@ -547,29 +733,45 @@ class DriverManagementController extends Controller
                 $requestedTotals[$pId]['bottles'] += $bottles;
             }
 
-            // Check if sufficient stock is available in warehouse_stock
-            foreach ($requestedTotals as $pId => $reqQty) {
-                $wStock = WarehouseStock::where('warehouse_id', $warehouse_id)->where('product_id', $pId)->first();
-                $availCases = $wStock ? (int)$wStock->stock : 0;
-                $availBottles = $wStock ? (int)$wStock->bottles : 0;
-                $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
-                $pName = Product::where('id', $pId)->value('name') ?? 'Product';
+            // If driver was changed in update, get new driver's carry forward map
+            if ((int)$request->driver_id !== (int)$driverProduct->driver_id) {
+                $carryForwardMap = $this->getCarryForwardMap($warehouse_id, $request->driver_id, $assignDate);
+            }
 
-                if ($bottlesPerCase > 0) {
-                    $totalAvail = ($availCases * $bottlesPerCase) + $availBottles;
-                    $totalReq = ($reqQty['cases'] * $bottlesPerCase) + $reqQty['bottles'];
-                    if ($totalReq > $totalAvail) {
+            $allNewProductIds = array_unique(array_merge(
+                array_keys($requestedTotals),
+                array_keys($carryForwardMap)
+            ));
+
+            // Check sufficiency for new net required stock
+            foreach ($allNewProductIds as $pId) {
+                $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
+                $bpc = ($bottlesPerCase > 0) ? $bottlesPerCase : 24;
+
+                $reqCases = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['cases'] : 0;
+                $reqBottles = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['bottles'] : 0;
+                $reqTotalBottles = ($reqCases * $bpc) + $reqBottles;
+
+                $cfCases = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['cases'] : 0;
+                $cfBottles = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['bottles'] : 0;
+                $cfTotalBottles = ($cfCases * $bpc) + $cfBottles;
+
+                $netBottlesDiff = $reqTotalBottles - $cfTotalBottles;
+
+                if ($netBottlesDiff > 0) {
+                    $wStock = WarehouseStock::where('warehouse_id', $warehouse_id)->where('product_id', $pId)->first();
+                    $availCases = $wStock ? (int)$wStock->stock : 0;
+                    $availBottles = $wStock ? (int)$wStock->bottles : 0;
+                    $totalAvail = ($availCases * $bpc) + $availBottles;
+
+                    if ($netBottlesDiff > $totalAvail) {
                         DB::rollBack();
+                        $pName = Product::where('id', $pId)->value('name') ?? 'Product';
                         $availText = $this->formatQtyText($availCases, $availBottles);
-                        $reqText = $this->formatQtyText($reqQty['cases'], $reqQty['bottles']);
-                        return redirect()->back()->withInput()->with('error_msg', "Insufficient stock for {$pName}. Available: {$availText}, Requested: {$reqText}.");
-                    }
-                } else {
-                    if ($reqQty['cases'] > $availCases || $reqQty['bottles'] > $availBottles) {
-                        DB::rollBack();
-                        $availText = $this->formatQtyText($availCases, $availBottles);
-                        $reqText = $this->formatQtyText($reqQty['cases'], $reqQty['bottles']);
-                        return redirect()->back()->withInput()->with('error_msg', "Insufficient stock for {$pName}. Available: {$availText}, Requested: {$reqText}.");
+                        $neededCases = intdiv($netBottlesDiff, $bpc);
+                        $neededLoose = $netBottlesDiff % $bpc;
+                        $neededText = $this->formatQtyText($neededCases, $neededLoose);
+                        return redirect()->back()->withInput()->with('error_msg', "Insufficient stock for {$pName}. Available in warehouse: {$availText}, Additional required: {$neededText}.");
                     }
                 }
             }
@@ -578,18 +780,45 @@ class DriverManagementController extends Controller
             DriverProductDetails::where('driver_products_id', $driverProduct->id)->delete();
 
             // 4. Update DriverProduct header
-            $assignDate = $request->filled('assign_date') ? $request->assign_date : date('Y-m-d');
             $driverProduct->update([
                 'driver_id' => $request->driver_id,
                 'total_products' => count($request->products),
                 'assign_date' => $assignDate,
             ]);
 
-            // 5. Deduct updated quantities from warehouse_stock and create new details
+            // 5. Create new details
             foreach ($request->products as $product) {
                 $c = (int)($product['per_case_quantity'] ?? 0);
                 $b = (int)($product['bottles'] ?? 0);
-                $this->updateWarehouseStock($request->driver_id, $product['product_id'], $c, $b, $driverProduct->id);
+                DriverProductDetails::create([
+                    'driver_products_id' => $driverProduct->id,
+                    'driver_id' => $request->driver_id,
+                    'product_id' => $product['product_id'],
+                    'quantity' => $c,
+                    'bottles' => $b,
+                ]);
+            }
+
+            // 6. Apply new net stock adjustment
+            foreach ($allNewProductIds as $pId) {
+                $bottlesPerCase = (int)Product::where('id', $pId)->value('per_case_quantity');
+                $bpc = ($bottlesPerCase > 0) ? $bottlesPerCase : 24;
+
+                $reqCases = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['cases'] : 0;
+                $reqBottles = isset($requestedTotals[$pId]) ? (int)$requestedTotals[$pId]['bottles'] : 0;
+                $reqTotalBottles = ($reqCases * $bpc) + $reqBottles;
+
+                $cfCases = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['cases'] : 0;
+                $cfBottles = isset($carryForwardMap[$pId]) ? (int)$carryForwardMap[$pId]['bottles'] : 0;
+                $cfTotalBottles = ($cfCases * $bpc) + $cfBottles;
+
+                $netBottlesDiff = $reqTotalBottles - $cfTotalBottles;
+
+                if ($netBottlesDiff > 0) {
+                    $this->adjustWarehouseStock($warehouse_id, $pId, -$netBottlesDiff, $bpc);
+                } elseif ($netBottlesDiff < 0) {
+                    $this->adjustWarehouseStock($warehouse_id, $pId, abs($netBottlesDiff), $bpc);
+                }
             }
 
             DB::commit();

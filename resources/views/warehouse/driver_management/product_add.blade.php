@@ -189,8 +189,8 @@
                         <div class="d-flex align-items-center">
                             <i class="fa fa-share-from-square fs-3 me-3" style="color: #0dcaf0;"></i>
                             <div>
-                                <h6 class="mb-0 text-white fw-bold">Carry Forward Stock Found (<span id="cfReturnDateText"></span>)</h6>
-                                <small class="text-white-50">This driver has unsold stock carried forward from previous return. The items have been automatically loaded row-wise below.</small>
+                                <h6 class="mb-0 text-white fw-bold">Carry Forward Stock Found (<span id="cfReturnDateText"></span>) <span id="cfAssignedBadge" class="badge bg-success ms-2" style="font-size: 11px; display: none;"><i class="fa fa-circle-check me-1"></i> Directly Assigned for this Date</span></h6>
+                                <small class="text-white-50" id="cfSubText">This driver has unsold stock carried forward from previous return. The items have been automatically loaded row-wise below.</small>
                             </div>
                         </div>
                         <span class="badge font-monospace px-3 py-2" id="cfCountBadge" style="background: #0dcaf0; color: #000; font-size: 12px;"></span>
@@ -410,32 +410,49 @@ $(document).ready(function () {
             stockText = '0 Cases';
         }
 
-        if (availCases <= 0 && availBottles <= 0) {
+        let isCf = $row.hasClass('carry-forward-row') || $row.data('cf') == 1;
+        let cfCases = isCf ? (parseInt($row.find('.cf-cases').val()) || parseInt($row.data('cf-cases')) || 0) : 0;
+        let cfBottles = isCf ? (parseInt($row.find('.cf-bottles').val()) || parseInt($row.data('cf-bottles')) || 0) : 0;
+
+        if (availCases <= 0 && availBottles <= 0 && (!isCf || (cfCases <= 0 && cfBottles <= 0))) {
             $badge.html('<span class="badge bg-danger"><i class="fa fa-circle-xmark me-1"></i> Out of Stock (0 Available)</span>');
         } else {
             let bpcText = bpc > 0 ? ' &bull; ' + bpc + ' btls/case' : '';
-            $badge.html('<span class="badge bg-success"><i class="fa fa-boxes-stacked me-1"></i> Available: ' + stockText + bpcText + '</span>');
+            let cfBadgeText = (isCf && (cfCases > 0 || cfBottles > 0)) ? ` &bull; Carry Forward: ${cfCases} Cases${cfBottles > 0 ? ' + ' + cfBottles + ' Bottles' : ''}` : '';
+            $badge.html('<span class="badge bg-success"><i class="fa fa-boxes-stacked me-1"></i> Available in Warehouse: ' + stockText + bpcText + cfBadgeText + '</span>');
         }
 
-        // Validate requested quantity
+        // Validate requested quantity against additional needed from warehouse
         let reqCases = parseInt($row.find('.case-input').val()) || 0;
         let reqBottles = parseInt($row.find('.bottle-input').val()) || 0;
 
         let isExceeded = false;
+        let netNeededBottles = 0;
         if (bpc > 0) {
             let totalAvail = (availCases * bpc) + availBottles;
             let totalReq = (reqCases * bpc) + reqBottles;
-            if (totalReq > totalAvail) {
+            let totalCf = (cfCases * bpc) + cfBottles;
+            netNeededBottles = Math.max(0, totalReq - totalCf);
+
+            if (netNeededBottles > totalAvail) {
                 isExceeded = true;
             }
         } else {
-            if (reqCases > availCases || reqBottles > availBottles) {
+            let netCases = Math.max(0, reqCases - cfCases);
+            let netBottles = Math.max(0, reqBottles - cfBottles);
+            if (netCases > availCases || netBottles > availBottles) {
                 isExceeded = true;
             }
         }
 
         if (isExceeded) {
-            $warning.html('<i class="fa fa-triangle-exclamation me-1"></i> Warning: Requested quantity exceeds currently available warehouse stock (' + stockText + ')!').show();
+            let neededText = '';
+            if (bpc > 0 && netNeededBottles > 0) {
+                let nC = Math.floor(netNeededBottles / bpc);
+                let nB = netNeededBottles % bpc;
+                neededText = (nC > 0 ? nC + ' Cases' : '') + (nB > 0 ? (nC > 0 ? ' + ' : '') + nB + ' Bottles' : '');
+            }
+            $warning.html('<i class="fa fa-triangle-exclamation me-1"></i> Warning: Additional stock required (' + (neededText || 'exceeds') + ') exceeds available warehouse stock (' + stockText + ')!').show();
         } else {
             $warning.hide();
         }
@@ -516,7 +533,10 @@ $(document).ready(function () {
     // Build Carry Forward product row HTML
     function createCarryForwardRowHtml(idx, item, returnDate) {
         return `
-        <div class="product-row carry-forward-row" data-cf="1" style="background: rgba(13, 202, 240, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(13, 202, 240, 0.35); margin-bottom: 16px;">
+        <div class="product-row carry-forward-row" data-cf="1" data-cf-cases="${item.cases}" data-cf-bottles="${item.bottles}" style="background: rgba(13, 202, 240, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(13, 202, 240, 0.35); margin-bottom: 16px;">
+            <input type="hidden" class="cf-cases" name="products[${idx}][cf_cases]" value="${item.cases}">
+            <input type="hidden" class="cf-bottles" name="products[${idx}][cf_bottles]" value="${item.bottles}">
+            <input type="hidden" class="is-cf" name="products[${idx}][is_carry_forward]" value="1">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="badge" style="background:#0dcaf0; color:#000; font-size:11.5px; font-weight:700;">
                     <i class="fa fa-share-from-square me-1"></i> Carry Forward: ${item.formatted_text} (Return Date: ${returnDate})
@@ -636,6 +656,13 @@ $(document).ready(function () {
                 if (res.status === 200 && res.has_carry_forward && res.items && res.items.length > 0) {
                     $('#cfReturnDateText').text(res.return_date);
                     $('#cfCountBadge').text(res.items.length + (res.items.length === 1 ? ' Item Carried Forward' : ' Items Carried Forward'));
+                    if (res.is_already_assigned) {
+                        $('#cfAssignedBadge').show();
+                        $('#cfSubText').text('These carry forward items are already directly assigned to the driver for this date. You only need to submit here if you wish to add new stock from warehouse or adjust quantities.');
+                    } else {
+                        $('#cfAssignedBadge').hide();
+                        $('#cfSubText').text('This driver has unsold stock carried forward from previous return. The items have been automatically loaded row-wise below.');
+                    }
                     $('#carryForwardAlert').slideDown();
 
                     // Empty container and load carry forward rows

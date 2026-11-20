@@ -623,7 +623,7 @@
 
                         <div id="returnModalContent">
                             <div class="alert alert-info py-2 mb-3" style="font-size: 13px;">
-                                <i class="fa fa-info-circle me-1"></i> Products assigned to the driver on this date are automatically loaded below. Enter returned quantities and select <strong>Carry Forward</strong> (adds back to warehouse stock) or <strong>Return</strong> (no stock update).
+                                <i class="fa fa-info-circle me-1"></i> Products assigned to the driver on this date are automatically loaded below. Enter returned quantities and select <strong>Carry Forward</strong> (warehouse stock will NOT update; directly assigned to driver for next day) or <strong>Return</strong> (physically returned to warehouse; warehouse stock will be updated).
                             </div>
 
                             <div class="table-responsive mb-2">
@@ -634,8 +634,8 @@
                                             <th style="width: 150px;" class="text-center">Assigned Stock</th>
                                             <th style="width: 130px;" class="text-center">Returned Cases</th>
                                             <th style="width: 130px;" class="text-center">Returned Loose Bottles</th>
-                                            <th style="width: 125px;" class="text-center" title="Carry Forward: Adds returned stock back into warehouse inventory">Carry Forward</th>
-                                            <th style="width: 105px;" class="text-center" title="Return: Warehouse stock will NOT be updated">Return</th>
+                                            <th style="width: 130px;" class="text-center" title="Carry Forward: Warehouse stock will NOT update; directly assigned to driver for next day">Carry Forward</th>
+                                            <th style="width: 110px;" class="text-center" title="Return: Physically returned to warehouse (restocks warehouse inventory)">Return</th>
                                             <th style="width: 45px;" class="text-center">Action</th>
                                         </tr>
                                     </thead>
@@ -813,7 +813,7 @@ $(document).ready(function () {
                                name="returns[${currentIdx}][is_carry_forward]"
                                value="1"
                                ${isCarryForward ? 'checked' : ''}
-                               title="Carry Forward: Adds to warehouse stock">
+                               title="Carry Forward: Warehouse stock will NOT update; directly assigned to driver for next day">
                     </div>
                 </td>
                 <td class="text-center align-middle">
@@ -823,7 +823,7 @@ $(document).ready(function () {
                                name="returns[${currentIdx}][is_return]"
                                value="1"
                                ${isReturn ? 'checked' : ''}
-                               title="Return: Warehouse stock will NOT be updated">
+                               title="Return: Physically returned to warehouse (restocks warehouse inventory)">
                     </div>
                 </td>
                 <td class="text-center">

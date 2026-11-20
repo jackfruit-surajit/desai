@@ -581,11 +581,27 @@ class DailySalesReportController extends Controller
 
         DB::beginTransaction();
         try {
+            $nextDate = date('Y-m-d', strtotime($return_date . ' +1 day'));
+
+            // Revert previously restocked items for this return_date if any (in case of re-saving returns)
+            $oldReturns = DriverReturn::where('warehouse_id', $warehouse_id)
+                ->where('driver_id', $driver_id)
+                ->whereDate('return_date', $return_date)
+                ->get();
+
+            foreach ($oldReturns as $oldRet) {
+                if ((int)$oldRet->is_return === 1) {
+                    $this->deductWarehouseStock($warehouse_id, (int)$oldRet->product_id, (int)$oldRet->cases, (int)$oldRet->bottles);
+                }
+            }
+
             // Delete old returns for this driver on this date
             DriverReturn::where('warehouse_id', $warehouse_id)
                 ->where('driver_id', $driver_id)
                 ->whereDate('return_date', $return_date)
                 ->delete();
+
+            $carryForwardItems = [];
 
             if ($request->has('returns') && is_array($request->returns)) {
                 $grouped = [];
@@ -630,16 +646,94 @@ class DailySalesReportController extends Controller
                             'notes' => $request->notes,
                         ]);
 
-                        // If carry forward is true, add returned items back into warehouse stock; if return, stock will not be updated
-                        if ($qty['is_carry_forward']) {
+                        // If return is true, add physically returned items back into warehouse stock
+                        if (!empty($qty['is_return'])) {
                             $this->restockWarehouse($warehouse_id, $pid, $c, $b);
+                        }
+
+                        // If carry forward is true, warehouse stock will NOT be updated. Collect for direct next day assignment.
+                        if (!empty($qty['is_carry_forward'])) {
+                            $carryForwardItems[] = [
+                                'product_id' => $pid,
+                                'cases' => $c,
+                                'bottles' => $b,
+                            ];
                         }
                     }
                 }
             }
 
+            // Directly assign carry forward products to driver for next day without deducting warehouse stock
+            $nextDateDp = DriverProduct::where('warehouse_id', $warehouse_id)
+                ->where('driver_id', $driver_id)
+                ->whereDate('assign_date', $nextDate)
+                ->first();
+
+            if (!empty($carryForwardItems)) {
+                if (!$nextDateDp) {
+                    $nextDateDp = DriverProduct::create([
+                        'driver_id' => $driver_id,
+                        'warehouse_id' => $warehouse_id,
+                        'total_products' => count($carryForwardItems),
+                        'assign_date' => $nextDate,
+                        'grand_total' => 'carry_forward',
+                    ]);
+                    foreach ($carryForwardItems as $item) {
+                        DriverProductDetails::create([
+                            'driver_products_id' => $nextDateDp->id,
+                            'driver_id' => $driver_id,
+                            'product_id' => $item['product_id'],
+                            'quantity' => $item['cases'],
+                            'bottles' => $item['bottles'],
+                        ]);
+                    }
+                } else {
+                    if ($nextDateDp->grand_total === 'carry_forward') {
+                        DriverProductDetails::where('driver_products_id', $nextDateDp->id)->delete();
+                        foreach ($carryForwardItems as $item) {
+                            DriverProductDetails::create([
+                                'driver_products_id' => $nextDateDp->id,
+                                'driver_id' => $driver_id,
+                                'product_id' => $item['product_id'],
+                                'quantity' => $item['cases'],
+                                'bottles' => $item['bottles'],
+                            ]);
+                        }
+                        $nextDateDp->update(['total_products' => count($carryForwardItems)]);
+                    } else {
+                        // Already exists: update or sync the carry forward products
+                        foreach ($carryForwardItems as $item) {
+                            $existingDetail = DriverProductDetails::where('driver_products_id', $nextDateDp->id)
+                                ->where('product_id', $item['product_id'])
+                                ->first();
+                            if ($existingDetail) {
+                                $existingDetail->update([
+                                    'quantity' => $item['cases'],
+                                    'bottles' => $item['bottles'],
+                                ]);
+                            } else {
+                                DriverProductDetails::create([
+                                    'driver_products_id' => $nextDateDp->id,
+                                    'driver_id' => $driver_id,
+                                    'product_id' => $item['product_id'],
+                                    'quantity' => $item['cases'],
+                                    'bottles' => $item['bottles'],
+                                ]);
+                            }
+                        }
+                        $nextDateDp->update([
+                            'total_products' => DriverProductDetails::where('driver_products_id', $nextDateDp->id)->count()
+                        ]);
+                    }
+                }
+            } elseif ($nextDateDp && $nextDateDp->grand_total === 'carry_forward') {
+                // If carry forward items were removed on re-save, clean up auto-assigned record
+                DriverProductDetails::where('driver_products_id', $nextDateDp->id)->delete();
+                $nextDateDp->delete();
+            }
+
             DB::commit();
-            return redirect()->back()->withSuccess('Driver returned stock recorded successfully.');
+            return redirect()->back()->withSuccess('Driver returned stock recorded successfully. Carry forward products directly assigned to driver for next day.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error_msg', 'Failed to record return: ' . $e->getMessage());
@@ -676,6 +770,27 @@ class DailySalesReportController extends Controller
                 'product_id' => $product_id,
                 'stock' => $cases,
                 'bottles' => $bottles,
+            ]);
+        }
+    }
+
+    private function deductWarehouseStock($warehouse_id, $product_id, $cases, $bottles)
+    {
+        $productStock = WarehouseStock::where('warehouse_id', $warehouse_id)
+            ->where('product_id', $product_id)
+            ->first();
+
+        if ($productStock) {
+            $bottlesPerCase = (int)Product::where('id', $product_id)->value('per_case_quantity') ?: 24;
+            $curr = ((int)$productStock->stock * $bottlesPerCase) + (int)$productStock->bottles;
+            $deduct = ($cases * $bottlesPerCase) + $bottles;
+            $newTotal = max(0, $curr - $deduct);
+            $newStock = intdiv($newTotal, $bottlesPerCase);
+            $newBottles = $newTotal % $bottlesPerCase;
+
+            WarehouseStock::where('id', $productStock->id)->update([
+                'stock' => $newStock,
+                'bottles' => $newBottles,
             ]);
         }
     }
