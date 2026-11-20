@@ -64,6 +64,18 @@ $role = Role::find($user->role_id);
       ></a>
   </li>
 
+  <li class="pc-item pc-hasmenu {{ request()->is('warehouse/vehicle*') ? 'pc-trigger active' : '' }}">
+    <a href="javascript:;" class="pc-link"
+      ><span class="pc-micon"> <i class="fa fa-gas-pump"></i></span><span class="pc-mtext">Fleet & Expenses</span
+      ><span class="pc-arrow"><i data-feather="chevron-right"></i></span
+    ></a>
+    <ul class="pc-submenu">
+      <li class="pc-item {{ request()->routeIs('warehouse-vehicle-fuel*') ? 'active' : '' }}"><a class="pc-link" href="{{route('warehouse-vehicle-fuel-logs')}}">Fuel Logs</a></li>
+      <li class="pc-item {{ request()->routeIs('warehouse-vehicle-daily-expense*') ? 'active' : '' }}"><a class="pc-link" href="{{route('warehouse-vehicle-daily-expenses')}}">Daily Expenses</a></li>
+      <li class="pc-item {{ request()->routeIs('warehouse-vehicle-repair*') ? 'active' : '' }}"><a class="pc-link" href="{{route('warehouse-vehicle-repair-logs')}}">Repair Costs</a></li>
+    </ul>
+  </li>
+
 
 
 

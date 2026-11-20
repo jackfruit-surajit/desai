@@ -163,6 +163,16 @@
                 Route::get('driver-route-logs', ['uses' => 'Admin\StaffController@driverRouteLogs', 'as' => 'driver-route-logs']);
                 Route::get('get-driver-route-logs-datatable', ['uses' => 'Admin\StaffController@getDriverRouteLogsDatatable', 'as' => 'driver-route-logs-datatable']);
 
+                // Fleet & Expenses Reports (Admin View-only)
+                Route::get('fleet/fuel-reports', ['uses' => 'Admin\FleetReportController@fuelReports', 'as' => 'admin-fleet-fuel-reports']);
+                Route::get('fleet/get-fuel-reports-datatable', ['uses' => 'Admin\FleetReportController@getFuelReportsDatatable', 'as' => 'admin-fleet-fuel-reports-datatable']);
+
+                Route::get('fleet/daily-expenses', ['uses' => 'Admin\FleetReportController@dailyExpenses', 'as' => 'admin-fleet-daily-expenses']);
+                Route::get('fleet/get-daily-expenses-datatable', ['uses' => 'Admin\FleetReportController@getDailyExpensesDatatable', 'as' => 'admin-fleet-daily-expenses-datatable']);
+
+                Route::get('fleet/repair-reports', ['uses' => 'Admin\FleetReportController@repairReports', 'as' => 'admin-fleet-repair-reports']);
+                Route::get('fleet/get-repair-reports-datatable', ['uses' => 'Admin\FleetReportController@getRepairReportsDatatable', 'as' => 'admin-fleet-repair-reports-datatable']);
+
                 
             });
     
@@ -273,6 +283,37 @@
                 Route::get('product-daily-sales-report', ['uses' => 'Warehouse\ProductDailySalesReportController@index', 'as' => 'warehouse-product-daily-sales-report']);
                 Route::get('product-daily-sales-report-breakdown/{product_id}/{date}', ['uses' => 'Warehouse\ProductDailySalesReportController@productDriverBreakdown', 'as' => 'warehouse-product-daily-sales-report-breakdown']);
                 Route::get('product-daily-sales-report-export', ['uses' => 'Warehouse\ProductDailySalesReportController@exportCsv', 'as' => 'warehouse-product-daily-sales-report-export']);
+
+                // Vehicle Fleet Management (Fuel Tracking, Daily Expenses, Repair Costs)
+                Route::get('vehicle/get-driver-vehicle/{driver_id}', ['uses' => 'Warehouse\VehicleManagementController@getDriverVehicle', 'as' => 'warehouse-vehicle-get-driver-vehicle']);
+                Route::get('vehicle/get-vehicle-odometer/{vehicle_id}', ['uses' => 'Warehouse\VehicleManagementController@getVehicleOdometer', 'as' => 'warehouse-vehicle-get-odometer']);
+
+                // 1. Fuel Logs
+                Route::get('vehicle/fuel-logs', ['uses' => 'Warehouse\VehicleManagementController@fuelLogs', 'as' => 'warehouse-vehicle-fuel-logs']);
+                Route::get('vehicle/get-fuel-logs-datatable', ['uses' => 'Warehouse\VehicleManagementController@getFuelLogsDatatable', 'as' => 'warehouse-vehicle-fuel-logs-datatable']);
+                Route::get('vehicle/fuel-logs/create', ['uses' => 'Warehouse\VehicleManagementController@fuelLogCreate', 'as' => 'warehouse-vehicle-fuel-log-create']);
+                Route::post('vehicle/fuel-logs/store', ['uses' => 'Warehouse\VehicleManagementController@fuelLogStore', 'as' => 'warehouse-vehicle-fuel-log-store']);
+                Route::get('vehicle/fuel-logs/{id}/edit', ['uses' => 'Warehouse\VehicleManagementController@fuelLogEdit', 'as' => 'warehouse-vehicle-fuel-log-edit']);
+                Route::post('vehicle/fuel-logs/{id}/update', ['uses' => 'Warehouse\VehicleManagementController@fuelLogUpdate', 'as' => 'warehouse-vehicle-fuel-log-update']);
+                Route::post('vehicle/fuel-logs/{id}/delete', ['uses' => 'Warehouse\VehicleManagementController@fuelLogDelete', 'as' => 'warehouse-vehicle-fuel-log-delete']);
+
+                // 2. Daily Expenses
+                Route::get('vehicle/daily-expenses', ['uses' => 'Warehouse\VehicleManagementController@dailyExpenses', 'as' => 'warehouse-vehicle-daily-expenses']);
+                Route::get('vehicle/get-daily-expenses-datatable', ['uses' => 'Warehouse\VehicleManagementController@getDailyExpensesDatatable', 'as' => 'warehouse-vehicle-daily-expenses-datatable']);
+                Route::get('vehicle/daily-expenses/create', ['uses' => 'Warehouse\VehicleManagementController@dailyExpenseCreate', 'as' => 'warehouse-vehicle-daily-expense-create']);
+                Route::post('vehicle/daily-expenses/store', ['uses' => 'Warehouse\VehicleManagementController@dailyExpenseStore', 'as' => 'warehouse-vehicle-daily-expense-store']);
+                Route::get('vehicle/daily-expenses/{id}/edit', ['uses' => 'Warehouse\VehicleManagementController@dailyExpenseEdit', 'as' => 'warehouse-vehicle-daily-expense-edit']);
+                Route::post('vehicle/daily-expenses/{id}/update', ['uses' => 'Warehouse\VehicleManagementController@dailyExpenseUpdate', 'as' => 'warehouse-vehicle-daily-expense-update']);
+                Route::post('vehicle/daily-expenses/{id}/delete', ['uses' => 'Warehouse\VehicleManagementController@dailyExpenseDelete', 'as' => 'warehouse-vehicle-daily-expense-delete']);
+
+                // 3. Repair Logs
+                Route::get('vehicle/repair-logs', ['uses' => 'Warehouse\VehicleManagementController@repairLogs', 'as' => 'warehouse-vehicle-repair-logs']);
+                Route::get('vehicle/get-repair-logs-datatable', ['uses' => 'Warehouse\VehicleManagementController@getRepairLogsDatatable', 'as' => 'warehouse-vehicle-repair-logs-datatable']);
+                Route::get('vehicle/repair-logs/create', ['uses' => 'Warehouse\VehicleManagementController@repairLogCreate', 'as' => 'warehouse-vehicle-repair-log-create']);
+                Route::post('vehicle/repair-logs/store', ['uses' => 'Warehouse\VehicleManagementController@repairLogStore', 'as' => 'warehouse-vehicle-repair-log-store']);
+                Route::get('vehicle/repair-logs/{id}/edit', ['uses' => 'Warehouse\VehicleManagementController@repairLogEdit', 'as' => 'warehouse-vehicle-repair-log-edit']);
+                Route::post('vehicle/repair-logs/{id}/update', ['uses' => 'Warehouse\VehicleManagementController@repairLogUpdate', 'as' => 'warehouse-vehicle-repair-log-update']);
+                Route::post('vehicle/repair-logs/{id}/delete', ['uses' => 'Warehouse\VehicleManagementController@repairLogDelete', 'as' => 'warehouse-vehicle-repair-log-delete']);
 
                 
                 

@@ -61,6 +61,18 @@ $role = Role::find($user->role_id);
       ></a>
   </li>
 
+  <li class="pc-item pc-hasmenu {{ request()->is('admin/fleet*') ? 'pc-trigger active' : '' }}">
+    <a href="javascript:;" class="pc-link"
+      ><span class="pc-micon"> <i class="fa fa-gas-pump"></i></span><span class="pc-mtext">Fleet & Expenses</span
+      ><span class="pc-arrow"><i data-feather="chevron-right"></i></span
+    ></a>
+    <ul class="pc-submenu">
+      <li class="pc-item {{ request()->routeIs('admin-fleet-fuel*') ? 'active' : '' }}"><a class="pc-link" href="{{route('admin-fleet-fuel-reports')}}">Fuel Reports</a></li>
+      <li class="pc-item {{ request()->routeIs('admin-fleet-daily-expenses*') ? 'active' : '' }}"><a class="pc-link" href="{{route('admin-fleet-daily-expenses')}}">Daily Expense Reports</a></li>
+      <li class="pc-item {{ request()->routeIs('admin-fleet-repair*') ? 'active' : '' }}"><a class="pc-link" href="{{route('admin-fleet-repair-reports')}}">Repair & Service Reports</a></li>
+    </ul>
+  </li>
+
 
   <!--<li class="pc-item pc-hasmenu">-->
   <!--  <a href="#" class="pc-link"-->

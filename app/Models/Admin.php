@@ -92,4 +92,14 @@ class Admin extends Authenticatable
     {
         $this->attributes['licence_expiry'] = $value;
     }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
+    }
+
+    public function driverWarehouse()
+    {
+        return $this->hasOne(DriverWarehouse::class, 'driver_id');
+    }
 }
