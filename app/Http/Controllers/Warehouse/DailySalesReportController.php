@@ -49,6 +49,14 @@ class DailySalesReportController extends Controller
         $overallCarryForwardBottles = 0;
         $overallReturnedBottles = 0;
         $overallSoldBottles = 0;
+        $overallAssignedCases = 0;
+        $overallAssignedLoose = 0;
+        $overallCarryForwardCases = 0;
+        $overallCarryForwardLoose = 0;
+        $overallReturnedCases = 0;
+        $overallReturnedLoose = 0;
+        $overallSoldCases = 0;
+        $overallSoldLoose = 0;
         $activeDriversCount = 0;
 
         foreach ($driversToProcess as $driver) {
@@ -137,10 +145,21 @@ class DailySalesReportController extends Controller
             $driverSoldTotalBottles = 0;
             $calculatedDriverSalesAmount = 0;
 
+            $driverAssignedCases = 0;
+            $driverAssignedLoose = 0;
+            $driverCarryForwardCases = 0;
+            $driverCarryForwardLoose = 0;
+            $driverReturnedCases = 0;
+            $driverReturnedLoose = 0;
+            $driverSoldCases = 0;
+            $driverSoldLoose = 0;
+
             foreach ($allProductIds as $pid) {
                 $p = $products->get($pid) ?? Product::find($pid);
-                $bpc = ($p && $p->per_case_quantity > 0) ? (int)$p->per_case_quantity : 24;
-                $bottlePrice = (float)($p ? ($p->per_bottle_price ?? 0) : 0);
+                if (!$p) continue;
+
+                $bpc = ($p->per_case_quantity > 0) ? (int)$p->per_case_quantity : 24;
+                $bottlePrice = (float)($p->per_bottle_price ?? 0);
 
                 // Assigned
                 $aRow = $assignedRows->get($pid);
@@ -149,14 +168,29 @@ class DailySalesReportController extends Controller
                 $pAssignedBottles = ($aCases * $bpc) + $aLoose;
                 $driverAssignedTotalBottles += $pAssignedBottles;
 
+                $driverAssignedCases += $aCases;
+                $driverAssignedLoose += $aLoose;
+
                 // Carry Forward & Returned
-                $pCfBottles = 0;
-                $pRetBottles = 0;
+                $cfCases = 0;
+                $cfLoose = 0;
+                $rCases = 0;
+                $rLoose = 0;
                 if ($hasManualReturn && isset($productReturns[$pid])) {
                     $pRetData = $productReturns[$pid];
-                    $pCfBottles = ($pRetData['cf_cases'] * $bpc) + $pRetData['cf_bottles'];
-                    $pRetBottles = ($pRetData['ret_cases'] * $bpc) + $pRetData['ret_bottles'];
+                    $cfCases = (int)$pRetData['cf_cases'];
+                    $cfLoose = (int)$pRetData['cf_bottles'];
+                    $rCases = (int)$pRetData['ret_cases'];
+                    $rLoose = (int)$pRetData['ret_bottles'];
                 }
+                $pCfBottles = ($cfCases * $bpc) + $cfLoose;
+                $pRetBottles = ($rCases * $bpc) + $rLoose;
+
+                $driverCarryForwardCases += $cfCases;
+                $driverCarryForwardLoose += $cfLoose;
+                $driverReturnedCases += $rCases;
+                $driverReturnedLoose += $rLoose;
+
                 $driverCarryForwardTotalBottles += $pCfBottles;
                 $driverReturnedTotalBottles += $pRetBottles;
                 $pUnsoldBottles = $pCfBottles + $pRetBottles;
@@ -175,14 +209,20 @@ class DailySalesReportController extends Controller
                 }
                 $driverSoldTotalBottles += $pSoldBottles;
 
+                $sCases = intdiv($pSoldBottles, $bpc);
+                $sLoose = $pSoldBottles % $bpc;
+
+                $driverSoldCases += $sCases;
+                $driverSoldLoose += $sLoose;
+
                 $calculatedDriverSalesAmount += ($pSoldBottles * $bottlePrice);
             }
 
-            // Normalization helper
-            $assignedText = $this->bottlesToCaseText($driverAssignedTotalBottles);
-            $carryForwardText = $this->bottlesToCaseText($driverCarryForwardTotalBottles);
-            $returnedText = $this->bottlesToCaseText($driverReturnedTotalBottles);
-            $soldText = $this->bottlesToCaseText($driverSoldTotalBottles);
+            // Normalization helper matching breakdown
+            $assignedText = $this->formatStockText($driverAssignedCases, $driverAssignedLoose);
+            $carryForwardText = $this->formatStockText($driverCarryForwardCases, $driverCarryForwardLoose);
+            $returnedText = $this->formatStockText($driverReturnedCases, $driverReturnedLoose);
+            $soldText = $this->formatStockText($driverSoldCases, $driverSoldLoose);
 
             if ($hasManualReturn) {
                 $driverSalesAmount = $calculatedDriverSalesAmount;
@@ -219,6 +259,15 @@ class DailySalesReportController extends Controller
             $overallCarryForwardBottles += $driverCarryForwardTotalBottles;
             $overallReturnedBottles += $driverReturnedTotalBottles;
             $overallSoldBottles += $driverSoldTotalBottles;
+
+            $overallAssignedCases += $driverAssignedCases;
+            $overallAssignedLoose += $driverAssignedLoose;
+            $overallCarryForwardCases += $driverCarryForwardCases;
+            $overallCarryForwardLoose += $driverCarryForwardLoose;
+            $overallReturnedCases += $driverReturnedCases;
+            $overallReturnedLoose += $driverReturnedLoose;
+            $overallSoldCases += $driverSoldCases;
+            $overallSoldLoose += $driverSoldLoose;
         }
 
         // Sort: Active drivers first, then by sales amount descending
@@ -229,10 +278,10 @@ class DailySalesReportController extends Controller
             return $b['sales_amount'] <=> $a['sales_amount'];
         });
 
-        $overallAssignedText = $this->bottlesToCaseText($overallAssignedBottles);
-        $overallCarryForwardText = $this->bottlesToCaseText($overallCarryForwardBottles);
-        $overallReturnedText = $this->bottlesToCaseText($overallReturnedBottles);
-        $overallSoldText = $this->bottlesToCaseText($overallSoldBottles);
+        $overallAssignedText = $this->formatStockText($overallAssignedCases, $overallAssignedLoose);
+        $overallCarryForwardText = $this->formatStockText($overallCarryForwardCases, $overallCarryForwardLoose);
+        $overallReturnedText = $this->formatStockText($overallReturnedCases, $overallReturnedLoose);
+        $overallSoldText = $this->formatStockText($overallSoldCases, $overallSoldLoose);
 
         return view('warehouse.daily_sales_report.index', compact([
             'reportDate',
