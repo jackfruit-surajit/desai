@@ -682,19 +682,20 @@ class DailySalesReportController extends Controller
                     $c = $qty['cases'];
                     $b = $qty['bottles'];
                     $pid = $qty['product_id'];
-                    if ($c > 0 || $b > 0) {
-                        DriverReturn::create([
-                            'warehouse_id' => $warehouse_id,
-                            'driver_id' => $driver_id,
-                            'return_date' => $return_date,
-                            'product_id' => $pid,
-                            'cases' => $c,
-                            'bottles' => $b,
-                            'is_carry_forward' => $qty['is_carry_forward'],
-                            'is_return' => $qty['is_return'],
-                            'notes' => $request->notes,
-                        ]);
 
+                    DriverReturn::create([
+                        'warehouse_id' => $warehouse_id,
+                        'driver_id' => $driver_id,
+                        'return_date' => $return_date,
+                        'product_id' => $pid,
+                        'cases' => $c,
+                        'bottles' => $b,
+                        'is_carry_forward' => $qty['is_carry_forward'],
+                        'is_return' => $qty['is_return'],
+                        'notes' => $request->notes,
+                    ]);
+
+                    if ($c > 0 || $b > 0) {
                         // If return is true, add physically returned items back into warehouse stock
                         if (!empty($qty['is_return'])) {
                             $this->restockWarehouse($warehouse_id, $pid, $c, $b);
