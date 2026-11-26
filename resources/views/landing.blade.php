@@ -18,7 +18,8 @@
             background: linear-gradient(-45deg, #ff2a2a, #ff7b54, #04A9F5, #005a9e);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             margin: 0;
             padding: 0;
         }
@@ -31,13 +32,13 @@
 
         /* Bubbles animation */
         .bubbles-container {
-            position: absolute;
+            position: fixed;
+            inset: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
             overflow: hidden;
-            top: 0;
-            left: 0;
+            pointer-events: none;
         }
         .bubble {
             position: absolute;
@@ -101,10 +102,15 @@
         .card-orange:hover { border-color: #00d2ff; box-shadow: 0 15px 35px rgba(0, 210, 255, 0.4); }
         .card-orange .icon-bg { background: linear-gradient(135deg, #3a7bd5, #00d2ff); color: white; }
         .card-orange:hover h2 { color: #0072ff; }
+
+        /* Driver / Sales Executive: Vibrant Coral / Desai Red */
+        .card-driver:hover { border-color: #ff4b2b; box-shadow: 0 15px 35px rgba(255, 75, 43, 0.4); }
+        .card-driver .icon-bg { background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; }
+        .card-driver:hover h2 { color: #e11d48; }
         
     </style>
 </head>
-<body class="h-screen flex flex-col justify-center items-center relative text-gray-800">
+<body class="min-h-screen flex flex-col relative text-gray-800 px-4 py-8 sm:py-10 md:py-12">
 
     <!-- Bubbles Background -->
     <div class="bubbles-container">
@@ -114,49 +120,66 @@
         <div class="bubble"></div><div class="bubble"></div>
         <div class="bubble"></div><div class="bubble"></div>
     </div>
-    
-    <div class="mb-14 text-center z-10 drop-shadow-lg px-4 flex flex-col items-center">
-        <!-- Desai Logo -->
-        <img src="{{ URL::asset(asset_path('backend/assets/images/authentication/desai-delivery.png')) }}" alt="Desai Logo" class="h-24 md:h-32 mb-6 drop-shadow-md">
 
-        <h1 class="text-5xl md:text-6xl font-extrabold text-white mb-4 tracking-wide" style="text-shadow: 2px 3px 6px rgba(0,0,0,0.3);">Welcome to Desai</h1>
-        <p class="text-2xl text-white font-semibold drop-shadow-md">Select your portal to log in</p>
-    </div>
+    <main class="w-full max-w-7xl mx-auto my-auto flex flex-col items-center z-10">
+        <div class="mb-6 sm:mb-10 md:mb-14 text-center drop-shadow-lg px-2 flex flex-col items-center">
+            <!-- Desai Logo -->
+            <img src="{{ URL::asset(asset_path('backend/assets/images/authentication/desai-delivery.png')) }}" alt="Desai Logo" class="h-16 sm:h-24 md:h-32 w-auto max-w-full object-contain mb-3 sm:mb-5 md:mb-6 drop-shadow-md">
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 w-full max-w-6xl z-10">
-        
-        <!-- Admin Login -->
-        <a href="{{ url('/admin/login') }}" class="glass-card card-cola rounded-3xl p-10 flex flex-col items-center justify-center text-center cursor-pointer group">
-            <div class="icon-bg w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-xl transition-all duration-300 group-hover:rotate-12 group-hover:scale-110">
-                <i class="fas fa-user-shield text-4xl drop-shadow-md"></i>
-            </div>
-            <h2 class="text-3xl font-extrabold mb-3 text-gray-800 transition-colors duration-300">Admin</h2>
-            <p class="text-gray-800 font-medium text-sm leading-relaxed">Manage your entire system backend and user controls.</p>
-        </a>
+            <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white mb-2 sm:mb-4 tracking-wide leading-tight" style="text-shadow: 2px 3px 6px rgba(0,0,0,0.3);">Welcome to Desai</h1>
+            <p class="text-base sm:text-xl md:text-2xl text-white font-semibold drop-shadow-md">Select your portal to log in</p>
+        </div>
 
-        <!-- Warehouse Login -->
-        <a href="{{ url('/warehouse/login') }}" class="glass-card card-lemon rounded-3xl p-10 flex flex-col items-center justify-center text-center cursor-pointer group">
-            <div class="icon-bg w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-xl transition-all duration-300 group-hover:-rotate-12 group-hover:scale-110">
-                <i class="fas fa-warehouse text-4xl drop-shadow-md"></i>
-            </div>
-            <h2 class="text-3xl font-extrabold mb-3 text-gray-800 transition-colors duration-300">Warehouse</h2>
-            <p class="text-gray-800 font-medium text-sm leading-relaxed">Keep your inventory fresh, stocked, and flowing.</p>
-        </a>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-7 w-full">
+            
+            <!-- Admin Login -->
+            <a href="{{ url('/admin/login') }}" class="glass-card card-cola rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer group active:scale-95 h-full">
+                <div class="icon-bg w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-4 sm:mb-5 shadow-xl transition-all duration-300 group-hover:rotate-12 group-hover:scale-110">
+                    <i class="fas fa-user-shield text-2xl sm:text-3xl drop-shadow-md"></i>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-extrabold mb-1.5 sm:mb-3 text-gray-800 transition-colors duration-300">Admin</h2>
+                <p class="text-gray-800 font-medium text-xs sm:text-sm leading-relaxed">Manage your entire system backend and user controls.</p>
+            </a>
 
-        <!-- Manufacturer Login -->
-        <a href="{{ url('/manufacture/login') }}" class="glass-card card-orange rounded-3xl p-10 flex flex-col items-center justify-center text-center cursor-pointer group">
-            <div class="icon-bg w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-xl transition-all duration-300 group-hover:rotate-12 group-hover:scale-110">
-                <i class="fas fa-industry text-4xl drop-shadow-md"></i>
-            </div>
-            <h2 class="text-3xl font-extrabold mb-3 text-gray-800 transition-colors duration-300">Manufacturer</h2>
-            <p class="text-gray-800 font-medium text-sm leading-relaxed">Brew up new products and track your manufacturing.</p>
-        </a>
+            <!-- Warehouse Login -->
+            <a href="{{ url('/warehouse/login') }}" class="glass-card card-lemon rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer group active:scale-95 h-full">
+                <div class="icon-bg w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-4 sm:mb-5 shadow-xl transition-all duration-300 group-hover:-rotate-12 group-hover:scale-110">
+                    <i class="fas fa-warehouse text-2xl sm:text-3xl drop-shadow-md"></i>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-extrabold mb-1.5 sm:mb-3 text-gray-800 transition-colors duration-300">Warehouse</h2>
+                <p class="text-gray-800 font-medium text-xs sm:text-sm leading-relaxed">Keep your inventory fresh, stocked, and flowing.</p>
+            </a>
 
-    </div>
+            <!-- Manufacturer Login -->
+            <a href="{{ url('/manufacture/login') }}" class="glass-card card-orange rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer group active:scale-95 h-full">
+                <div class="icon-bg w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-4 sm:mb-5 shadow-xl transition-all duration-300 group-hover:rotate-12 group-hover:scale-110">
+                    <i class="fas fa-industry text-2xl sm:text-3xl drop-shadow-md"></i>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-extrabold mb-1.5 sm:mb-3 text-gray-800 transition-colors duration-300">Manufacturer</h2>
+                <p class="text-gray-800 font-medium text-xs sm:text-sm leading-relaxed">Brew up new products and track your manufacturing.</p>
+            </a>
 
-    <div class="mt-16 text-white font-bold text-sm z-10 drop-shadow-md bg-black bg-opacity-20 px-6 py-2 rounded-full">
-        &copy; {{ date('Y') }} Desai System. All rights reserved.
-    </div>
+            <!-- Driver / Sales Executive -->
+            <a href="#" class="glass-card card-driver rounded-2xl sm:rounded-3xl p-6 sm:p-7 md:p-8 flex flex-col items-center justify-center text-center cursor-pointer group active:scale-95 h-full w-full">
+                <div class="icon-bg w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mb-4 sm:mb-5 shadow-xl transition-all duration-300 group-hover:-rotate-12 group-hover:scale-110 relative">
+                    <i class="fas fa-truck-fast text-2xl sm:text-3xl drop-shadow-md"></i>
+                    <span class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white text-rose-600 flex items-center justify-center shadow-md text-xs">
+                        <i class="fas fa-mobile-screen-button"></i>
+                    </span>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-extrabold mb-1.5 sm:mb-2 text-gray-800 transition-colors duration-300 leading-snug">Driver / Sales Executive</h2>
+                <p class="text-gray-800 font-medium text-xs sm:text-sm leading-relaxed mb-3">Access deliveries, routes, attendance, and shop orders on the go.</p>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/60 text-rose-700 border border-rose-200 shadow-sm">
+                    <i class="fas fa-mobile-alt"></i> Mobile App Access
+                </span>
+            </a>
+
+        </div>
+
+        <div class="mt-8 sm:mt-12 md:mt-16 text-white font-bold text-xs sm:text-sm text-center drop-shadow-md bg-black bg-opacity-20 px-5 sm:px-6 py-2 rounded-full">
+            &copy; {{ date('Y') }} Desai System. All rights reserved.
+        </div>
+    </main>
 
 </body>
 </html>
